@@ -1,0 +1,32 @@
+:root {
+    --brand-primary: #1D4ED8;
+    --brand-secondary: #F59E0B;
+
+    --sidebar-bg: #ffffff;
+    --sidebar-hover: #f8fafc;
+    --sidebar-active: #fef3c7;
+
+    --page-bg: #f5f7fa;
+
+    --card-bg: #ffffff;
+
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+
+    --primary:#2563EB;
+    --primary-hover:#1D4ED8;
+
+    --success:#16A34A;
+    --warning:#F59E0B;
+    --danger:#DC2626;
+
+    --sidebar:#FFFFFF;
+    --background:#F5F7FA;
+
+    --text:#111827;
+    --muted:#6B7280;
+
+    --border:#E5E7EB;
+
+    --radius:14px;
+}
