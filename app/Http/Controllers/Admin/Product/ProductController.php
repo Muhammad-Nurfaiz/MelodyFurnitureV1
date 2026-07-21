@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Series;
 use App\Services\Product\ProductService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -134,7 +135,9 @@ class ProductController extends Controller
     public function destroy(Product $product)
     {
         $this->service->delete($product);
-
+        Storage::disk('public')->deleteDirectory(
+            "products/{$product->id}"
+        );
         return redirect()
             ->route('admin.products.index')
             ->with(

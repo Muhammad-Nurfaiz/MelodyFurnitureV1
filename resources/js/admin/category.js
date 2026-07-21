@@ -79,19 +79,21 @@ window.categoryCrud = (config) => ({
 
     openDelete(category) {
 
-        this.alert = {
-            title: 'Hapus Kategori',
-            message: `Kategori "${category.name}" akan dihapus. Tindakan ini tidak dapat dibatalkan.`,
-            action: `${this.updateUrl}/${category.id}`,
-        };
+        this.$dispatch('open-alert', {
+            name: 'delete-category',
 
-        this.showAlert('delete-category');
+            title: 'Hapus Kategori',
+
+            message: `Kategori "${category.name}" akan dihapus. Tindakan ini tidak dapat dibatalkan.`,
+
+            action: `${this.updateUrl}/${category.id}`,
+        });
 
     },
 
     closeAlert() {
 
-        this.hideAlert('delete-category');
+        this.$dispatch('close-alert','delete-category');
 
     },
 

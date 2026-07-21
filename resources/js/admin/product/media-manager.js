@@ -7,6 +7,7 @@ export default (existingMedia = []) => ({
     sortable: null,
     uploading: false,
     uploadError: null,
+    isSubmitting: false,
 
     init() {
 
@@ -17,11 +18,22 @@ export default (existingMedia = []) => ({
 
         this.$nextTick(() => {
             this.initSortable();
-            
+
         });
 
         window.addEventListener("beforeunload", () => {
-            this.media.forEach(item => this.revokeObjectURL(item));
+            if (!this.isSubmitting) {
+                this.cleanupTemporaryMedia();
+            }
+        });
+
+        window.addEventListener("pagehide", () => {
+            if (!this.isSubmitting) {
+                this.cleanupTemporaryMedia();
+            }
+        });
+        window.addEventListener("beforeunload", () => {
+            console.log("cleanup...");
         });
 
     },
@@ -50,6 +62,40 @@ export default (existingMedia = []) => ({
         }
 
         return data.data;
+    },
+
+    async cleanupTemporaryMedia() {
+
+        const ids = this.media
+            .filter(item => item.temporary)
+            .map(item => item.id);
+
+        if (!ids.length) {
+            return;
+        }
+
+        try {
+
+            fetch("/admin/media/temporary/cleanup", {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": document
+                        .querySelector('meta[name="csrf-token"]')
+                        .content,
+                    "Accept": "application/json",
+                },
+                body: JSON.stringify({
+                    ids
+                }),
+            });
+
+        } catch (e) {
+
+            console.error("Cleanup gagal", e);
+
+        }
+
     },
 
     /*
@@ -102,11 +148,11 @@ export default (existingMedia = []) => ({
         }
     },
 
-    /*
-    |--------------------------------------------------------------------------
-    | Thumbnail
-    |--------------------------------------------------------------------------
-    */
+/*
+|--------------------------------------------------------------------------
+| Thumbnail
+|--------------------------------------------------------------------------
+*/
 
     setMain(index) {
 
@@ -133,7 +179,7 @@ export default (existingMedia = []) => ({
                         "X-CSRF-TOKEN": document
                             .querySelector('meta[name="csrf-token"]')
                             .content,
-                        "Accept":"application/json"
+                        "Accept": "application/json"
                     }
                 }
             );
@@ -145,27 +191,26 @@ export default (existingMedia = []) => ({
         else if (item.uploaded) {
             this.deletedMedia.push(item.id);
         }
-        this.media.splice(index,1);
-        if(
-            !this.media.some(x=>x.is_main)
+        this.media.splice(index, 1);
+        if (
+            !this.media.some(x => x.is_main)
             &&
             this.media.length
-        ){
-            this.media[0].is_main=true;
+        ) {
+            this.media[0].is_main = true;
         }
     },
 
     findMain() {
 
         return this.media.find(item => item.is_main);
-
     },
 
-    /*
-    |--------------------------------------------------------------------------
-    | Sortable
-    |--------------------------------------------------------------------------
-    */
+/*
+|--------------------------------------------------------------------------
+| Sortable
+|--------------------------------------------------------------------------
+*/
 
     initSortable() {
 
@@ -224,7 +269,7 @@ export default (existingMedia = []) => ({
 
     },
 
-    get mainMediaId() {
+        get mainMediaId() {
 
         return this.mainMedia
             ? this.mainMedia.id
@@ -232,7 +277,7 @@ export default (existingMedia = []) => ({
 
     },
 
-    get hasMedia() {
+        get hasMedia() {
 
         return this.media.length > 0;
 

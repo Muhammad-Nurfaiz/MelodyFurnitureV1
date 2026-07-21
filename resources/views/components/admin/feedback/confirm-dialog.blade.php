@@ -14,11 +14,19 @@ $widths = [
 @endphp
 
 <div
-    x-data="{ open:false }"
+    x-data="{ 
+    open:false,
+    alert:{
+            title:'',
+            message:'',
+            action:''
+        }
+    }"
     x-cloak
 
     x-on:open-alert.window="
         if($event.detail.name === '{{ $name }}'){
+            alert = $event.detail;
             open = true;
         }
     "

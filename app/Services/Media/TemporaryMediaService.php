@@ -7,6 +7,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class TemporaryMediaService
 {
@@ -43,7 +44,7 @@ class TemporaryMediaService
 
                 'size'       => $file->getSize(),
 
-                'expires_at' => now()->addDay(),
+                'expires_at' => now()->addMinutes(3),
 
             ]);
         });
@@ -72,7 +73,7 @@ class TemporaryMediaService
     {
         return TemporaryMedia::query()
             ->whereKey($uuid)
-            ->where('user_id', auth()->id())
+            ->where('admin_id', auth()->id())
             ->firstOrFail();
     }
 
@@ -154,5 +155,41 @@ class TemporaryMediaService
                 $media->delete();
 
             });
+    }
+    
+    public function cleanupExpired(): int
+    {
+        $expiredMedia = TemporaryMedia::where(
+            'expires_at',
+            '<=',
+            now()
+        )->get();
+
+        foreach ($expiredMedia as $media) {
+
+            Storage::disk($media->disk)->delete($media->path);
+
+            $media->delete();
+
+        }
+
+        return $expiredMedia->count();
+    }
+
+    public function cleanup(array $ids): void
+    {
+        if (empty($ids)) {
+            return;
+        }
+
+        $media = TemporaryMedia::whereIn('id', $ids)->get();
+
+        foreach ($media as $item) {
+
+            Storage::disk('public')->delete($item->path);
+
+            $item->delete();
+
+        }
     }
 }

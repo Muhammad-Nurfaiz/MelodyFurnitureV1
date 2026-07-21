@@ -47,92 +47,34 @@ class ProductService
      */
     public function update(Product $product, array $data): Product
     {
-        return DB::transaction(function () use ($product, $data) {
+            return DB::transaction(function () use ($product, $data) {
 
-            $this->updateProduct($product, $data);
+                $this->updateProduct($product, $data);
 
-            $this->updateSpecification($product, $data);
+                $this->updateSpecification($product, $data);
 
-            /*
-            |--------------------------------------------------------------------------
-            | Delete Media Lama
-            |--------------------------------------------------------------------------
-            */
+                if (!empty($data['deleted_media'])) {
+                    $this->mediaService->deleteMedia(
+                        $product,
+                        $data['deleted_media']
+                    );
+                }
 
-            if (!empty($data['deleted_media'])) {
-
-                $this->mediaService->deleteMedia(
+                $this->mediaService->attachTemporaryMedia(
                     $product,
-                    $data['deleted_media']
+                    $data['temporary_media'] ?? [],
+                    $data['media_order'] ?? [],
+                    $data['main_media'] ?? null,
                 );
 
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | Upload Gallery Baru
-            |--------------------------------------------------------------------------
-            */
-
-            
-
-            /*
-            |--------------------------------------------------------------------------
-            | Sync Media
-            |--------------------------------------------------------------------------
-            */
-
-            $this->mediaService->attachTemporaryMedia(
-
-                $product,
-
-                $data['temporary_media'] ?? [],
-
-                $data['media_order'] ?? [],
-
-                $data['main_media'] ?? null,
-
-            );
-
-            /*
-            |--------------------------------------------------------------------------
-            | Update Thumbnail
-            |--------------------------------------------------------------------------
-            */
-
-            // if (!empty($data['main_media'])) {
-
-            //     $this->mediaService->setMainMedia(
-            //         $product,
-            //         $data['main_media']
-            //     );
-
-            // }
-
-            /*
-            |--------------------------------------------------------------------------
-            | Update Sorting
-            |--------------------------------------------------------------------------
-            */
-
-            // if (!empty($data['media_order'])) {
-
-            //     $this->mediaService->updateSortOrder(
-            //         $product,
-            //         $data['media_order']
-            //     );
-
-            // }
-
-            return $product->fresh([
-                'category',
-                'series',
-                'thumbnail',
-                'media',
-                'specification',
-            ]);
-
-        });
+                return $product->fresh([
+                    'category',
+                    'series',
+                    'thumbnail',
+                    'media',
+                    'specification',
+                ]);
+            });
     }
 
     protected function updateProduct(
@@ -342,5 +284,21 @@ class ProductService
             $counter++;
         }
         return $slug;
+    }
+
+    public function delete(Product $product): void
+    {
+        DB::transaction(function () use ($product) {
+
+            // hapus seluruh gallery
+            $this->mediaService->deleteAll($product);
+
+            // hapus specification
+            $product->specification()?->delete();
+
+            // hapus produk
+            $product->delete();
+
+        });
     }
 }

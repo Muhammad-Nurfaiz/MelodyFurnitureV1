@@ -102,20 +102,20 @@ window.seriesCrud = (config) => ({
 
     openDelete(series) {
 
-        this.alert = {
-            title: 'Hapus Series',
-            message: `Series "${series.name}" akan dihapus. Tindakan ini tidak dapat dibatalkan.`,
-            action: `${this.updateUrl}/${series.id}`,
-        };
+        this.$dispatch('open-alert', {
+            name: 'delete-series',
 
-        this.showAlert('delete-series');
+            title: 'Hapus Series',
+
+            message: `Series "${series.name}" akan dihapus. Tindakan ini tidak dapat dibatalkan.`,
+
+            action: `${this.updateUrl}/${series.id}`,
+        });
 
     },
 
     closeAlert() {
-
-        this.hideAlert('delete-series');
-
+        this.$dispatch('close-alert','delete-series');
     },
 
 });

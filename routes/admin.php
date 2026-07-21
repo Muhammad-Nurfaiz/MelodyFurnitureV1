@@ -53,5 +53,9 @@ Route::prefix('admin')
             'media/temporary/{id}',
             [TemporaryMediaController::class, 'destroy']
         )->name('media.temporary.destroy');
-
+        
+        Route::delete(
+            'media/temporary/cleanup',
+            [TemporaryMediaController::class, 'cleanup']
+        )->name('media.temporary.cleanup');
     });

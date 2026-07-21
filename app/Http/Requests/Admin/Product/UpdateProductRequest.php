@@ -196,6 +196,16 @@ class UpdateProductRequest extends FormRequest
                     ->max(2048),
             ],
 
+            'temporary_media' => [
+                'nullable',
+                'array',
+            ],
+
+            'temporary_media.*' => [
+                'uuid',
+                'exists:temporary_media,id',
+            ],
+
             // Media Manager
             'media_order' => [
                 'nullable',

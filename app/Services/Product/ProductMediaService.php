@@ -309,4 +309,25 @@ class ProductMediaService
         }
 
     }
+
+    public function deleteAll(Product $product): void
+    {
+        $media = $product->media()->get();
+
+        foreach ($media as $item) {
+
+            Storage::disk('public')->delete($item->media_url);
+
+            if (
+                $item->thumbnail_url &&
+                $item->thumbnail_url !== $item->media_url
+            ) {
+                Storage::disk('public')->delete(
+                    $item->thumbnail_url
+                );
+            }
+
+            $item->delete();
+        }
+    }
 }
