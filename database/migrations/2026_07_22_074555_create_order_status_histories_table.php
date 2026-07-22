@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('order_items', function (Blueprint $table) {
+        Schema::create('order_status_histories', function (Blueprint $table) {
 
             $table->uuid('id')->primary();
 
@@ -25,35 +25,36 @@ return new class extends Migration
                 ->constrained('orders')
                 ->cascadeOnDelete();
 
-            $table->foreignUuid('product_id')
-                ->constrained('products')
-                ->cascadeOnDelete();
-
             /*
             |--------------------------------------------------------------------------
-            | Product Snapshot
+            | Status
             |--------------------------------------------------------------------------
             */
 
-            $table->string('product_name');
-
-            $table->string('product_slug');
-
-            $table->string('product_image');
+            $table->string('status');
 
             /*
             |--------------------------------------------------------------------------
-            | Order Detail
+            | Description
             |--------------------------------------------------------------------------
             */
 
-            $table->unsignedInteger('quantity');
+            $table->text('description')
+                ->nullable();
 
-            $table->decimal('unit_price', 12, 2);
+            /*
+            |--------------------------------------------------------------------------
+            | Actor
+            |--------------------------------------------------------------------------
+            */
 
-            $table->decimal('subtotal', 12, 2);
+            $table->foreignUuid('created_by')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
 
             $table->timestamps();
+
         });
     }
 
@@ -62,6 +63,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('order_items');
+        Schema::dropIfExists('order_status_histories');
     }
 };

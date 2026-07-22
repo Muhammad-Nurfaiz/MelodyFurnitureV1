@@ -15,22 +15,71 @@ return new class extends Migration
 
             $table->uuid('id')->primary();
 
+            /*
+            |--------------------------------------------------------------------------
+            | Relation
+            |--------------------------------------------------------------------------
+            */
+
             $table->foreignUuid('order_id')
                 ->unique()
                 ->constrained('orders')
                 ->cascadeOnDelete();
 
-            $table->string('target_bank',50);
+            /*
+            |--------------------------------------------------------------------------
+            | Midtrans
+            |--------------------------------------------------------------------------
+            */
 
-            $table->string('va_number',50);
+            $table->string('transaction_id')
+                ->nullable();
 
-            $table->dateTime('expiry_time');
+            $table->string('snap_token')
+                ->nullable();
 
-            $table->enum('status',[
-                'awaiting_payment',
-                'paid',
-                'expired'
-            ])->default('awaiting_payment');
+            $table->string('payment_type')
+                ->nullable();
+
+            $table->string('transaction_status')
+                ->default('pending');
+
+            $table->string('fraud_status')
+                ->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Payment Detail
+            |--------------------------------------------------------------------------
+            */
+
+            $table->decimal('gross_amount', 12, 2);
+
+            $table->string('bank')
+                ->nullable();
+
+            $table->string('va_number')
+                ->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Time
+            |--------------------------------------------------------------------------
+            */
+
+            $table->timestamp('expired_at');
+
+            $table->timestamp('paid_at')
+                ->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Raw Callback Midtrans
+            |--------------------------------------------------------------------------
+            */
+
+            $table->json('raw_response')
+                ->nullable();
 
             $table->timestamps();
         });
