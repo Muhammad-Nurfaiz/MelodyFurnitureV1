@@ -24,13 +24,18 @@
 <div
     x-data="{
         sidebarOpen: false,
-        sidebarCollapsed: false,
+        sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true',
         isMobile: false,
         tooltip:{
             show:false,
             text:'',
             x:0,
             y:0,
+        },
+        toggleCollapse() {
+            this.sidebarCollapsed = !this.sidebarCollapsed;
+            localStorage.setItem('sidebarCollapsed', this.sidebarCollapsed);
+            this.tooltip.show = false;
         },
         init() {
             const updateScreen = () => {
@@ -44,7 +49,7 @@
                 } else {
 
                     this.sidebarOpen = false;
-
+                    this.sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
                 }
 
             };

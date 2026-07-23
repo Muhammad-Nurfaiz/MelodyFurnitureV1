@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\Series\SeriesController;
 use App\Http\Controllers\Admin\Product\ProductController;
 use App\Http\Controllers\Admin\Product\ProductMediaController;
 use App\Http\Controllers\Admin\Media\TemporaryMediaController;
+use App\Http\Controllers\Admin\Order\OrderController;
 
 Route::middleware(['auth'])
     ->prefix('admin')
@@ -36,6 +37,9 @@ Route::middleware(['auth'])
             'products/media/{media}',
             [ProductMediaController::class, 'destroy']
         )->name('products.media.destroy');
+
+        Route::get('/orders', [OrderController::class, 'index'])
+            ->name('orders.index');
 
     });
 

@@ -40,8 +40,7 @@
 
         {{-- Desktop Collapse --}}
         <button
-            @click="sidebarCollapsed = !sidebarCollapsed;
-                tooltip.show = false;"
+            @click="toggleCollapse();"
             class="hidden rounded-lg p-2 transition hover:bg-gray-100 lg:flex">
 
             {{-- Expanded --}}
