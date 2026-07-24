@@ -23,7 +23,8 @@ return new class extends Migration
 
             $table->foreignUuid('order_id')
                 ->constrained('orders')
-                ->cascadeOnDelete();
+                ->cascadeOnDelete()
+                ->index();
 
             /*
             |--------------------------------------------------------------------------
@@ -31,7 +32,7 @@ return new class extends Migration
             |--------------------------------------------------------------------------
             */
 
-            $table->string('status');
+            $table->string('status')->index();
 
             /*
             |--------------------------------------------------------------------------
@@ -50,8 +51,9 @@ return new class extends Migration
 
             $table->foreignUuid('created_by')
                 ->nullable()
-                ->constrained('users')
-                ->nullOnDelete();
+                ->constrained('admins')
+                ->nullOnDelete()
+                ->index();
 
             $table->timestamps();
 

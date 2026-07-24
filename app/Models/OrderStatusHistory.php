@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Admin;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
@@ -39,7 +40,7 @@ class OrderStatusHistory extends Model
     public function admin()
     {
         return $this->belongsTo(
-            User::class,
+            Admin::class,
             'created_by'
         );
     }

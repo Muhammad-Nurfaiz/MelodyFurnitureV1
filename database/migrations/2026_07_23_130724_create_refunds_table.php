@@ -11,24 +11,37 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('order_cancel_requests', function (Blueprint $table) {
+        Schema::create('refunds', function (Blueprint $table) {
             $table->id();
 
             $table->foreignId('order_id')
                 ->constrained()
                 ->cascadeOnDelete();
 
-            $table->foreignId('customer_id')
+            $table->foreignId('payment_id')
                 ->constrained()
                 ->cascadeOnDelete();
 
             /*
             |--------------------------------------------------------------------------
-            | Request
+            | Refund
             |--------------------------------------------------------------------------
             */
 
-            $table->text('reason');
+            $table->decimal(
+                'amount',
+                15,
+                2
+            );
+
+            $table->string('bank_name')
+                ->nullable();
+
+            $table->string('account_name')
+                ->nullable();
+
+            $table->string('account_number')
+                ->nullable();
 
             /*
             |--------------------------------------------------------------------------
@@ -36,9 +49,10 @@ return new class extends Migration
             |--------------------------------------------------------------------------
             */
 
-            $table->enum('status', [
+            $table->enum('status',[
                 'pending',
-                'approved',
+                'processing',
+                'completed',
                 'rejected',
             ])->default('pending');
 
@@ -48,12 +62,12 @@ return new class extends Migration
             |--------------------------------------------------------------------------
             */
 
-            $table->foreignId('approved_by')
+            $table->foreignId('processed_by')
                 ->nullable()
                 ->constrained('users')
                 ->nullOnDelete();
 
-            $table->text('admin_notes')
+            $table->text('notes')
                 ->nullable();
 
             /*
@@ -62,11 +76,15 @@ return new class extends Migration
             |--------------------------------------------------------------------------
             */
 
-            $table->timestamp('approved_at')
+            $table->timestamp('requested_at');
+
+            $table->timestamp('processed_at')
+                ->nullable();
+
+            $table->timestamp('completed_at')
                 ->nullable();
 
             $table->timestamps();
-
         });
     }
 
@@ -75,6 +93,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('order_cancel_requests');
+        Schema::dropIfExists('refunds');
     }
 };

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Order extends Model
 {
@@ -188,5 +189,26 @@ class Order extends Model
     public function isPending(): bool
     {
         return $this->status === 'pending';
+    }
+
+    public function cancelRequest(): HasOne
+    {
+        return $this->hasOne(
+            OrderCancelRequest::class
+        );
+    }
+
+    public function refund(): HasOne
+    {
+        return $this->hasOne(
+            Refund::class
+        );
+    }
+
+    public function shipment(): HasOne
+    {
+        return $this->hasOne(
+            Shipment::class
+        );
     }
 }

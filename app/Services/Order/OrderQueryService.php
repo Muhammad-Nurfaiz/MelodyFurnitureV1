@@ -14,13 +14,24 @@ class OrderQueryService
     | Base Query
     |--------------------------------------------------------------------------
     */
-
     public function query(): Builder
     {
-        return Order::query()->with([
-            'customer',
-            'payment',
-        ]);
+        return Order::query()
+            ->with([
+                'customer',
+                'payment',
+            ]);
+    }
+
+    public function detail(): Builder
+    {
+        return $this->query()
+            ->with([
+                'items.product',
+                'payment',
+                'statusHistories',
+                'cancellationRequest',
+            ]);
     }
 
     /*
@@ -46,23 +57,48 @@ class OrderQueryService
     public function find(
         int $id
     ): ?Order {
-        return $this->query()
-            ->with([
-                'items.product',
-                'statusHistories',
-            ])
+        return $this->detail()
             ->find($id);
     }
 
     public function findByNumber(
         string $number
     ): ?Order {
-        return $this->query()
+        return $this->detail()
             ->where(
                 'order_number',
                 $number
             )
             ->first();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Find By Tracking Token
+    |--------------------------------------------------------------------------
+    */
+    public function findByTrackingToken(
+        string $trackingToken
+    ): ?Order {
+        return $this->detail()
+            ->where(
+                'tracking_token',
+                $trackingToken
+            )
+            ->first();
+    }
+
+    public function byTrackingToken(
+        string $trackingToken
+    ): Builder {
+
+        return $this->query()
+
+            ->where(
+                'tracking_token',
+                $trackingToken
+            );
+
     }
 
     /*
@@ -74,7 +110,7 @@ class OrderQueryService
     public function customerOrders(
         Customer $customer
     ): Builder {
-        return $this->query()
+        return $this->detail()
             ->where(
                 'customer_id',
                 $customer->id
@@ -158,6 +194,11 @@ class OrderQueryService
         return $query->where(function ($q) use ($keyword) {
             $q->where(
                 'order_number',
+                'like',
+                "%{$keyword}%"
+            )
+            ->orWhere(
+                'tracking_token',
                 'like',
                 "%{$keyword}%"
             )

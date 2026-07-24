@@ -166,6 +166,27 @@ class PaymentService
 
     }
 
+    public function markRefunded(
+        Payment $payment,
+        ?array $payload = null
+    ): Payment {
+
+        $payment->update([
+
+            'status' => 'refunded',
+
+            'paid_at' => $payment->paid_at,
+
+            'raw_response' => $payload
+                ? json_encode($payload)
+                : $payment->raw_response,
+
+        ]);
+
+        return $payment->fresh();
+
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Midtrans Notification

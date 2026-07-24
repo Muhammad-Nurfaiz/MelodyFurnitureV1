@@ -17,6 +17,7 @@ use App\Services\Shipping\ShippingService;
 use App\Services\Order\OrderNumberService;
 use App\Services\Order\OrderWorkflowService;
 use App\Services\Order\OrderCalculatorService;
+use App\Services\Order\OrderTrackingTokenService;
 
 class OrderService
 {
@@ -29,6 +30,7 @@ class OrderService
         protected OrderNumberService $numberService,
         protected OrderWorkflowService $workflowService,
         protected OrderCalculatorService $calculatorService,
+        protected OrderTrackingTokenService $trackingTokenService,
     ) {}
 
     public function create(array $data): Order
@@ -110,6 +112,7 @@ class OrderService
                     'customer_id' => $customer->id,
                     'voucher_id' => $voucher?->id,
                     'order_number' => $this->numberService->generate(),
+                    'tracking_token' => $this->trackingTokenService->generate(),
                     'subtotal' => $summary['subtotal'],
                     'voucher_discount' => $summary['voucher_discount'],
                     'shipping_fee' => $summary['shipping_fee'],
