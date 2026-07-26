@@ -64,7 +64,7 @@ return new class extends Migration
 
             $table->foreignId('processed_by')
                 ->nullable()
-                ->constrained('users')
+                ->constrained('admins')
                 ->nullOnDelete();
 
             $table->text('notes')

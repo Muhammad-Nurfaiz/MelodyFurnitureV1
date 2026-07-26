@@ -7,9 +7,10 @@ use App\Models\Admin;
 use App\Models\Customer;
 use App\Models\OrderCancelRequest;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 use App\Services\Payment\RefundService;
 use App\Services\Payment\PaymentService;
-use App\Services\Product\ProductInventoryService;
+use App\Services\Inventory\ProductInventoryService;
 use RuntimeException;
 
 class OrderCancellationService
@@ -28,201 +29,113 @@ class OrderCancellationService
     |--------------------------------------------------------------------------
     */
 
-    public function request(
-        Order $order,
-        Customer $customer,
-        string $reason
-    ): OrderCancelRequest {
-        $this->validateRequest(
-            $order,
-            $customer
-        );
-        return DB::transaction(function () use (
-            $order,
-            $customer,
-            $reason
-        ) {
-            $request =
-                OrderCancelRequest::create([
-                    'order_id' => $order->id,
-                    'customer_id' => $customer->id,
-                    'reason' => $reason,
-                    'previous_status' => $order->status,
-                    'status' => 'pending',
-                ]);
-            $this->workflowService
-                ->changeStatus(
-                    $order,
-                    'req_cancel',
-                    'Cancel requested by customer',
-                    $customer->admin?->name
-                );
+    public function requestByCustomer(Order $order,string $reason): OrderCancelRequest {
+        $this->validateCustomerRequest($order);
+        return DB::transaction(function () use ($order,$reason) {
+            $request = $this->createCancellationRequest($order,$reason);
+            $this->cancelWorkflow($order);
             return $request;
         });
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Admin Approve
-    |--------------------------------------------------------------------------
-    */
+    private function createCancellationRequest(Order $order,string $reason): OrderCancelRequest {
+        return OrderCancelRequest::create([
+            'order_id' => $order->id,
+            'customer_id' => $order->customer_id,
+            'reason' => $reason,
+            'previous_status' => $order->status,
+            'status' => 'pending',
+        ]);
+    }
 
-    public function approve(
-        OrderCancelRequest $request,
-        Admin $admin,
-        ?string $notes = null
-    ): Order {
-        return DB::transaction(function () use (
-            $request,
-            $admin,
-            $notes
-        ) {
-            $request->update([
-                'status' => 'approved',
-                'approved_by' => $admin->id,
-                'admin_notes' => $notes,
-                'approved_at' => now(),
-            ]);
+    private function cancelWorkflow(Order $order): void {
+        $this->workflowService->changeStatus($order,'req_cancel','Customer requested cancellation.',null);
+    }
+
+    public function approve(OrderCancelRequest $request,Admin $admin,?string $notes = null): Order {
+        $this->validateApproval($request);
+        return DB::transaction(function () use ($request,$admin,$notes) {
+            $this->approveCancellationRequest($request,$admin,$notes);
             $order = $request->order;
-            $order->loadMissing([
+            $order->loadMissing(['payment','refund','items.product',]);
+            $this->restoreInventory($order);
+            $this->processRefund($order);
+            $this->workflowService->changeStatus($order,'cancelled','Cancellation approved.',$admin->name);
+            return $order->fresh(['payment','refund','items.product',]);
+        });
+    }
 
-                'payment',
+    private function approveCancellationRequest(OrderCancelRequest $request,Admin $admin,?string $notes): void {
+        $request->update([
+            'status' => 'approved',
+            'approved_by' => $admin->id,
+            'admin_notes' => $notes,
+            'approved_at' => now(),
+        ]);
+    }
 
-                'items.product',
+    private function restoreInventory(Order $order): void {
+        $this->inventoryService->increaseStock($this->buildInventoryCollection($order));
+    }
 
-            ]);
+    private function buildInventoryCollection(Order $order): Collection {
+        return $order->items->map(fn ($item) => ['product' => $item->product,'qty' => $item->quantity,]);
+    }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Restore Stock
-            |--------------------------------------------------------------------------
-            */
+    private function processRefund(Order $order): void {
+        if (! $order->payment) {
+            return;
+        }
 
-            $products =
+        if (! $this->paymentService->isPaid($order->payment)) {
+            return;
+        }
 
-                $order->items->map(function ($item) {
+        $this->paymentService->markRefunded($order->payment);
 
-                    return [
+        if (! $order->refund()->exists()) {
+            $this->refundService->create($order);
+        }
+    }
 
-                        'product' => $item->product,
-
-                        'qty' => $item->quantity,
-
-                    ];
-
-                });
-
-            $this->inventoryService
-                ->increaseStock($products);
-
-            /*
-            |--------------------------------------------------------------------------
-            | Payment
-            |--------------------------------------------------------------------------
-            */
-
-            $this->paymentService
-                ->markRefunded(
-                    $order->payment
-                );
-
-            /*
-            |--------------------------------------------------------------------------
-            | Refund
-            |--------------------------------------------------------------------------
-            */
-
-            $this->refundService
-                ->create($order);
-
-            /*
-            |--------------------------------------------------------------------------
-            | Workflow
-            |--------------------------------------------------------------------------
-            */
-
-            $this->workflowService
-                ->changeStatus(
-
-                    $order,
-
-                    'cancelled',
-
-                    'Cancellation approved',
-
-                    $admin->name
-
-                );
-
-            return $order->fresh([
-
-                'refund',
-
-                'payment',
-
-                'items.product',
-
-            ]);
+    public function reject(OrderCancelRequest $request,Admin $admin,?string $notes = null): Order {
+        $this->validateRejection($request);
+        return DB::transaction(function () use ($request,$admin,$notes) {
+            $this->rejectCancellationRequest($request,$admin,$notes);
+            $order = $request->order;
+            $this->workflowService->changeStatus($order,$request->previous_status,'Cancellation rejected.',$admin->name);
             return $order->fresh();
         });
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Admin Reject
-    |--------------------------------------------------------------------------
-    */
-
-    public function reject(
-        OrderCancelRequest $request,
-         $admin,
-        ?string $notes = null
-    ): Order {
-        return DB::transaction(function () use (
-            $request,
-            $admin,
-            $notes
-        ) {
-            $request->update([
-                'status' => 'rejected',
-                'approved_by' => $admin->id,
-                'admin_notes' => $notes,
-                'approved_at' => now(),
-            ]);
-            $order = $request->order;
-            $order->refresh();
-            $this->workflowService
-                ->changeStatus(
-                    $order,
-                    $request->previous_status,
-                    'Cancellation rejected',
-                    $admin->name
-                );
-            return $order->fresh();
-        });
+    private function validateRejection(OrderCancelRequest $request): void {
+        if (! $request->isPending()) {
+            throw new RuntimeException('Hanya permintaan pending yang dapat ditolak.');
+        }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Validator
-    |--------------------------------------------------------------------------
-    */
+    private function validateApproval(OrderCancelRequest $request): void {
+        if ($request->status !== 'pending') {
+            throw new RuntimeException('Hanya permintaan pending yang bisa disetujui.');
+        }
+    }
 
-    protected function validateRequest(
-        Order $order,
-        Customer $customer
-    ): void {
-        if ($order->customer_id !== $customer->id) {
-            throw new RuntimeException('Order tidak dimiliki customer.');
+    private function validateCustomerRequest(Order $order): void {
+        if (! in_array($order->status,['pending','paid','processing',])) {
+            throw new RuntimeException('Order tidak dapat dibatalkan.');
         }
-        if ($order->status === 'cancelled') {
-            throw new RuntimeException('Order sudah dibatalkan.');
+
+        if ($order->cancellationRequest()->where('status', 'pending')->exists()) {
+            throw new RuntimeException('Permintaan pembatalan sudah pernah dibuat.');
         }
-        if ($order->status === 'completed') {
-            throw new RuntimeException('Order sudah selesai.');
-        }
-        if ($order->cancelRequest) {
-            throw new RuntimeException('Order sudah memiliki permintaan pembatalan.');
-        }
+    }
+
+    private function rejectCancellationRequest(OrderCancelRequest $request,Admin $admin,?string $notes): void {
+        $request->update([
+            'status' => 'rejected',
+            'approved_by' => $admin->id,
+            'admin_notes' => $notes,
+            'approved_at' => now(),
+        ]);
     }
 }

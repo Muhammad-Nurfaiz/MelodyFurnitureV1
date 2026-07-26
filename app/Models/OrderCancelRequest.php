@@ -3,21 +3,41 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderCancelRequest extends Model
 {
+    use HasUuids;
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
+
         'order_id',
+
         'customer_id',
+
         'reason',
+
+        'previous_status',
+
         'status',
+
         'approved_by',
+
         'admin_notes',
+
         'approved_at',
+
     ];
 
     protected $casts = [
+
         'approved_at' => 'datetime',
+
     ];
 
     /*
@@ -43,7 +63,7 @@ class OrderCancelRequest extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(
-            User::class,
+            Admin::class,
             'approved_by'
         );
     }

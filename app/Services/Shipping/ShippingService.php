@@ -24,11 +24,6 @@ class ShippingService
         ?string $service = null
     ): float {
 
-        /**
-         * TODO:
-         * Integrasi RajaOngkir / Biteship
-         */
-
         return $this->defaultFee;
 
     }

@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use App\Models\Admin;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderStatusHistory extends Model
 {
@@ -15,41 +15,24 @@ class OrderStatusHistory extends Model
     public $incrementing = false;
 
     protected $fillable = [
-
         'order_id',
-
         'status',
-
         'description',
-
         'created_by',
-
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Relationships
-    |--------------------------------------------------------------------------
-    */
-
-    public function order()
+    public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
     }
 
-    public function admin()
+    public function admin(): BelongsTo
     {
         return $this->belongsTo(
             Admin::class,
             'created_by'
         );
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helpers
-    |--------------------------------------------------------------------------
-    */
 
     public function isAutomatic(): bool
     {

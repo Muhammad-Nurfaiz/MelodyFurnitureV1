@@ -65,43 +65,27 @@ class OrderService
         });
     }
 
-    public function checkout(
-        Customer $customer,
-        Collection $products,
-        ?Voucher $voucher,
-        array $shipping
-    ): Order {
+    public function checkout(Customer $customer,Collection $products,?Voucher $voucher,array $shipping): Order {
 
-        return DB::transaction(function () use (
-
-            $customer,
-            $products,
-            $voucher,
-            $shipping
-
-        ) {
-
+        return DB::transaction(function () use ($customer,$products,$voucher,$shipping) {
             /*
             |--------------------------------------------------------------------------
             | Validate Product Stock
             |--------------------------------------------------------------------------
             */
-            $this->inventoryService
-                ->validateStock($products);
+            $this->inventoryService->validateStock($products);
 
             /*
             |--------------------------------------------------------------------------
             | Calculate
             |--------------------------------------------------------------------------
             */
-            $summary =
-                $this->calculatorService
-                    ->calculate(
-                        products: $products,
-                        voucher: $voucher,
-                        courier: $shipping['courier'],
-                        service: $shipping['service'],
-                    );  
+            $summary = $this->calculatorService->calculate(
+                products: $products,
+                voucher: $voucher,
+                courier: $shipping['courier'],
+                service: $shipping['service'],
+            );
             /*
             |--------------------------------------------------------------------------
             | Create Order
@@ -123,239 +107,143 @@ class OrderService
                     'shipping_address' => $shipping['address'],
                     'status' => 'pending',
                     'payment_status' => 'pending',
-                    'payment_expired_at' =>
-                        now()->addMinutes(10),
-                ]);
+                    'payment_expired_at' => now()->addMinutes(config('payment.expired_minutes')),]);
 
             /*
             |--------------------------------------------------------------------------
             | Order Items
             |--------------------------------------------------------------------------
             */
-            $this->createOrderItems(
-                $order,
-                $products
-            );
+            $this->createOrderItems($order,$products);
 
             /*
             |--------------------------------------------------------------------------
             | Reduce Stock
             |--------------------------------------------------------------------------
             */
-            $this->inventoryService
-                ->decreaseStock(
-                    $products
-                );
+            $this->inventoryService->decreaseStock($products);
 
             /*
             |--------------------------------------------------------------------------
             | Midtrans
             |--------------------------------------------------------------------------
             */
-            $snap =
-                $this->midtransService
-                    ->createTransaction(
-                        $order
-                    );
+            try {
+                $snap = $this->midtransService->createTransaction($order);
+            } catch (\Throwable $e) {
+                throw new RuntimeException(
+                    'Gagal membuat transaksi pembayaran.',
+                    previous: $e
+                );
+            }
 
             /*
             |--------------------------------------------------------------------------
             | Payment
             |--------------------------------------------------------------------------
             */
-            $this->paymentService
-                ->create(
-                    $order,
-                    $snap
-                );
+            $this->paymentService->create($order,$snap);
 
             /*
             |--------------------------------------------------------------------------
             | History
             |--------------------------------------------------------------------------
             */
-            $this->workflowService->initialize(
-                $order,
-                'Checkout dibuat',
-                'system'
-            );
-            
-            return $order->fresh([
-                'customer',
-                'items',
-                'payment',
-            ]);
+            $this->workflowService->initialize($order,'Checkout dibuat','system');
+            return $order->fresh(['customer','items','payment',]);
         });
     }
 
-    private function createOrder(
-        array $data
-    ): Order {
+    private function createOrder(array $data): Order {
         return Order::create($data);
     }
 
-    private function createOrderItems(
-        Order $order,
-        Collection $products
-    ): void {
-        
+    private function createOrderItems(Order $order,Collection $products): void {
+        $items = [];
         foreach ($products as $item) {
-            OrderItem::create([
-                'order_id' => $order->id,
-                'product_id' => $item['product']->id,
-                'product_name' => $item['product']->name,
-                'product_slug' => $item['product']->slug,
+            $items[] = [
+                'order_id'          => $order->id,
+                'product_id'        => $item['product']->id,
+                'product_name'      => $item['product']->name,
+                'product_slug'      => $item['product']->slug,
                 'product_thumbnail' => $item['product']->thumbnail,
-                'quantity' => $item['qty'],
-                'unit_price' => $item['product']->price,
-                'subtotal' => $item['product']->price * $item['qty'],
-                'weight' => $item['product']->weight,
-                'total_weight' => $item['product']->weight * $item['qty'],
-            ]);
+                'quantity'          => $item['qty'],
+                'unit_price'        => $item['product']->price,
+                'subtotal'          => $item['product']->price * $item['qty'],
+                'weight'            => $item['product']->weight,
+                'total_weight'      => $item['product']->weight * $item['qty'],
+                'created_at'        => now(),
+                'updated_at'        => now(),
+            ];
         }
+        OrderItem::insert($items);
     }
 
-    public function cancelOrder(
-        Order $order,
-        ?string $reason = null,
-        ?string $createdBy = null
-    ): Order{
-        $this->workflowService->validate(
-            $order,
-            'cancelled'
-        );
+    public function cancelOrder(Order $order,?string $reason = null,?string $createdBy = null): Order{
+        $this->workflowService->validate($order,'cancelled');
 
-        return DB::transaction(function () use (
-
-            $order,
-            $reason,
-            $createdBy
-
-        ) {
-            $order->loadMissing([
-                'items.product',
-            ]);
+        return DB::transaction(function () use ($order,$reason,$createdBy) {
+            $order->loadMissing(['items.product',]);
             /*
             |--------------------------------------------------------------------------
             | Restore Product Stock
             |--------------------------------------------------------------------------
             */
-            $products = $order->items->map(function ($item) {
-                return [
-                    'product' => $item->product,
-                    'qty' => $item->quantity,
-                ];
-            });
-
-            $this->inventoryService
-                ->increaseStock(
-                    $products
-                );
+            $this->inventoryService->increaseStock($this->inventoryItems($order));
 
             /*
             |--------------------------------------------------------------------------
             | Update Order
             |--------------------------------------------------------------------------
             */
-            $this->workflowService
-                ->changeStatus(
-                    $order,
-                    'cancelled',
-                    $reason,
-                    $createdBy
-                );
-
-            return $order->fresh([
-                'payment',
-                'items.product',
-            ]);
-
+            $this->workflowService->changeStatus($order,'cancelled',$reason,$createdBy);
+            return $order->fresh(['payment','items.product',]);
         });
     }
 
-    public function expireOrder(
-        Order $order,
-        ?string $description = 'Payment expired'
-    ): Order {
-        $this->workflowService->validate(
-            $order,
-            'cancelled'
-        );
-        return DB::transaction(function () use (
-            $order,
-            $description
-        ) {
-            $order->update([
-                'payment_status'=>'expired',
-            ]);
+    public function expireOrder(Order $order,?string $description = 'Payment expired'): Order {
+        $this->workflowService->validate($order,'cancelled');
+        return DB::transaction(function () use ($order,$description) {
+            $order->update(['payment_status'=>'expired',]);
             /*
             |--------------------------------------------------------------------------
             | Load Relation
             |--------------------------------------------------------------------------
             */
-            $order->loadMissing([
-                'items.product',
-            ]);
+            $order->loadMissing(['items.product',]);
 
             /*
             |--------------------------------------------------------------------------
             | Restore Product Stock
             |--------------------------------------------------------------------------
             */
-            $products = $order->items->map(function ($item) {
-                return [
-                    'product' => $item->product,
-                    'qty' => $item->quantity,
-                ];
-            });
-            $this->inventoryService
-                ->increaseStock($products);
+            $this->inventoryService->increaseStock($this->inventoryItems($order));
 
             /*
             |--------------------------------------------------------------------------
             | Update Order
             |--------------------------------------------------------------------------
             */
-            $this->workflowService
-                ->changeStatus(
-                    $order,
-                    'cancelled',
-                    $description,
-                    'system'
-                );
-            return $order->fresh([
-                'items.product',
-                'payment',
-            ]);
+            $this->workflowService->changeStatus($order,'cancelled',$description,'system');
+            return $order->fresh(['items.product','payment']);
         });
     }
 
-    public function markPaid(
-        Order $order,
-        ?string $createdBy = 'system'
-    ): Order {
-        $this->workflowService->validate(
-            $order,
-            'paid'
-        );
-        return DB::transaction(function () use (
-            $order,
-            $createdBy
-        ) {
-            $order->update([
-                'payment_status'=>'paid',
-            ]);
-            $this->workflowService
-                ->changeStatus(
-                    $order,
-                    'paid',
-                    'Payment berhasil diterima',
-                    $createdBy
-                );
-            return $order->fresh([
-                'payment',
-                'items.product',
-            ]);
+    public function markPaid(Order $order,?string $createdBy = 'system'): Order {
+        $this->workflowService->validate($order,'paid');
+        return DB::transaction(function () use ($order,$createdBy) {
+            $order->update(['payment_status'=>'paid',]);
+            $this->workflowService->changeStatus($order,'paid','Payment berhasil diterima',$createdBy);
+            return $order->fresh(['payment','items.product',]);
         });
+    }
+
+    private function inventoryItems(Order $order): Collection {
+        return $order->items->map(
+            fn ($item) => [
+                'product' => $item->product,
+                'qty' => $item->quantity,
+            ]
+        );
     }
 }

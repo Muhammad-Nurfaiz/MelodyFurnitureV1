@@ -16,7 +16,9 @@ class OrderTrackingResource extends JsonResource
     public function toArray(
         Request $request
     ): array {
+
         return [
+
             /*
             |--------------------------------------------------------------------------
             | Order
@@ -26,6 +28,7 @@ class OrderTrackingResource extends JsonResource
             'order_number' => $this->order_number,
             'tracking_token' => $this->tracking_token,
             'status' => $this->status,
+            'status_label' => $this->statusLabel(),
             'payment_status' => $this->payment_status,
 
             /*
@@ -35,9 +38,9 @@ class OrderTrackingResource extends JsonResource
             */
 
             'customer' => [
-                'name' => $this->customer?->name,
-                'phone' => $this->customer?->phone,
-                'email' => $this->customer?->email,
+                'name' => $this->customer?->name ?? '',
+                'phone' => $this->customer?->phone ?? '',
+                'email' => $this->customer?->email ?? '',
             ],
 
             /*
@@ -48,10 +51,14 @@ class OrderTrackingResource extends JsonResource
 
             'shipping' => [
                 'courier' => $this->courier,
-                'service' => $this->shipping_service,
+                'method' => $this->shipping_method,
                 'tracking_number' => $this->tracking_number,
-                'tracking_code' => $this->tracking_code,
+                'tracking_url' => null,
                 'address' => $this->shipping_address,
+                'packed_at' => $this->packed_at?->toIso8601String(),
+                'picked_up_at' => $this->picked_up_at?->toIso8601String(),
+                'shipped_at' => $this->shipped_at?->toIso8601String(),
+                'completed_at' => $this->completed_at?->toIso8601String(),
             ],
 
             /*
@@ -65,21 +72,24 @@ class OrderTrackingResource extends JsonResource
                 'status' => $this->payment_status,
                 'snap_token' => $this->payment?->snap_token,
                 'redirect_url' => $this->payment?->redirect_url,
-                'expired_at' => $this->payment_expired_at,
-                'paid_at' => $this->paid_at,
+                'expired_at' => $this->payment_expired_at?->toIso8601String(),
+                'paid_at' => $this->paid_at?->toIso8601String(),
+                'is_expired' => filled($this->payment_expired_at) && now()->greaterThan($this->payment_expired_at),
             ],
 
             /*
             |--------------------------------------------------------------------------
-            | Total
+            | Summary
             |--------------------------------------------------------------------------
             */
 
             'summary' => [
-                'subtotal' => $this->subtotal,
-                'voucher_discount' => $this->voucher_discount,
+                'subtotal' => $this->total_product_price,
+                'voucher_discount' => $this->voucher_discount_amount,
                 'shipping_fee' => $this->shipping_fee,
+                'original_shipping_fee' => $this->original_shipping_fee,
                 'total_payment' => $this->total_payment,
+                'total_weight' => $this->total_weight,
             ],
 
             /*
@@ -88,15 +98,9 @@ class OrderTrackingResource extends JsonResource
             |--------------------------------------------------------------------------
             */
 
-            'items' => $this->items->map(function ($item) {
-                return [
-                    'product_name' => $item->product_name,
-                    'thumbnail' => $item->product_thumbnail,
-                    'qty' => $item->quantity,
-                    'price' => $item->unit_price,
-                    'subtotal' => $item->subtotal,
-                ];
-            }),
+            'items' => OrderItemResource::collection(
+                $this->whenLoaded('items')
+            ),
 
             /*
             |--------------------------------------------------------------------------
@@ -106,9 +110,7 @@ class OrderTrackingResource extends JsonResource
 
             'cancellation_request' =>
                 new CancellationRequestResource(
-                    $this->whenLoaded(
-                        'cancellationRequest'
-                    )
+                    $this->whenLoaded('cancellationRequest')
                 ),
 
             /*
@@ -117,11 +119,9 @@ class OrderTrackingResource extends JsonResource
             |--------------------------------------------------------------------------
             */
 
-            'items' =>
-                OrderItemResource::collection(
-                    $this->whenLoaded(
-                        'items'
-                    )
+            'timeline' =>
+                OrderStatusHistoryResource::collection(
+                    $this->whenLoaded('statusHistories')
                 ),
 
             /*
@@ -130,8 +130,29 @@ class OrderTrackingResource extends JsonResource
             |--------------------------------------------------------------------------
             */
 
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
         ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Status Label
+    |--------------------------------------------------------------------------
+    */
+
+    protected function statusLabel(): string
+    {
+        return match ($this->status) {
+            'pending' => 'Menunggu Pembayaran',
+            'paid' => 'Pembayaran Diterima',
+            'processing' => 'Sedang Diproses',
+            'picked_up' => 'Diserahkan Ekspedisi',
+            'shipped' => 'Dalam Perjalanan',
+            'completed' => 'Pesanan Diterima',
+            'req_cancel' => 'Menunggu Persetujuan Pembatalan',
+            'cancelled' => 'Pesanan Dibatalkan',
+            default => ucfirst($this->status),
+        };
     }
 }

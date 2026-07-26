@@ -20,6 +20,7 @@ class OrderQueryService
             ->with([
                 'customer',
                 'payment',
+                'shipment',
             ]);
     }
 
@@ -28,10 +29,16 @@ class OrderQueryService
         return $this->query()
             ->with([
                 'items.product',
-                'payment',
                 'statusHistories',
                 'cancellationRequest',
+                'shipment',
+                'refund',
             ]);
+    }
+
+    public function requestCancel(): Builder
+    {
+        return $this->status('req_cancel');
     }
 
     /*
@@ -55,7 +62,7 @@ class OrderQueryService
     */
 
     public function find(
-        int $id
+        string $id
     ): ?Order {
         return $this->detail()
             ->find($id);
@@ -209,6 +216,11 @@ class OrderQueryService
                     'like',
                     "%{$keyword}%"
                 )
+            )
+            ->orWhere(
+                'tracking_number',
+                'like',
+                "%{$keyword}%"
             );
         });
     }

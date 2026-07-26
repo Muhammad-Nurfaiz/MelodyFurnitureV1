@@ -10,6 +10,10 @@ ode_modules\, \endor\, \storage\, dan \.git\ disembunyikan untuk kerapian):
 ├── .gitattributes
 ├── .gitignore
 ├── app
+│   ├── Console
+│   │   └── Commands
+│   │       ├── CleanupTemporaryMedia.php
+│   │       └── ExpirePendingPaymentsCommand.php
 │   ├── Enums
 │   │   ├── OrderStatus.php
 │   │   ├── PaymentStatus.php
@@ -26,12 +30,23 @@ ode_modules\, \endor\, \storage\, dan \.git\ disembunyikan untuk kerapian):
 │   │   │   │   ├── Customer
 │   │   │   │   ├── Dashboard
 │   │   │   │   │   └── DashboardController.php
+│   │   │   │   ├── Media
+│   │   │   │   │   └── TemporaryMediaController.php
 │   │   │   │   ├── Order
 │   │   │   │   │   └── OrderController.php
 │   │   │   │   ├── Product
-│   │   │   │   │   └── ProductController.php
+│   │   │   │   │   ├── ProductController.php
+│   │   │   │   │   └── ProductMediaController.php
 │   │   │   │   ├── Series
+│   │   │   │   │   └── SeriesController.php
+│   │   │   │   ├── Shipment
+│   │   │   │   │   └── ShipmentController.php
 │   │   │   │   └── Voucher
+│   │   │   ├── Api
+│   │   │   │   ├── CheckoutController.php
+│   │   │   │   ├── Customer
+│   │   │   │   │   └── CustomerOrderController.php
+│   │   │   │   └── MidtransWebhookController.php
 │   │   │   ├── Auth
 │   │   │   │   ├── AuthenticatedSessionController.php
 │   │   │   │   ├── ConfirmablePasswordController.php
@@ -42,21 +57,45 @@ ode_modules\, \endor\, \storage\, dan \.git\ disembunyikan untuk kerapian):
 │   │   │   │   ├── PasswordResetLinkController.php
 │   │   │   │   ├── RegisteredUserController.php
 │   │   │   │   └── VerifyEmailController.php
+│   │   │   ├── Checkout
+│   │   │   │   └── CheckoutController.php
 │   │   │   ├── Controller.php
+│   │   │   ├── Payment
+│   │   │   │   └── NotificationController.php
 │   │   │   └── ProfileController.php
-│   │   └── Requests
-│   │       ├── Admin
-│   │       │   ├── Category
-│   │       │   │   ├── StoreCategoryRequest.php
-│   │       │   │   └── UpdateCategoryRequest.php
-│   │       │   ├── Customer
-│   │       │   ├── Order
-│   │       │   ├── Product
-│   │       │   ├── Series
-│   │       │   └── Voucher
-│   │       ├── Auth
-│   │       │   └── LoginRequest.php
-│   │       └── ProfileUpdateRequest.php
+│   │   ├── Requests
+│   │   │   ├── Admin
+│   │   │   │   ├── Category
+│   │   │   │   │   ├── StoreCategoryRequest.php
+│   │   │   │   │   └── UpdateCategoryRequest.php
+│   │   │   │   ├── Customer
+│   │   │   │   ├── Order
+│   │   │   │   ├── Product
+│   │   │   │   │   ├── StoreProductRequest.php
+│   │   │   │   │   └── UpdateProductRequest.php
+│   │   │   │   ├── Series
+│   │   │   │   │   ├── StoreSeriesRequest.php
+│   │   │   │   │   └── UpdateSeriesRequest.php
+│   │   │   │   └── Voucher
+│   │   │   ├── Api
+│   │   │   │   └── CheckoutRequest.php
+│   │   │   ├── Auth
+│   │   │   │   └── LoginRequest.php
+│   │   │   ├── CheckoutRequest.php
+│   │   │   ├── Customer
+│   │   │   │   └── CancellationRequest.php
+│   │   │   └── ProfileUpdateRequest.php
+│   │   └── Resources
+│   │       ├── Customer
+│   │       │   ├── CancellationRequestResource.php
+│   │       │   ├── OrderItemResource.php
+│   │       │   ├── OrderStatusHistoryResource.php
+│   │       │   ├── OrderTrackingResource.php
+│   │       │   ├── OrderTrackingResponseResource.php
+│   │       │   └── PaymentInformationResource.php
+│   │       ├── OrderItemResource.php
+│   │       ├── OrderResource.php
+│   │       └── PaymentResource.php
 │   ├── Models
 │   │   ├── Admin.php
 │   │   ├── Cart.php
@@ -65,22 +104,71 @@ ode_modules\, \endor\, \storage\, dan \.git\ disembunyikan untuk kerapian):
 │   │   ├── ChatHistory.php
 │   │   ├── Customer.php
 │   │   ├── Order.php
+│   │   ├── OrderCancelRequest.php
 │   │   ├── OrderItem.php
+│   │   ├── OrderStatusHistory.php
 │   │   ├── Payment.php
 │   │   ├── Product.php
 │   │   ├── ProductMedia.php
 │   │   ├── ProductSpecification.php
+│   │   ├── Refund.php
 │   │   ├── Series.php
+│   │   ├── Shipment.php
+│   │   ├── TemporaryMedia.php
 │   │   ├── Voucher.php
 │   │   └── WhatsappQueue.php
 │   ├── Policies
-│   │   └── CategoryPolicy.php
+│   │   ├── CategoryPolicy.php
+│   │   ├── ProductPolicy.php
+│   │   └── SeriesPolicy.php
 │   ├── Providers
 │   │   └── AppServiceProvider.php
 │   ├── Services
-│   │   └── Category
-│   │       └── CategoryService.php
-│   ├── Traits
+│   │   ├── Category
+│   │   │   └── CategoryService.php
+│   │   ├── Customer
+│   │   │   ├── CustomerCancellationService.php
+│   │   │   ├── CustomerOrderService.php
+│   │   │   ├── CustomerPaymentService.php
+│   │   │   └── CustomerTrackingService.php
+│   │   ├── Inventory
+│   │   │   └── ProductInventoryService.php
+│   │   ├── Media
+│   │   │   └── TemporaryMediaService.php
+│   │   ├── Order
+│   │   │   ├── OrderCalculatorService.php
+│   │   │   ├── OrderCancellationService.php
+│   │   │   ├── OrderFulfillmentService.php
+│   │   │   ├── OrderNumberService.php
+│   │   │   ├── OrderQueryService.php
+│   │   │   ├── OrderService.php
+│   │   │   ├── OrderTimelineService.php
+│   │   │   ├── OrderTrackingTokenService.php
+│   │   │   └── OrderWorkflowService.php
+│   │   ├── Payment
+│   │   │   ├── MidtransPayloadBuilder.php
+│   │   │   ├── MidtransService.php
+│   │   │   ├── MidtransWebhookService.php
+│   │   │   ├── PaymentExpirationService.php
+│   │   │   ├── PaymentService.php
+│   │   │   ├── RefundNumberService.php
+│   │   │   └── RefundService.php
+│   │   ├── Product
+│   │   │   ├── ProductMediaService.php
+│   │   │   └── ProductService.php
+│   │   ├── Series
+│   │   │   └── SeriesService.php
+│   │   ├── Shipping
+│   │   │   ├── Courier
+│   │   │   │   ├── CourierInterface.php
+│   │   │   │   ├── JntCargoService.php
+│   │   │   │   └── SentralCargoService.php
+│   │   │   ├── CourierService.php
+│   │   │   ├── DeliveryService.php
+│   │   │   ├── ShipmentService.php
+│   │   │   └── ShippingService.php
+│   │   └── Voucher
+│   │       └── VoucherService.php
 │   └── View
 │       └── Components
 │           ├── Admin
@@ -95,6 +183,7 @@ ode_modules\, \endor\, \storage\, dan \.git\ disembunyikan untuk kerapian):
 │   │   ├── packages.php
 │   │   └── services.php
 │   └── providers.php
+├── chat.md
 ├── chat.txt
 ├── composer.json
 ├── composer.lock
@@ -107,7 +196,10 @@ ode_modules\, \endor\, \storage\, dan \.git\ disembunyikan untuk kerapian):
 │   ├── filesystems.php
 │   ├── logging.php
 │   ├── mail.php
+│   ├── midtrans.php
+│   ├── payment.php
 │   ├── queue.php
+│   ├── sanctum.php
 │   ├── services.php
 │   └── session.php
 ├── database
@@ -130,17 +222,32 @@ ode_modules\, \endor\, \storage\, dan \.git\ disembunyikan untuk kerapian):
 │   │   ├── 2026_06_25_161442_create_order_items_table.php
 │   │   ├── 2026_06_25_161500_create_payments_table.php
 │   │   ├── 2026_06_25_161525_create_chat_histories_table.php
-│   │   └── 2026_06_25_161547_create_whatsapp_queues_table.php
+│   │   ├── 2026_06_25_161547_create_whatsapp_queues_table.php
+│   │   ├── 2026_07_19_020902_create_temporary_media_table.php
+│   │   ├── 2026_07_22_074555_create_order_status_histories_table.php
+│   │   ├── 2026_07_22_081244_add_raw_notification_to_payments_table.php
+│   │   ├── 2026_07_23_124506_create_order_cancel_requests_table.php
+│   │   ├── 2026_07_23_125451_add_previous_status_to_order_cancel_requests_table.php
+│   │   ├── 2026_07_23_130724_create_refunds_table.php
+│   │   ├── 2026_07_23_133448_add_refund_number_to_refunds_table.php
+│   │   ├── 2026_07_23_134635_create_shipments_table.php
+│   │   ├── 2026_07_24_104236_add_tracking_token_to_orders_table.php
+│   │   ├── 2026_07_24_162240_create_personal_access_tokens_table.php
+│   │   └── 2026_07_25_122836_add_last_tracking_sync_to_shipments_table.php
 │   └── seeders
 │       ├── AdminSeeder.php
 │       ├── CategorySeeder.php
 │       ├── DatabaseSeeder.php
+│       ├── DemoOrderTrackingSeeder.php
 │       └── SeriesSeeder.php
+├── lihat_kolom.php
 ├── melody_db
+├── melody_db.db
 ├── package-lock.json
 ├── package.json
 ├── phpunit.xml
 ├── postcss.config.js
+├── project_structure.md
 ├── public
 │   ├── .htaccess
 │   ├── build
@@ -157,11 +264,56 @@ ode_modules\, \endor\, \storage\, dan \.git\ disembunyikan untuk kerapian):
 │   │   ├── admin.css
 │   │   └── app.css
 │   ├── js
+│   │   ├── admin
+│   │   │   ├── category.js
+│   │   │   ├── core
+│   │   │   │   └── crud-base.js
+│   │   │   ├── product
+│   │   │   │   └── media-manager.js
+│   │   │   ├── product-form.js
+│   │   │   └── series.js
 │   │   ├── app.js
-│   │   └── bootstrap.js
+│   │   ├── bootstrap.js
+│   │   └── utils
 │   └── views
 │       ├── admin
-│       │   ├── components
+│       │   ├── layouts
+│       │   │   ├── app.blade.php
+│       │   │   ├── navbar.blade.php
+│       │   │   └── sidebar.blade.php
+│       │   └── modules
+│       │       ├── category
+│       │       │   └── index.blade.php
+│       │       ├── customer
+│       │       ├── dashboard
+│       │       │   └── index.blade.php
+│       │       ├── order
+│       │       │   └── index.blade.php
+│       │       ├── product
+│       │       │   ├── create.blade.php
+│       │       │   ├── edit.blade.php
+│       │       │   ├── index.blade.php
+│       │       │   ├── steps
+│       │       │   │   ├── information.blade.php
+│       │       │   │   ├── media.blade.php
+│       │       │   │   ├── pricing.blade.php
+│       │       │   │   └── specification.blade.php
+│       │       │   └── _form.blade.php
+│       │       ├── series
+│       │       │   └── index.blade.php
+│       │       └── voucher
+│       ├── auth
+│       │   ├── confirm-password.blade.php
+│       │   ├── forgot-password.blade.php
+│       │   ├── login.blade.php
+│       │   ├── register.blade.php
+│       │   ├── reset-password.blade.php
+│       │   └── verify-email.blade.php
+│       ├── components
+│       │   ├── admin
+│       │   │   ├── alert
+│       │   │   │   └── dialog.blade.php
+│       │   │   ├── avatar.blade.php
 │       │   │   ├── badge.blade.php
 │       │   │   ├── button.blade.php
 │       │   │   ├── card-body.blade.php
@@ -178,9 +330,11 @@ ode_modules\, \endor\, \storage\, dan \.git\ disembunyikan untuk kerapian):
 │       │   │   │   └── toast.blade.php
 │       │   │   ├── form
 │       │   │   │   ├── checkbox.blade.php
+│       │   │   │   ├── currency.blade.php
 │       │   │   │   ├── file-upload.blade.php
 │       │   │   │   ├── group.blade.php
 │       │   │   │   ├── input.blade.php
+│       │   │   │   ├── number.blade.php
 │       │   │   │   ├── search-input.blade.php
 │       │   │   │   ├── select.blade.php
 │       │   │   │   ├── textarea.blade.php
@@ -190,11 +344,17 @@ ode_modules\, \endor\, \storage\, dan \.git\ disembunyikan untuk kerapian):
 │       │   │   ├── modal
 │       │   │   │   ├── body.blade.php
 │       │   │   │   ├── footer.blade.php
+│       │   │   │   ├── form.blade.php
 │       │   │   │   ├── header.blade.php
 │       │   │   │   └── modal.blade.php
 │       │   │   ├── page-header.blade.php
 │       │   │   ├── pagination
+│       │   │   │   ├── links.blade.php
 │       │   │   │   └── pagination.blade.php
+│       │   │   ├── price.blade.php
+│       │   │   ├── product
+│       │   │   │   ├── gallery-item.blade.php
+│       │   │   │   └── media-manager.blade.php
 │       │   │   ├── sidebar-item.blade.php
 │       │   │   ├── state
 │       │   │   │   ├── empty.blade.php
@@ -203,6 +363,9 @@ ode_modules\, \endor\, \storage\, dan \.git\ disembunyikan untuk kerapian):
 │       │   │   ├── stats
 │       │   │   │   ├── card.blade.php
 │       │   │   │   └── grid.blade.php
+│       │   │   ├── stepper
+│       │   │   │   ├── index.blade.php
+│       │   │   │   └── item.blade.php
 │       │   │   ├── table
 │       │   │   │   ├── actions.blade.php
 │       │   │   │   ├── card.blade.php
@@ -215,35 +378,15 @@ ode_modules\, \endor\, \storage\, dan \.git\ disembunyikan untuk kerapian):
 │       │   │   │   ├── thead.blade.php
 │       │   │   │   ├── toolbar.blade.php
 │       │   │   │   └── tr.blade.php
-│       │   │   └── toast
-│       │   │       ├── container.blade.php
-│       │   │       ├── flash.blade.php
-│       │   │       └── toast.blade.php
-│       │   ├── layouts
-│       │   │   ├── app.blade.php
-│       │   │   ├── navbar.blade.php
-│       │   │   └── sidebar.blade.php
-│       │   └── modules
-│       │       ├── category
-│       │       │   ├── create.blade.php
-│       │       │   ├── edit.blade.php
-│       │       │   ├── index.blade.php
-│       │       │   └── _form.blade.php
-│       │       ├── customer
-│       │       ├── dashboard
-│       │       │   └── index.blade.php
-│       │       ├── order
-│       │       ├── product
-│       │       ├── series
-│       │       └── voucher
-│       ├── auth
-│       │   ├── confirm-password.blade.php
-│       │   ├── forgot-password.blade.php
-│       │   ├── login.blade.php
-│       │   ├── register.blade.php
-│       │   ├── reset-password.blade.php
-│       │   └── verify-email.blade.php
-│       ├── components
+│       │   │   ├── test.blade.php
+│       │   │   ├── toast
+│       │   │   │   ├── container.blade.php
+│       │   │   │   ├── flash.blade.php
+│       │   │   │   └── toast.blade.php
+│       │   │   └── wizard
+│       │   │       ├── navigation.blade.php
+│       │   │       ├── progress.blade.php
+│       │   │       └── step.blade.php
 │       │   ├── application-logo.blade.php
 │       │   ├── auth-session-status.blade.php
 │       │   ├── danger-button.blade.php
@@ -271,6 +414,7 @@ ode_modules\, \endor\, \storage\, dan \.git\ disembunyikan untuk kerapian):
 │       └── welcome.blade.php
 ├── routes
 │   ├── admin.php
+│   ├── api.php
 │   ├── auth.php
 │   ├── console.php
 │   └── web.php
@@ -289,5 +433,6 @@ ode_modules\, \endor\, \storage\, dan \.git\ disembunyikan untuk kerapian):
 │   ├── TestCase.php
 │   └── Unit
 │       └── ExampleTest.php
+├── tree.cjs
 └── vite.config.js
 ```

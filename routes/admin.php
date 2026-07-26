@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\Product\ProductController;
 use App\Http\Controllers\Admin\Product\ProductMediaController;
 use App\Http\Controllers\Admin\Media\TemporaryMediaController;
 use App\Http\Controllers\Admin\Order\OrderController;
+use App\Http\Controllers\Admin\Shipment\ShipmentController;
 
 Route::middleware(['auth'])
     ->prefix('admin')
@@ -40,6 +41,31 @@ Route::middleware(['auth'])
 
         Route::get('/orders', [OrderController::class, 'index'])
             ->name('orders.index');
+
+        Route::post(
+            '/{order}',
+            [ShipmentController::class,'store']
+        );
+
+        Route::patch(
+            '/{shipment}/pickup',
+            [ShipmentController::class,'pickup']
+        );
+
+        Route::patch(
+            '/{shipment}/transit',
+            [ShipmentController::class,'transit']
+        );
+
+        Route::patch(
+            '/{shipment}/delivered',
+            [ShipmentController::class,'delivered']
+        );
+
+        Route::patch(
+            '/{shipment}/cancel',
+            [ShipmentController::class,'cancel']
+        );
 
     });
 

@@ -14,33 +14,18 @@ class PaymentService
     |--------------------------------------------------------------------------
     */
 
-    public function create(
-        Order $order,
-        array $midtrans
-    ): Payment {
-
+    public function create(Order $order, array $midtrans): Payment {
         return Payment::create([
-
             'order_id'          => $order->id,
-
             'transaction_id'    => $midtrans['transaction_id'],
-
             'snap_token'        => $midtrans['snap_token'],
-
             'payment_type'      => null,
-
-            'payment_channel'   => null,
-
+            'bank'              => null,
             'va_number'         => null,
-
-            'expiry_time'       => $midtrans['expiry_time'],
-
-            'status'            => 'pending',
-
+            'expired_at'        => $midtrans['expiry_time'],
+            'transaction_status'=> 'pending',
             'raw_response'      => $midtrans,
-
         ]);
-
     }
 
     /*
@@ -49,142 +34,68 @@ class PaymentService
     |--------------------------------------------------------------------------
     */
 
-    public function markPending(
-        Payment $payment,
-        array $notification = []
-    ): Payment {
-
+    public function markPending(Payment $payment, array $notification = []): Payment {
         return $this->updateStatus(
-
             $payment,
-
             [
-
-                'status' => 'pending',
-
+                'transaction_status' => 'pending',
                 'raw_notification' => $notification,
-
             ]
-
         );
-
     }
 
-    public function markPaid(
-        Payment $payment,
-        array $notification
-    ): Payment {
-
+    public function markPaid(Payment $payment, array $notification): Payment {
         return $this->updateStatus(
-
             $payment,
-
             [
-
-                'status' => 'paid',
-
-                'paid_at' => now(),
-
-                'payment_type'
-                    => $notification['payment_type'] ?? null,
-
-                'payment_channel'
-                    => $this->extractPaymentChannel($notification),
-
-                'va_number'
-                    => $this->extractVaNumber($notification),
-
-                'raw_notification'
-                    => $notification,
-
+                'transaction_id'    => $notification['transaction_id'],
+                'transaction_status'=> $notification['transaction_status'],
+                'paid_at'           => now(),
+                'payment_type'      => $notification['payment_type'] ?? null,
+                'bank'              => $this->extractPaymentChannel($notification),
+                'va_number'         => $this->extractVaNumber($notification),
+                'raw_notification'  => $notification,
             ]
-
         );
-
     }
 
-    public function markExpired(
-        Payment $payment,
-        array $notification = []
-    ): Payment {
-
+    public function markExpired(Payment $payment, array $notification = []): Payment {
         return $this->updateStatus(
-
             $payment,
-
             [
-
-                'status' => 'expired',
-
+                'transaction_status' => 'expire',
                 'raw_notification' => $notification,
-
             ]
-
         );
-
     }
 
-    public function markCancelled(
-        Payment $payment,
-        array $notification = []
-    ): Payment {
-
+    public function markCancelled(Payment $payment, array $notification = []): Payment {
         return $this->updateStatus(
-
             $payment,
-
             [
-
-                'status' => 'cancelled',
-
+                'transaction_status' => 'cancel',
                 'raw_notification' => $notification,
-
             ]
-
         );
-
     }
 
-    public function markFailed(
-        Payment $payment,
-        array $notification = []
-    ): Payment {
-
+    public function markFailed(Payment $payment, array $notification = []): Payment {
         return $this->updateStatus(
-
             $payment,
-
             [
-
-                'status' => 'failed',
-
+                'transaction_status' => 'deny',
                 'raw_notification' => $notification,
-
             ]
-
         );
-
     }
 
-    public function markRefunded(
-        Payment $payment,
-        ?array $payload = null
-    ): Payment {
-
+    public function markRefunded(Payment $payment, ?array $payload = null): Payment {
         $payment->update([
-
-            'status' => 'refunded',
-
+            'transaction_status' => 'refunded',
             'paid_at' => $payment->paid_at,
-
-            'raw_response' => $payload
-                ? json_encode($payload)
-                : $payment->raw_response,
-
+            'raw_response' => $payload ? json_encode($payload) : $payment->raw_response,
         ]);
-
         return $payment->fresh();
-
     }
 
     /*
@@ -193,49 +104,16 @@ class PaymentService
     |--------------------------------------------------------------------------
     */
 
-    public function updateFromNotification(
-        Payment $payment,
-        array $notification
-    ): Payment {
-
+    public function updateFromNotification(Payment $payment,array $notification): Payment {
         return match ($notification['transaction_status']) {
-
-            'pending'
-                => $this->markPending(
-                    $payment,
-                    $notification
-                ),
-
+            'pending' => $this->markPending($payment,$notification),
             'capture',
-
-            'settlement'
-                => $this->markPaid(
-                    $payment,
-                    $notification
-                ),
-
-            'expire'
-                => $this->markExpired(
-                    $payment,
-                    $notification
-                ),
-
-            'cancel'
-                => $this->markCancelled(
-                    $payment,
-                    $notification
-                ),
-
-            'deny'
-                => $this->markFailed(
-                    $payment,
-                    $notification
-                ),
-
+            'settlement' => $this->markPaid($payment,$notification),
+            'expire' => $this->markExpired($payment,$notification),
+            'cancel' => $this->markCancelled($payment,$notification),
+            'deny' => $this->markFailed($payment,$notification),
             default => $payment,
-
         };
-
     }
 
     /*
@@ -244,32 +122,12 @@ class PaymentService
     |--------------------------------------------------------------------------
     */
 
-    public function findByOrder(
-        Order $order
-    ): ?Payment {
-
-        return Payment::where(
-
-            'order_id',
-
-            $order->id
-
-        )->first();
-
+    public function findByOrder(Order $order): ?Payment {
+        return Payment::where('order_id',$order->id)->first();
     }
 
-    public function findByTransaction(
-        string $transactionId
-    ): ?Payment {
-
-        return Payment::where(
-
-            'transaction_id',
-
-            $transactionId
-
-        )->first();
-
+    public function findByTransaction(string $transactionId): ?Payment {
+        return Payment::where('transaction_id',$transactionId)->first();
     }
 
     /*
@@ -278,44 +136,44 @@ class PaymentService
     |--------------------------------------------------------------------------
     */
 
-    public function isPending(
-        Payment $payment
-    ): bool {
-
-        return $payment->status === 'pending';
-
+    public function isPending(Payment $payment): bool {
+        return $payment->transaction_status === 'pending';
     }
 
-    public function isPaid(
-        Payment $payment
-    ): bool {
-
-        return $payment->status === 'paid';
-
+    public function isPaid(Payment $payment): bool {
+        return in_array(
+            $payment->transaction_status,
+            [
+                'capture',
+                'settlement',
+            ],
+            true
+        );
     }
 
-    public function isExpired(
-        Payment $payment
-    ): bool {
-
-        return $payment->status === 'expired';
-
+    public function isExpired(Payment $payment): bool {
+        return $payment->transaction_status === 'expire';
     }
 
-    public function isCancelled(
-        Payment $payment
-    ): bool {
-
-        return $payment->status === 'cancelled';
-
+    public function isCancelled(Payment $payment): bool {
+        return $payment->transaction_status === 'cancel';
     }
 
-    public function isFailed(
-        Payment $payment
-    ): bool {
+    public function isFailed(Payment $payment): bool {
+        return $payment->transaction_status === 'deny';
+    }
 
-        return $payment->status === 'failed';
-
+    public function isRefunded(Payment $payment): bool
+    {
+        return in_array(
+            $payment->transaction_status,
+            [
+                'refund',
+                'partial_refund',
+                'refunded',
+            ],
+            true
+        );
     }
 
     /*
@@ -324,38 +182,18 @@ class PaymentService
     |--------------------------------------------------------------------------
     */
 
-    private function updateStatus(
-        Payment $payment,
-        array $attributes
-    ): Payment {
-
-        DB::transaction(function () use (
-
-            $payment,
-            $attributes
-
-        ) {
-
+    private function updateStatus(Payment $payment, array $attributes): Payment {
+        DB::transaction(function () use ($payment,$attributes) {
             $payment->update($attributes);
-
         });
-
         return $payment->fresh();
-
     }
 
-    private function extractPaymentChannel(
-        array $notification
-    ): ?string {
-
+    private function extractPaymentChannel(array $notification): ?string {
         if (isset($notification['va_numbers'][0]['bank'])) {
-
             return $notification['va_numbers'][0]['bank'];
-
         }
-
         return $notification['payment_type'] ?? null;
-
     }
 
     private function extractVaNumber(

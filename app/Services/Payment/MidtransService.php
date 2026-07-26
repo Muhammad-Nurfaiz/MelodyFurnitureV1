@@ -26,14 +26,12 @@ class MidtransService
     |--------------------------------------------------------------------------
     */
 
-    public function createTransaction(
-        Order $order
-    ): array {
-
+    public function createTransaction(Order $order): array {
         $payload = $this->builder->build($order);
         $snap = Snap::createTransaction($payload);
         return [
-            'transaction_id' => $order->order_number,
+            'transaction_id' => null,
+            'order_id' => $order->order_number,
             'snap_token' => $snap->token,
             'redirect_url' => $snap->redirect_url,
             'expiry_time' => $order->payment_expired_at,
@@ -47,39 +45,19 @@ class MidtransService
     |--------------------------------------------------------------------------
     */
 
-    public function status(
-        string $orderNumber
-    ): object {
-
+    public function status(string $orderNumber): object {
         return Transaction::status($orderNumber);
-
     }
 
-    public function cancel(
-        string $orderNumber
-    ): object {
-
+    public function cancel(string $orderNumber): object {
         return Transaction::cancel($orderNumber);
-
     }
 
-    public function expire(
-        string $orderNumber
-    ): object {
-
+    public function expire(string $orderNumber): object {
         return Transaction::expire($orderNumber);
-
     }
 
-    public function refund(
-        string $orderNumber,
-        array $params = []
-    ): object {
-
-        return Transaction::refund(
-            $orderNumber,
-            $params
-        );
-
+    public function refund(string $orderNumber,array $params = []): object {
+        return Transaction::refund($orderNumber,$params);
     }
 }

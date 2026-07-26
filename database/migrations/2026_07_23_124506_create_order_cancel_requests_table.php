@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('order_cancel_requests', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
 
-            $table->foreignId('order_id')
+            $table->foreignUuid('order_id')
                 ->constrained()
                 ->cascadeOnDelete();
 
-            $table->foreignId('customer_id')
+            $table->foreignUuid('customer_id')
                 ->constrained()
                 ->cascadeOnDelete();
 
@@ -48,9 +48,9 @@ return new class extends Migration
             |--------------------------------------------------------------------------
             */
 
-            $table->foreignId('approved_by')
+            $table->foreignUuid('approved_by')
                 ->nullable()
-                ->constrained('users')
+                ->constrained('admins')
                 ->nullOnDelete();
 
             $table->text('admin_notes')

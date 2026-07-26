@@ -33,6 +33,7 @@ class Order extends Model
 
         'order_number',
         'midtrans_order_id',
+        'tracking_token',
 
         /*
         |--------------------------------------------------------------------------
@@ -154,10 +155,9 @@ class Order extends Model
         return $this->hasOne(Payment::class);
     }
 
-    public function histories()
+    public function statusHistories()
     {
-        return $this->hasMany(OrderStatusHistory::class)
-            ->latest();
+        return $this->hasMany(OrderStatusHistory::class)->latest();
     }
 
     /*
@@ -191,11 +191,9 @@ class Order extends Model
         return $this->status === 'pending';
     }
 
-    public function cancelRequest(): HasOne
+    public function cancellationRequest(): HasOne
     {
-        return $this->hasOne(
-            OrderCancelRequest::class
-        );
+        return $this->hasOne(OrderCancelRequest::class);
     }
 
     public function refund(): HasOne
@@ -210,5 +208,60 @@ class Order extends Model
         return $this->hasOne(
             Shipment::class
         );
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
+
+    public function scopePaid($query)
+    {
+        return $query->where('status', 'paid');
+    }
+
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', 'completed');
+    }
+
+    public function canBeCancelled(): bool
+    {
+        return in_array(
+            $this->status,
+            [
+                'pending',
+                'paid',
+                'processing',
+                'picked_up',
+            ],
+            true
+        );
+    }
+
+    public function hasShipment(): bool
+    {
+        return $this->shipment()->exists();
+    }
+
+    public function paymentExpired(): bool
+    {
+        return filled($this->payment_expired_at)
+            && now()->greaterThan($this->payment_expired_at);
+    }
+
+    public function isProcessing(): bool
+    {
+        return $this->status === 'processing';
+    }
+
+    public function isPickedUp(): bool
+    {
+        return $this->status === 'picked_up';
+    }
+
+    public function isShipping(): bool
+    {
+        return $this->status === 'shipping';
     }
 }
