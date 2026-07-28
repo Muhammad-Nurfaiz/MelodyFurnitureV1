@@ -49,11 +49,13 @@ return new class extends Migration
             |--------------------------------------------------------------------------
             */
 
-            $table->foreignUuid('created_by')
+            $table->foreignUuid('admin_id')
                 ->nullable()
                 ->constrained('admins')
                 ->nullOnDelete()
                 ->index();
+
+            $table->string('actor')->default('system')->index();
 
             $table->timestamps();
 

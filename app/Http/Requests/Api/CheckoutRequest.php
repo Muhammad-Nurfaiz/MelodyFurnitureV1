@@ -23,6 +23,30 @@ class CheckoutRequest extends FormRequest
 
             /*
             |--------------------------------------------------------------------------
+            | Customer Identity
+            |--------------------------------------------------------------------------
+            */
+
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+            ],
+
+            'email' => [
+                'required',
+                'email',
+                'max:100',
+            ],
+
+            'phone' => [
+                'required',
+                'string',
+                'max:30',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
             | Voucher
             |--------------------------------------------------------------------------
             */
@@ -108,20 +132,26 @@ class CheckoutRequest extends FormRequest
     {
         return [
 
-            'courier.required'
-                => 'Kurir wajib dipilih.',
+            'name.required' => 'Nama wajib diisi.',
+            'name.max' => 'Nama maksimal 100 karakter.',
 
-            'service.required'
-                => 'Layanan pengiriman wajib dipilih.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.max' => 'Email maksimal 100 karakter.',
 
-            'shipping_address.required'
-                => 'Alamat pengiriman wajib diisi.',
+            'phone.required' => 'Nomor telepon wajib diisi.',
+            'phone.max' => 'Nomor telepon maksimal 30 karakter.',
+
+            'courier.required' => 'Kurir wajib dipilih.',
+            'service.required' => 'Layanan pengiriman wajib dipilih.',
+
+            'shipping_address.required' => 'Alamat pengiriman wajib diisi.',
 
             'shipping_address.recipient_name.required'
                 => 'Nama penerima wajib diisi.',
 
             'shipping_address.phone.required'
-                => 'Nomor telepon wajib diisi.',
+                => 'Nomor telepon penerima wajib diisi.',
 
             'shipping_address.address.required'
                 => 'Alamat wajib diisi.',
@@ -134,7 +164,6 @@ class CheckoutRequest extends FormRequest
 
             'shipping_address.postal_code.required'
                 => 'Kode pos wajib diisi.',
-
         ];
     }
 
@@ -143,6 +172,6 @@ class CheckoutRequest extends FormRequest
      */
     public function payload(): array
     {
-        $request->payload();
+        return $this->validated();
     }
 }

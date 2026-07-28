@@ -7,12 +7,12 @@ use App\Models\Order;
 class MidtransPayloadBuilder
 {
     /**
-     * Build payload Snap.
+     * Build Snap Payload
      */
     public function build(Order $order): array {
         return [
             'transaction_details' => [
-                'order_id' => $order->order_number,
+                'order_id' => $order->midtrans_order_id,
                 'gross_amount' => (int) $order->total_payment,
             ],
             'customer_details' => [
@@ -20,10 +20,15 @@ class MidtransPayloadBuilder
                 'email' => $order->customer->email,
                 'phone' => $order->customer->phone,
             ],
+            'enabled_payments' => [
+                'bank_transfer',
+                'gopay',
+                'qris',
+            ],
             'item_details' => $this->buildItems($order),
             'expiry' => [
                 'unit' => 'minute',
-                'duration' => config('payment.expired_minutes'),
+                'duration' => (int) config('payment.expired_minutes'),
             ],
         ];
     }
@@ -63,11 +68,11 @@ class MidtransPayloadBuilder
         |--------------------------------------------------------------------------
         */
 
-        if ($order->voucher_discount > 0) {
+        if ($order->voucher_discount_amount > 0) {
             $items[] = [
                 'id' => 'voucher',
                 'name' => 'Diskon Voucher',
-                'price' => -(int) $order->voucher_discount,
+                'price' => -(int) $order->voucher_discount_amount,
                 'quantity' => 1,
             ];
         }

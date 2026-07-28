@@ -262,6 +262,6 @@ class Order extends Model
 
     public function isShipping(): bool
     {
-        return $this->status === 'shipping';
+        return $this->status === 'shipped';
     }
 }

@@ -17,8 +17,8 @@ class ProductInventoryService
         Collection $products
     ): void {
         foreach ($products as $item) {
-            $product = $item['product'];
-            $qty = $item['qty'];
+            $product = $item->product;
+            $qty = $item->quantity;
             if ($product->ready_stock < $qty) {
                 throw ValidationException::withMessages([
                     'stock' => "Stok {$product->name} tidak mencukupi.",
@@ -37,8 +37,8 @@ class ProductInventoryService
     ): void {
         foreach ($products as $item) {
             /** @var Product $product */
-            $product = $item['product'];
-            $qty = $item['qty'];
+            $product = $item->product;
+            $qty = $item->quantity;
             $product->decrement(
                 'ready_stock',
                 $qty
@@ -56,8 +56,8 @@ class ProductInventoryService
     ): void {
         foreach ($products as $item) {
             /** @var Product $product */
-            $product = $item['product'];
-            $qty = $item['qty'];
+            $product = $item->product;
+            $qty = $item->quantity;
             $product->increment(
                 'ready_stock',
                 $qty

@@ -20,14 +20,13 @@ class OrderWorkflowService
     public function initialize(
         Order $order,
         ?string $description = null,
-        ?string $createdBy = null,
     ): Order {
 
         $this->timelineService->record(
             $order,
             $order->status,
             $description,
-            $createdBy
+            'system'
         );
 
         return $order->fresh();
@@ -161,6 +160,7 @@ class OrderWorkflowService
             $order,
             $status,
             $description,
+            $createdBy ? 'admin' : 'system',
             $createdBy
         );
 

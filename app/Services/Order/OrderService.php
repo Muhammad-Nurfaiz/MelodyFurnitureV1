@@ -13,6 +13,7 @@ use App\Services\Payment\MidtransService;
 use App\Services\Inventory\ProductInventoryService;
 use App\Services\Voucher\VoucherService;
 use App\Models\OrderStatusHistory;
+use App\Services\Cart\CartService;
 use App\Services\Shipping\ShippingService;
 use App\Services\Order\OrderNumberService;
 use App\Services\Order\OrderWorkflowService;
@@ -31,6 +32,7 @@ class OrderService
         protected OrderWorkflowService $workflowService,
         protected OrderCalculatorService $calculatorService,
         protected OrderTrackingTokenService $trackingTokenService,
+        protected CartService $cartService,
     ) {}
 
     public function create(array $data): Order
@@ -91,30 +93,38 @@ class OrderService
             | Create Order
             |--------------------------------------------------------------------------
             */
-            $order =
-                $this->createOrder([
-                    'customer_id' => $customer->id,
-                    'voucher_id' => $voucher?->id,
-                    'order_number' => $this->numberService->generate(),
-                    'tracking_token' => $this->trackingTokenService->generate(),
-                    'subtotal' => $summary['subtotal'],
-                    'voucher_discount' => $summary['voucher_discount'],
-                    'shipping_fee' => $summary['shipping_fee'],
-                    'total_payment' => $summary['total_payment'],
-                    'total_weight' => $summary['total_weight'],
-                    'courier' => $shipping['courier'],
-                    'shipping_service' => $shipping['service'],
-                    'shipping_address' => $shipping['address'],
-                    'status' => 'pending',
-                    'payment_status' => 'pending',
-                    'payment_expired_at' => now()->addMinutes(config('payment.expired_minutes')),]);
+            $orderNumber = $this->numberService->generate();
+
+            $order = $this->createOrder([
+                'customer_id' => $customer->id,
+                'voucher_id' => $voucher?->id,
+                'order_number' => $orderNumber,
+                'midtrans_order_id' => $orderNumber,
+                'tracking_token' => $this->trackingTokenService->generate(),
+                'total_product_price' => $summary['subtotal'],
+                'voucher_discount_amount' => $summary['voucher_discount'],
+                'original_shipping_fee' => $summary['shipping_fee'],
+                'shipping_fee' => $summary['shipping_fee'],
+                'total_payment' => $summary['total_payment'],
+                'total_weight' => $summary['total_weight'],
+                'shipping_method' => $shipping['service'],
+                'courier' => $shipping['courier'],
+                'shipping_address' => $shipping['address'],
+                'status' => 'pending',
+                'payment_status' => 'pending',
+                'payment_expired_at' => now()->addMinutes(
+                    (int) config('payment.expired_minutes')
+                ),
+            ]);
 
             /*
             |--------------------------------------------------------------------------
             | Order Items
             |--------------------------------------------------------------------------
             */
+
             $this->createOrderItems($order,$products);
+            $order->load(['customer','items','payment']);
 
             /*
             |--------------------------------------------------------------------------
@@ -149,7 +159,11 @@ class OrderService
             | History
             |--------------------------------------------------------------------------
             */
-            $this->workflowService->initialize($order,'Checkout dibuat','system');
+            $this->workflowService->initialize($order,'Checkout dibuat');
+            $customer->loadMissing('cart');
+            if ($customer->cart) {
+                $this->cartService->clearCart($customer->cart);
+            }
             return $order->fresh(['customer','items','payment',]);
         });
     }
@@ -158,25 +172,26 @@ class OrderService
         return Order::create($data);
     }
 
-    private function createOrderItems(Order $order,Collection $products): void {
-        $items = [];
+    private function createOrderItems(Order $order, Collection $products): void {
         foreach ($products as $item) {
-            $items[] = [
-                'order_id'          => $order->id,
-                'product_id'        => $item['product']->id,
-                'product_name'      => $item['product']->name,
-                'product_slug'      => $item['product']->slug,
-                'product_thumbnail' => $item['product']->thumbnail,
-                'quantity'          => $item['qty'],
-                'unit_price'        => $item['product']->price,
-                'subtotal'          => $item['product']->price * $item['qty'],
-                'weight'            => $item['product']->weight,
-                'total_weight'      => $item['product']->weight * $item['qty'],
-                'created_at'        => now(),
-                'updated_at'        => now(),
-            ];
+            $product = $item->product;
+            $price = $product->is_sale
+                && $product->discount_price
+                    ? $product->discount_price
+                    : $product->original_price;
+
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'product_slug' => $product->slug,
+                'product_image' => $product->thumbnail?->url
+                    ?? $product->thumbnail?->media_url,
+                'quantity' => $item->quantity,
+                'unit_price' => $price,
+                'subtotal' => $price * $item->quantity,
+            ]);
         }
-        OrderItem::insert($items);
     }
 
     public function cancelOrder(Order $order,?string $reason = null,?string $createdBy = null): Order{
@@ -201,7 +216,7 @@ class OrderService
         });
     }
 
-    public function expireOrder(Order $order,?string $description = 'Payment expired'): Order {
+    public function expireOrder(Order $order,?string $description = 'Payment expired',?string $createdBy = null): Order {
         $this->workflowService->validate($order,'cancelled');
         return DB::transaction(function () use ($order,$description) {
             $order->update(['payment_status'=>'expired',]);
@@ -224,12 +239,12 @@ class OrderService
             | Update Order
             |--------------------------------------------------------------------------
             */
-            $this->workflowService->changeStatus($order,'cancelled',$description,'system');
+            $this->workflowService->changeStatus($order,'cancelled',$description,$createdBy);
             return $order->fresh(['items.product','payment']);
         });
     }
 
-    public function markPaid(Order $order,?string $createdBy = 'system'): Order {
+    public function markPaid(Order $order,?string $createdBy = null): Order {
         $this->workflowService->validate($order,'paid');
         return DB::transaction(function () use ($order,$createdBy) {
             $order->update(['payment_status'=>'paid',]);

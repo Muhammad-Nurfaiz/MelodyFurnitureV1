@@ -94,8 +94,12 @@ class CartService
 
     public function clear(Customer $customer): Cart {
         $cart = $this->get($customer);
-        $cart->items()->delete();
+        $this->clearCart($cart);
         return $this->refreshCart($cart);
+    }
+
+    public function clearCart(Cart $cart): void {
+        $cart->items()->delete();
     }
 
     /*
@@ -109,12 +113,10 @@ class CartService
         if ($cart->items->isEmpty()) {
             throw new RuntimeException('Cart kosong.');
         }
-        return $cart->items->map(function ($item) {
-            return [
-                'product' => $item->product,
-                'qty' => $item->quantity,
-            ];
-        });
+        return $cart->items->load([
+            'product.thumbnail',
+            'product.specification',
+        ]);
     }
 
     /*
@@ -135,9 +137,34 @@ class CartService
     | Refresh Cart
     |--------------------------------------------------------------------------
     */
+    public function findItemByCustomer(
+        Customer $customer,
+        string $itemId
+    ): CartItem {
+
+        return CartItem::query()
+
+            ->whereKey($itemId)
+
+            ->whereHas('cart', function ($query) use ($customer) {
+
+                $query->where(
+                    'customer_id',
+                    $customer->id
+                );
+
+            })
+
+            ->firstOrFail();
+
+    }
 
     private function refreshCart(Cart $cart): Cart {
-        return $cart->fresh(['customer','items.product.thumbnail',]);
+        return $cart->fresh([
+            'customer',
+            'items.product.thumbnail',
+            'items.product.specification',
+        ]);
     }
 
     /*

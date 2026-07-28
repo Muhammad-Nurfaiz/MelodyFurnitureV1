@@ -130,4 +130,12 @@ class Product extends Model
             }
         });
     }
+
+    public function getPriceAttribute(): float
+    {
+        if ($this->is_sale && !is_null($this->discount_price)) {
+            return (float) $this->discount_price;
+        }
+        return (float) $this->original_price;
+    }
 }

@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Shipment;
 use App\Services\Shipping\ShipmentService;
-use Illuminate\Http\Request;quest;
+use Illuminate\Http\Request;
 
 class ShipmentController extends Controller
 {

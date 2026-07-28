@@ -170,4 +170,8 @@ class VoucherService
 
     }
 
+    public function findByCode(string $code): ?Voucher
+    {
+        return Voucher::where('code', $code)->first();
+    }
 }

@@ -16,15 +16,19 @@ class PaymentService
 
     public function create(Order $order, array $midtrans): Payment {
         return Payment::create([
-            'order_id'          => $order->id,
-            'transaction_id'    => $midtrans['transaction_id'],
-            'snap_token'        => $midtrans['snap_token'],
-            'payment_type'      => null,
-            'bank'              => null,
-            'va_number'         => null,
-            'expired_at'        => $midtrans['expiry_time'],
-            'transaction_status'=> 'pending',
-            'raw_response'      => $midtrans,
+            'order_id'           => $order->id,
+            'transaction_id' => $midtrans['transaction_id'] ?? null,
+            'snap_token'         => $midtrans['snap_token'],
+            'payment_type'       => null,
+            'bank'               => null,
+            'va_number'          => null,
+
+            'gross_amount'       => $order->total_payment,
+
+            'expired_at'         => $midtrans['expiry_time'],
+            'transaction_status' => 'pending',
+
+            'raw_response'       => $midtrans,
         ]);
     }
 
@@ -50,6 +54,8 @@ class PaymentService
             [
                 'transaction_id'    => $notification['transaction_id'],
                 'transaction_status'=> $notification['transaction_status'],
+                'fraud_status'      => $notification['fraud_status'] ?? null,
+                'gross_amount' => (float) $notification['gross_amount'],
                 'paid_at'           => now(),
                 'payment_type'      => $notification['payment_type'] ?? null,
                 'bank'              => $this->extractPaymentChannel($notification),
@@ -93,7 +99,7 @@ class PaymentService
         $payment->update([
             'transaction_status' => 'refunded',
             'paid_at' => $payment->paid_at,
-            'raw_response' => $payload ? json_encode($payload) : $payment->raw_response,
+            'raw_response' => $payload ?? $payment->raw_response,
         ]);
         return $payment->fresh();
     }
@@ -128,6 +134,12 @@ class PaymentService
 
     public function findByTransaction(string $transactionId): ?Payment {
         return Payment::where('transaction_id',$transactionId)->first();
+    }
+
+    public function findByOrderNumber(string $orderId): ?Payment {
+        return Payment::whereHas('order', function ($q) use ($orderId) {
+            $q->where('midtrans_order_id', $orderId);
+        })->first();
     }
 
     /*
@@ -183,9 +195,7 @@ class PaymentService
     */
 
     private function updateStatus(Payment $payment, array $attributes): Payment {
-        DB::transaction(function () use ($payment,$attributes) {
-            $payment->update($attributes);
-        });
+        $payment->update($attributes);
         return $payment->fresh();
     }
 

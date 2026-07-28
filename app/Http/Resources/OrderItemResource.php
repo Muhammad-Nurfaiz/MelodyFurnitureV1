@@ -13,12 +13,10 @@ class OrderItemResource extends JsonResource
             'product_id' => $this->product_id,
             'name' => $this->product_name,
             'slug' => $this->product_slug,
-            'thumbnail' => $this->product_thumbnail,
+            'image' => $this->product_image,
             'quantity' => $this->quantity,
             'unit_price' => $this->unit_price,
             'subtotal' => $this->subtotal,
-            'weight' => $this->weight,
-            'total_weight' => $this->total_weight,
         ];
     }
 }

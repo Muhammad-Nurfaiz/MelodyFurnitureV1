@@ -4,6 +4,7 @@ namespace App\Services\Order;
 
 use App\Models\Voucher;
 use Illuminate\Support\Collection;
+use RuntimeException;
 use App\Services\Shipping\ShippingService;
 use App\Services\Voucher\VoucherService;
 
@@ -17,29 +18,40 @@ class OrderCalculatorService
     /**
      * Hitung seluruh biaya checkout.
      */
-    public function calculate(
-        Collection $products,
-        ?Voucher $voucher,
-        string $courier,
-        string $service,
-    ): array {
-
+    public function calculate(Collection $products,?Voucher $voucher,string $courier,string $service,): array {
         $subtotal = 0;
-
-        $weight = 0;
-
+        $totalWeight = 0;
         foreach ($products as $item) {
+            $product = $item['product'];
 
-            $subtotal +=
-                $item['product']->price
-                *
-                $item['qty'];
+            /*
+            |--------------------------------------------------------------------------
+            | Pastikan Specification sudah diload
+            |--------------------------------------------------------------------------
+            */
 
-            $weight +=
-                $item['product']->weight
-                *
-                $item['qty'];
+            $specification = $product->specification;
 
+            if (!$specification) {
+                throw new RuntimeException("Produk {$product->name} belum memiliki spesifikasi.");
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Subtotal
+            |--------------------------------------------------------------------------
+            */
+
+            $price = $product->is_sale && $product->discount_price ? $product->discount_price : $product->original_price;
+            $subtotal += $price * $item['quantity'];
+
+            /*
+            |--------------------------------------------------------------------------
+            | Berat Pengiriman (Packing Weight)
+            |--------------------------------------------------------------------------
+            */
+
+            $totalWeight += $specification->packing_weight * $item['quantity'];
         }
 
         /*
@@ -48,17 +60,9 @@ class OrderCalculatorService
         |--------------------------------------------------------------------------
         */
 
-        $this->voucherService->validate(
-            $voucher,
-            $subtotal
-        );
+        $this->voucherService->validate($voucher,$subtotal);
 
-        $voucherDiscount =
-            $this->voucherService
-                ->calculateDiscount(
-                    $voucher,
-                    $subtotal
-                );
+        $voucherDiscount = $this->voucherService->calculateDiscount($voucher,$subtotal);
 
         /*
         |--------------------------------------------------------------------------
@@ -66,13 +70,7 @@ class OrderCalculatorService
         |--------------------------------------------------------------------------
         */
 
-        $shippingFee =
-            $this->shippingService
-                ->calculate(
-                    $weight,
-                    $courier,
-                    $service
-                );
+        $shippingFee = $this->shippingService->calculate($totalWeight,$courier,$service);
 
         /*
         |--------------------------------------------------------------------------
@@ -81,23 +79,11 @@ class OrderCalculatorService
         */
 
         return [
-
             'subtotal' => $subtotal,
-
-            'weight' => $weight,
-
+            'total_weight' => $totalWeight,
             'voucher_discount' => $voucherDiscount,
-
             'shipping_fee' => $shippingFee,
-
-            'total_payment' =>
-                $subtotal
-                -
-                $voucherDiscount
-                +
-                $shippingFee,
-
+            'total_payment' => $subtotal - $voucherDiscount + $shippingFee,
         ];
-
     }
 }

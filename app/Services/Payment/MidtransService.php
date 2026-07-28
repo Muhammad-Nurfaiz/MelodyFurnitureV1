@@ -31,7 +31,7 @@ class MidtransService
         $snap = Snap::createTransaction($payload);
         return [
             'transaction_id' => null,
-            'order_id' => $order->order_number,
+            'order_id' => $order->midtrans_order_id,
             'snap_token' => $snap->token,
             'redirect_url' => $snap->redirect_url,
             'expiry_time' => $order->payment_expired_at,

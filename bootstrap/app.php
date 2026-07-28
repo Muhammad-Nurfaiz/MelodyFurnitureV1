@@ -6,7 +6,8 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Request;
-use RuntimeException;
+use Illuminate\Validation\ValidationException;
+// use RuntimeException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -27,18 +28,14 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (
-            RuntimeException $e,
+            $exceptions->render(function (
+            ValidationException $e,
             Request $request
         ) {
-
-            if (!$request->expectsJson()) {
-                return null;
-            }
-
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
             ], 422);
         });
     })

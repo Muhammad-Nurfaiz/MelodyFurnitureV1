@@ -2,62 +2,48 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Customer;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Illuminate\Support\Str;
+use App\Services\Customer\CustomerSessionService;
 
 class CustomerSessionMiddleware
 {
-    /**
-     * Cookie Name
-     */
-    private const COOKIE_NAME = 'customer_session';
+    public function __construct(
+        protected CustomerSessionService $customerSessionService,
+    ) {}
 
-    /**
-     * Handle Request
-     */
+    private function cookieName(): string
+    {
+        return config('customer.guest_cookie_name');
+    }
+
     public function handle(
         Request $request,
         Closure $next
     ): Response {
 
-        $token = $request->cookie(
-            self::COOKIE_NAME
+        $guestToken = $request->cookie(
+            $this->cookieName()
         );
 
-        /*
-        |--------------------------------------------------------------------------
-        | Existing Customer
-        |--------------------------------------------------------------------------
-        */
-
-        $customer = null;
-
-        if ($token) {
-
-            $customer = Customer::where(
-                'guest_token',
-                $token
-            )->first();
-
+        if (!$guestToken) {
+            abort(
+                response()->json([
+                    'message' => 'Guest session tidak ditemukan.',
+                ], 401)
+            );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | New Guest
-        |--------------------------------------------------------------------------
-        */
+        $customer = $this->customerSessionService
+            ->findByToken($guestToken);
 
         if (!$customer) {
-
-            $customer = Customer::create([
-
-                'guest_token' => Str::uuid(),
-
-            ]);
-
+            abort(
+                response()->json([
+                    'message' => 'Guest session tidak valid.',
+                ], 401)
+            );
         }
 
         /*
@@ -73,7 +59,7 @@ class CustomerSessionMiddleware
 
         /*
         |--------------------------------------------------------------------------
-        | Continue
+        | Continue Request
         |--------------------------------------------------------------------------
         */
 
@@ -81,14 +67,14 @@ class CustomerSessionMiddleware
 
         /*
         |--------------------------------------------------------------------------
-        | Save Cookie
+        | Refresh Cookie
         |--------------------------------------------------------------------------
         */
 
         cookie()->queue(
 
             cookie(
-                self::COOKIE_NAME,
+                $this->cookieName(),
                 $customer->guest_token,
                 60 * 24 * 365,
                 '/',

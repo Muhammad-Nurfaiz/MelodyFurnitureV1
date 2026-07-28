@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Cart\AddCartItemRequest;
 use App\Http\Requests\Api\Cart\UpdateCartItemRequest;
 use App\Http\Resources\CartResource;
-use App\Models\CartItem;
 use App\Models\Product;
 use App\Services\Cart\CartService;
 use Illuminate\Http\JsonResponse;
@@ -141,25 +141,5 @@ class CartController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function findItemByCustomer(
-        Customer $customer,
-        string $itemId
-    ): CartItem {
-
-        return CartItem::query()
-
-            ->whereKey($itemId)
-
-            ->whereHas('cart', function ($query) use ($customer) {
-
-                $query->where(
-                    'customer_id',
-                    $customer->id
-                );
-
-            })
-
-            ->firstOrFail();
-
-    }
+   
 }

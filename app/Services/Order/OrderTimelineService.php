@@ -14,19 +14,16 @@ class OrderTimelineService
         Order $order,
         string $status,
         ?string $description = null,
-        ?string $createdBy = null,
+        string $actor = 'system',
+        ?string $adminId = null,
     ): OrderStatusHistory {
 
         return OrderStatusHistory::create([
-
             'order_id' => $order->id,
-
             'status' => $status,
-
             'description' => $description,
-
-            'created_by' => $createdBy,
-
+            'actor' => $actor,
+            'admin_id' => $adminId,
         ]);
 
     }
@@ -40,14 +37,16 @@ class OrderTimelineService
     public function pending(
         Order $order,
         ?string $description = null,
-        ?string $createdBy = null,
+        string $actor = 'system',
+        ?string $adminId = null,
     ): OrderStatusHistory {
 
         return $this->record(
             $order,
             'pending',
             $description,
-            $createdBy
+            $actor,
+            $adminId
         );
 
     }
@@ -55,14 +54,16 @@ class OrderTimelineService
     public function paid(
         Order $order,
         ?string $description = null,
-        ?string $createdBy = null,
+        string $actor = 'system',
+        ?string $adminId = null,
     ): OrderStatusHistory {
 
         return $this->record(
             $order,
             'paid',
             $description,
-            $createdBy
+            $actor,
+            $adminId
         );
 
     }
@@ -70,14 +71,16 @@ class OrderTimelineService
     public function cancelled(
         Order $order,
         ?string $description = null,
-        ?string $createdBy = null,
+        string $actor = 'system',
+        ?string $adminId = null,
     ): OrderStatusHistory {
 
         return $this->record(
             $order,
             'cancelled',
             $description,
-            $createdBy
+            $actor,
+            $adminId
         );
 
     }
@@ -85,14 +88,16 @@ class OrderTimelineService
     public function processing(
         Order $order,
         ?string $description = null,
-        ?string $createdBy = null,
+        string $actor = 'system',
+        ?string $adminId = null,
     ): OrderStatusHistory {
 
         return $this->record(
             $order,
             'processing',
             $description,
-            $createdBy
+            $actor,
+            $adminId
         );
 
     }
@@ -100,14 +105,16 @@ class OrderTimelineService
     public function pickedUp(
         Order $order,
         ?string $description = null,
-        ?string $createdBy = null,
+        string $actor = 'system',
+        ?string $adminId = null,
     ): OrderStatusHistory {
 
         return $this->record(
             $order,
             'picked_up',
             $description,
-            $createdBy
+            $actor,
+            $adminId
         );
 
     }
@@ -115,14 +122,16 @@ class OrderTimelineService
     public function completed(
         Order $order,
         ?string $description = null,
-        ?string $createdBy = null,
+        string $actor = 'system',
+        ?string $adminId = null,
     ): OrderStatusHistory {
 
         return $this->record(
             $order,
             'completed',
             $description,
-            $createdBy
+            $actor,
+            $adminId
         );
 
     }

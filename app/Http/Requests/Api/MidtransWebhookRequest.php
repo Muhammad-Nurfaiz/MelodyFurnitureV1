@@ -34,7 +34,7 @@ class MidtransWebhookRequest extends FormRequest
 
             'transaction_status' => [
                 'required',
-                'string',
+                'in:pending,capture,settlement,deny,cancel,expire',
             ],
 
             'order_id' => [

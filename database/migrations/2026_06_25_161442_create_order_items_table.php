@@ -39,7 +39,8 @@ return new class extends Migration
 
             $table->string('product_slug');
 
-            $table->string('product_image');
+            $table->string('product_image')
+                ->nullable();
 
             /*
             |--------------------------------------------------------------------------

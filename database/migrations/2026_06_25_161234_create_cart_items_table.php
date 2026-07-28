@@ -15,12 +15,20 @@ return new class extends Migration
 
             $table->uuid('id')->primary();
 
+            $table->foreignUuid('cart_id')
+                ->constrained('carts')
+                ->cascadeOnDelete();
+
+            $table->foreignUuid('product_id')
+                ->constrained('products')
+                ->cascadeOnDelete();
+
+            $table->unsignedInteger('quantity');
+
             $table->unique([
                 'cart_id',
                 'product_id',
             ]);
-
-            $table->unsignedInteger('quantity');
 
             $table->timestamps();
         });

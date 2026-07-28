@@ -19,7 +19,6 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class,
             CategorySeeder::class,
             SeriesSeeder::class,
-            DemoOrderTrackingSeeder::class,
             ProductSeeder::class,
         ]);
     }

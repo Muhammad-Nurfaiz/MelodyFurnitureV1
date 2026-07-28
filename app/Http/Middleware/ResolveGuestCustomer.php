@@ -6,7 +6,6 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\Customer\CustomerSessionService;
-use RuntimeException;
 
 class ResolveGuestCustomer
 {
@@ -14,9 +13,6 @@ class ResolveGuestCustomer
         protected CustomerSessionService $customerSessionService,
     ) {}
 
-    /**
-     * Resolve Guest Customer
-     */
     public function handle(
         Request $request,
         Closure $next,
@@ -27,8 +23,10 @@ class ResolveGuestCustomer
         );
 
         if (!$guestToken) {
-            throw new RuntimeException(
-                'Guest session tidak ditemukan.'
+            abort(
+                response()->json([
+                    'message' => 'Guest session tidak ditemukan.',
+                ], 401)
             );
         }
 
@@ -36,8 +34,10 @@ class ResolveGuestCustomer
             ->findByToken($guestToken);
 
         if (!$customer) {
-            throw new RuntimeException(
-                'Guest session tidak valid.'
+            abort(
+                response()->json([
+                    'message' => 'Guest session tidak valid.',
+                ], 401)
             );
         }
 

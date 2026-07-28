@@ -2,9 +2,5 @@
 
 return [
 
-    'expired_minutes' => env(
-        'PAYMENT_EXPIRED_MINUTES',
-        10
-    ),
-
+    'expired_minutes' => (int) env('PAYMENT_EXPIRED_MINUTES',10),
 ];

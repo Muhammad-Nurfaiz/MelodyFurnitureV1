@@ -77,7 +77,7 @@ return new class extends Migration
             $table->string('tracking_number')
                 ->nullable();
 
-            $table->unsignedInteger('total_weight')
+            $table->decimal('total_weight',8,2)
                 ->default(0);
 
             /*
@@ -90,7 +90,7 @@ return new class extends Migration
                 ->default('pending');
 
             $table->string('payment_status')
-                ->default('unpaid');
+                ->default('pending');
 
             /*
             |--------------------------------------------------------------------------

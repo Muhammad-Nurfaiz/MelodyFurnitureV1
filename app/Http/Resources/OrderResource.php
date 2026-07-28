@@ -33,8 +33,8 @@ class OrderResource extends JsonResource
             |--------------------------------------------------------------------------
             */
 
-            'subtotal' => $this->subtotal,
-            'voucher_discount' => $this->voucher_discount,
+            'subtotal' => $this->total_product_price,
+            'voucher_discount' => $this->voucher_discount_amount,
             'shipping_fee' => $this->shipping_fee,
             'total_payment' => $this->total_payment,
 
@@ -45,7 +45,7 @@ class OrderResource extends JsonResource
             */
 
             'courier' => $this->courier,
-            'shipping_service' => $this->shipping_service,
+            'shipping_method' => $this->shipping_method,
             'shipping_address' => $this->shipping_address,
 
             /*

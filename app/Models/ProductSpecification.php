@@ -15,9 +15,17 @@ class ProductSpecification extends Model
     protected $fillable = [
         'product_id',
         'dimensions',
-        'seat_height',
+        'weight',
+        'packing_weight',
         'load_capacity',
-        'material_details'
+        'material_details',
+        'assembly_required',
+    ];
+
+    protected $casts = [
+        'weight' => 'decimal:2',
+        'packing_weight' => 'decimal:2',
+        'assembly_required' => 'boolean',
     ];
 
     public function product()

@@ -62,7 +62,14 @@ class Payment extends Model
 
     public function isPaid(): bool
     {
-        return $this->transaction_status === 'settlement';
+        return in_array(
+            $this->transaction_status,
+            [
+                'capture',
+                'settlement',
+            ],
+            true
+        );
     }
 
     public function isExpired(): bool
@@ -76,6 +83,11 @@ class Payment extends Model
             'cancel',
             'deny',
         ]);
+    }
+
+    public function isFailed(): bool
+    {
+        return $this->transaction_status === 'deny';
     }
 
     public function refund(): HasOne

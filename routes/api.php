@@ -28,13 +28,17 @@ Route::prefix('tracking')
         );
     });
 
-Route::middleware('auth:sanctum')->post('/checkout', [CheckoutController::class,'store']);
 Route::post('/midtrans/webhook', MidtransWebhookController::class);
 Route::middleware('guest.customer')
     ->post(
         '/checkout',
         [CheckoutController::class,'store']
     );
+
+Route::post(
+    '/customer/session',
+    [CustomerSessionController::class, 'store']
+);
 
 Route::middleware('customer.session')
     ->prefix('cart')

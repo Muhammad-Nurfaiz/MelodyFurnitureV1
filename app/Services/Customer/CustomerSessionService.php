@@ -23,7 +23,7 @@ class CustomerSessionService
             'guest_token' => Str::uuid(),
         ]);
 
-        Cart::create([
+        Cart::firstOrCreate([
             'customer_id' => $customer->id,
         ]);
 
@@ -35,17 +35,46 @@ class CustomerSessionService
         array $data = []
     ): Customer
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Guest Token
+        |--------------------------------------------------------------------------
+        */
+
         if ($guestToken) {
 
             $customer = $this->findByToken($guestToken);
 
             if ($customer) {
 
-                return $customer;
+                return $this->update($customer, $data);
 
             }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Existing Customer
+        |--------------------------------------------------------------------------
+        */
+
+        $customer = $this->findExistingCustomer($data);
+
+        if ($customer) {
+
+            $customer->update([
+                'guest_token' => (string) Str::uuid(),
+            ]);
+
+            return $this->update($customer, $data);
 
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create New Customer
+        |--------------------------------------------------------------------------
+        */
 
         return $this->create($data);
     }
@@ -69,18 +98,33 @@ class CustomerSessionService
     |--------------------------------------------------------------------------
     */
 
-    public function update(Customer $customer,array $data): Customer
+    public function update(Customer $customer, array $data): Customer
     {
-        $customer->update([
-
-            'name'=>$data['name'] ?? $customer->name,
-
-            'phone'=>$data['phone'] ?? $customer->phone,
-
-            'email'=>$data['email'] ?? $customer->email,
-
+        $customer->fill([
+            'name' => $data['name'] ?? $customer->name,
+            'phone' => $data['phone'] ?? $customer->phone,
+            'email' => $data['email'] ?? $customer->email,
         ]);
+        if ($customer->isDirty()) {
+            $customer->save();
+        }
+        return $customer->fresh('cart');
+    }
 
-        return $customer->fresh();
+    private function findExistingCustomer(array $data): ?Customer
+    {
+        return Customer::query()
+
+            ->when(
+                !empty($data['phone']),
+                fn ($query) => $query->orWhere('phone', $data['phone'])
+            )
+
+            ->when(
+                !empty($data['email']),
+                fn ($query) => $query->orWhere('email', $data['email'])
+            )
+
+            ->first();
     }
 }

@@ -27,7 +27,7 @@ class MidtransWebhookService
     public function handle(array $notification): void
     {
         $this->verifySignature($notification);
-        $payment = $this->paymentService->findByTransaction($notification['transaction_id']);
+        $payment = $this->paymentService->findByOrderNumber($notification['order_id']);
         if (!$payment) {
             throw new RuntimeException('Payment tidak ditemukan.');
         }
@@ -42,14 +42,22 @@ class MidtransWebhookService
     |--------------------------------------------------------------------------
     */
 
-    private function processStatus(Payment $payment, array $notification): void {
-        match ($notification['transaction_status']) {
-            'capture','settlement' => $this->processPaid($payment,$notification),
+    private function processStatus(Payment $payment,array $notification): void {
+        $status = $notification['transaction_status'];
+        if ($status === 'capture') {
+            if (($notification['fraud_status'] ?? '') === 'accept') {
+                $this->processPaid($payment,$notification);
+            }
+            return;
+        }
+
+        match ($status) {
+            'settlement' => $this->processPaid($payment,$notification),
             'pending' => $this->processPending($payment,$notification),
             'expire' => $this->processExpired($payment,$notification),
             'cancel' => $this->processCancelled($payment,$notification),
             'deny' => $this->processDenied($payment,$notification),
-            default => null,
+            default => throw new RuntimeException('Status Midtrans tidak dikenali.'),
         };
     }
 

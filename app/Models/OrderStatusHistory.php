@@ -18,7 +18,8 @@ class OrderStatusHistory extends Model
         'order_id',
         'status',
         'description',
-        'created_by',
+        'admin_id',
+        'actor',
     ];
 
     public function order(): BelongsTo
@@ -30,17 +31,17 @@ class OrderStatusHistory extends Model
     {
         return $this->belongsTo(
             Admin::class,
-            'created_by'
+            'admin_id'
         );
     }
 
     public function isAutomatic(): bool
     {
-        return is_null($this->created_by);
+        return is_null($this->admin_id);
     }
 
     public function isManual(): bool
     {
-        return ! is_null($this->created_by);
+        return ! is_null($this->admin_id);
     }
 }

@@ -12,9 +12,9 @@ return new class extends Migration
 
             $table->uuid('id')->primary();
 
-            $table->string('phone', 15)->unique();
-            $table->string('email', 100);
-            $table->string('name', 100);
+            $table->string('phone', 15)->unique()->nullable();
+            $table->string('email', 100)->nullable();
+            $table->string('name', 100)->nullable();
 
             $table->text('address_detail')->nullable();
             $table->string('destination_code', 50)->nullable();

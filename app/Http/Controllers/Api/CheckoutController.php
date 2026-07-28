@@ -8,6 +8,7 @@ use App\Http\Resources\OrderResource;
 use App\Services\Order\OrderService;
 use App\Services\Cart\CartService;
 use App\Services\Voucher\VoucherService;
+use App\Services\Customer\CustomerService;
 use Illuminate\Http\JsonResponse;
 
 class CheckoutController extends Controller
@@ -16,6 +17,7 @@ class CheckoutController extends Controller
         protected OrderService $orderService,
         protected CartService $cartService,
         protected VoucherService $voucherService,
+        protected CustomerService $customerService,
     ) {}
 
     /**
@@ -23,7 +25,22 @@ class CheckoutController extends Controller
      */
     public function store(CheckoutRequest $request): JsonResponse {
         $payload = $request->payload();
-        $customer = $request->attributes->get('customer');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Customer
+        |--------------------------------------------------------------------------
+        */
+
+        $customer = $this->customerService->updateProfile(
+            $request->attributes->get('customer'),
+            [
+                'name'    => $payload['name'],
+                'email'   => $payload['email'],
+                'phone'   => $payload['phone'],
+                'address' => $payload['shipping_address']['address'],
+            ]
+        );
 
         /*
         |--------------------------------------------------------------------------
