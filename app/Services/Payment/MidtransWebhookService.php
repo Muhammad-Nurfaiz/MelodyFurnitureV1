@@ -5,6 +5,7 @@ namespace App\Services\Payment;
 use App\Models\Payment;
 use App\Services\Order\OrderService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class MidtransWebhookService
@@ -26,6 +27,8 @@ class MidtransWebhookService
 
     public function handle(array $notification): void
     {
+        Log::info('Webhook received', $notification);
+        logger()->info('Incoming Midtrans Notification',$notification);
         $this->verifySignature($notification);
         $payment = $this->paymentService->findByOrderNumber($notification['order_id']);
         if (!$payment) {
@@ -43,7 +46,8 @@ class MidtransWebhookService
     */
 
     private function processStatus(Payment $payment,array $notification): void {
-        $status = $notification['transaction_status'];
+        $status = $notification['transaction_status'] ?? '';
+        Log::info('Webhook status',['status' => $status,]);
         if ($status === 'capture') {
             if (($notification['fraud_status'] ?? '') === 'accept') {
                 $this->processPaid($payment,$notification);
@@ -57,7 +61,8 @@ class MidtransWebhookService
             'expire' => $this->processExpired($payment,$notification),
             'cancel' => $this->processCancelled($payment,$notification),
             'deny' => $this->processDenied($payment,$notification),
-            default => throw new RuntimeException('Status Midtrans tidak dikenali.'),
+            'refund' => $this->processRefund($payment, $notification),
+            default => logger()->warning('Unknown Midtrans status',$notification),
         };
     }
 
@@ -67,12 +72,27 @@ class MidtransWebhookService
     |--------------------------------------------------------------------------
     */
 
-    private function processPaid(Payment $payment, array $notification): void {
-        if ($this->paymentService->isPaid($payment)) {
-            return;
+    private function processPaid(Payment $payment,array $notification): void {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Payment Idempotent
+        |--------------------------------------------------------------------------
+        */
+
+        if (! $this->paymentService->isPaid($payment)) {
+            $payment = $this->paymentService->markPaid($payment, $notification);
         }
-        $this->paymentService->markPaid($payment,$notification);
-        $this->orderService->markPaid($payment->order);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Order Idempotent
+        |--------------------------------------------------------------------------
+        */
+
+        if ($payment->order->status !== 'paid') {
+            $this->orderService->markPaid($payment->order);
+        }
     }
 
     /*
@@ -81,11 +101,13 @@ class MidtransWebhookService
     |--------------------------------------------------------------------------
     */
 
-    private function processPending(Payment $payment, array $notification): void {
+    private function processPending(Payment $payment,array $notification): void {
         if ($this->paymentService->isPending($payment)) {
+            logger()->info('Duplicate pending notification ignored',['order' => $payment->order->order_number]);
             return;
         }
-        $this->paymentService->markPending($payment,$notification);
+        $this->paymentService->markPending($payment, $notification);
+        logger()->info('Payment marked pending', ['order' => $payment->order->order_number]);
     }
 
     /*
@@ -94,12 +116,14 @@ class MidtransWebhookService
     |--------------------------------------------------------------------------
     */
 
-    private function processExpired(Payment $payment, array $notification): void {
+    private function processExpired(Payment $payment,array $notification): void {
         if ($this->paymentService->isExpired($payment)) {
+            logger()->info('Duplicate expire notification ignored', ['order' => $payment->order->order_number,]);
             return;
         }
         $this->paymentService->markExpired($payment,$notification);
         $this->orderService->expireOrder($payment->order);
+        logger()->info('Payment expired', ['order' => $payment->order->order_number]);
     }
 
     /*
@@ -108,12 +132,14 @@ class MidtransWebhookService
     |--------------------------------------------------------------------------
     */
 
-    private function processCancelled(Payment $payment, array $notification): void {
+    private function processCancelled(Payment $payment,array $notification): void {
         if ($this->paymentService->isCancelled($payment)) {
+            logger()->info('Duplicate cancel notification ignored', ['order' => $payment->order->order_number,]);
             return;
         }
         $this->paymentService->markCancelled($payment,$notification);
         $this->orderService->cancelOrder($payment->order,self::REASON_CANCELLED,self::SYSTEM);
+        logger()->info('Payment cancelled', ['order' => $payment->order->order_number]);
     }
 
     /*
@@ -122,12 +148,23 @@ class MidtransWebhookService
     |--------------------------------------------------------------------------
     */
 
-    private function processDenied(Payment $payment, array $notification): void {
+    private function processDenied(Payment $payment,array $notification): void {
         if ($this->paymentService->isFailed($payment)) {
+            logger()->info('Duplicate deny notification ignored', ['order' => $payment->order->order_number,]);
             return;
         }
         $this->paymentService->markFailed($payment,$notification);
         $this->orderService->cancelOrder($payment->order,self::REASON_DENIED,self::SYSTEM);
+        logger()->info('Payment denied', ['order' => $payment->order->order_number,]);
+    }
+
+    private function processRefund(Payment $payment,array $notification): void {
+        if ($this->paymentService->isRefunded($payment)) {
+            logger()->info('Duplicate refund notification ignored', ['order' => $payment->order->order_number,]);
+            return;
+        }
+        $this->paymentService->markRefunded($payment,$notification);
+        logger()->info('Payment refunded', ['order' => $payment->order->order_number,]);
     }
 
     /*
@@ -138,14 +175,16 @@ class MidtransWebhookService
 
     private function verifySignature(array $notification): void {
         $signature = $notification['signature_key'] ?? '';
+
+        $orderId = $notification['order_id'] ?? '';
+        $statusCode = $notification['status_code'] ?? '';
+        $grossAmount = $notification['gross_amount'] ?? '';
+
         $generated = hash(
             'sha512',
-            $notification['order_id']
-            .
-            $notification['status_code']
-            .
-            $notification['gross_amount']
-            .
+            $orderId .
+            $statusCode .
+            $grossAmount .
             config('midtrans.server_key')
         );
 

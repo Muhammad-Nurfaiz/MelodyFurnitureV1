@@ -19,6 +19,7 @@ use App\Services\Order\OrderNumberService;
 use App\Services\Order\OrderWorkflowService;
 use App\Services\Order\OrderCalculatorService;
 use App\Services\Order\OrderTrackingTokenService;
+use Illuminate\Support\Facades\Log;
 
 class OrderService
 {
@@ -68,104 +69,114 @@ class OrderService
     }
 
     public function checkout(Customer $customer,Collection $products,?Voucher $voucher,array $shipping): Order {
+        try {
+            return DB::transaction(function () use ($customer,$products,$voucher,$shipping) {
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Validate Product Stock
+                    |--------------------------------------------------------------------------
+                    */
+                    $this->inventoryService->validateStock($products);
 
-        return DB::transaction(function () use ($customer,$products,$voucher,$shipping) {
-            /*
-            |--------------------------------------------------------------------------
-            | Validate Product Stock
-            |--------------------------------------------------------------------------
-            */
-            $this->inventoryService->validateStock($products);
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Calculate
+                    |--------------------------------------------------------------------------
+                    */
+                    $summary = $this->calculatorService->calculate(
+                        products: $products,
+                        voucher: $voucher,
+                        courier: $shipping['courier'],
+                        service: $shipping['service'],
+                    );
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Create Order
+                    |--------------------------------------------------------------------------
+                    */
+                    $orderNumber = $this->numberService->generate();
 
-            /*
-            |--------------------------------------------------------------------------
-            | Calculate
-            |--------------------------------------------------------------------------
-            */
-            $summary = $this->calculatorService->calculate(
-                products: $products,
-                voucher: $voucher,
-                courier: $shipping['courier'],
-                service: $shipping['service'],
-            );
-            /*
-            |--------------------------------------------------------------------------
-            | Create Order
-            |--------------------------------------------------------------------------
-            */
-            $orderNumber = $this->numberService->generate();
+                    $order = $this->createOrder([
+                        'customer_id' => $customer->id,
+                        'voucher_id' => $voucher?->id,
+                        'order_number' => $orderNumber,
+                        'midtrans_order_id' => $orderNumber,
+                        'tracking_token' => $this->trackingTokenService->generate(),
+                        'total_product_price' => $summary['subtotal'],
+                        'voucher_discount_amount' => $summary['voucher_discount'],
+                        'original_shipping_fee' => $summary['shipping_fee'],
+                        'shipping_fee' => $summary['shipping_fee'],
+                        'total_payment' => $summary['total_payment'],
+                        'total_weight' => $summary['total_weight'],
+                        'shipping_method' => $shipping['service'],
+                        'courier' => $shipping['courier'],
+                        'shipping_address' => $shipping['address'],
+                        'status' => 'pending',
+                        'payment_status' => 'pending',
+                        'payment_expired_at' => now()->addMinutes(
+                            (int) config('payment.expired_minutes')
+                        ),
+                    ]);
 
-            $order = $this->createOrder([
-                'customer_id' => $customer->id,
-                'voucher_id' => $voucher?->id,
-                'order_number' => $orderNumber,
-                'midtrans_order_id' => $orderNumber,
-                'tracking_token' => $this->trackingTokenService->generate(),
-                'total_product_price' => $summary['subtotal'],
-                'voucher_discount_amount' => $summary['voucher_discount'],
-                'original_shipping_fee' => $summary['shipping_fee'],
-                'shipping_fee' => $summary['shipping_fee'],
-                'total_payment' => $summary['total_payment'],
-                'total_weight' => $summary['total_weight'],
-                'shipping_method' => $shipping['service'],
-                'courier' => $shipping['courier'],
-                'shipping_address' => $shipping['address'],
-                'status' => 'pending',
-                'payment_status' => 'pending',
-                'payment_expired_at' => now()->addMinutes(
-                    (int) config('payment.expired_minutes')
-                ),
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Order Items
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $this->createOrderItems($order,$products);
+                    $order->load(['customer','items','payment']);
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Reduce Stock
+                    |--------------------------------------------------------------------------
+                    */
+                    $this->inventoryService->decreaseStock($products);
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Midtrans
+                    |--------------------------------------------------------------------------
+                    */
+                    try {
+                        $snap = $this->midtransService->createTransaction($order);
+                    } catch (\Throwable $e) {
+                        throw new RuntimeException(
+                            'Gagal membuat transaksi pembayaran.',
+                            previous: $e
+                        );
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Payment
+                    |--------------------------------------------------------------------------
+                    */
+                    $this->paymentService->create($order,$snap);
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | History
+                    |--------------------------------------------------------------------------
+                    */
+                    $this->workflowService->initialize($order,'Checkout dibuat');
+                    $customer->loadMissing('cart');
+                    if ($customer->cart) {
+                        $this->cartService->clearCart($customer->cart);
+                    }
+                    return $order->fresh(['customer','items','payment',]);
+                });
+
+        } catch (\Throwable $e) {
+
+            dd([
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
             ]);
 
-            /*
-            |--------------------------------------------------------------------------
-            | Order Items
-            |--------------------------------------------------------------------------
-            */
-
-            $this->createOrderItems($order,$products);
-            $order->load(['customer','items','payment']);
-
-            /*
-            |--------------------------------------------------------------------------
-            | Reduce Stock
-            |--------------------------------------------------------------------------
-            */
-            $this->inventoryService->decreaseStock($products);
-
-            /*
-            |--------------------------------------------------------------------------
-            | Midtrans
-            |--------------------------------------------------------------------------
-            */
-            try {
-                $snap = $this->midtransService->createTransaction($order);
-            } catch (\Throwable $e) {
-                throw new RuntimeException(
-                    'Gagal membuat transaksi pembayaran.',
-                    previous: $e
-                );
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | Payment
-            |--------------------------------------------------------------------------
-            */
-            $this->paymentService->create($order,$snap);
-
-            /*
-            |--------------------------------------------------------------------------
-            | History
-            |--------------------------------------------------------------------------
-            */
-            $this->workflowService->initialize($order,'Checkout dibuat');
-            $customer->loadMissing('cart');
-            if ($customer->cart) {
-                $this->cartService->clearCart($customer->cart);
-            }
-            return $order->fresh(['customer','items','payment',]);
-        });
+        }
     }
 
     private function createOrder(array $data): Order {
@@ -218,7 +229,7 @@ class OrderService
 
     public function expireOrder(Order $order,?string $description = 'Payment expired',?string $createdBy = null): Order {
         $this->workflowService->validate($order,'cancelled');
-        return DB::transaction(function () use ($order,$description) {
+        return DB::transaction(function () use ($order,$description,$createdBy) {
             $order->update(['payment_status'=>'expired',]);
             /*
             |--------------------------------------------------------------------------
@@ -245,20 +256,26 @@ class OrderService
     }
 
     public function markPaid(Order $order,?string $createdBy = null): Order {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Idempotent
+        |--------------------------------------------------------------------------
+        */
+
+        if ($order->status === 'paid' && $order->payment_status === 'paid') {
+            return $order->fresh(['payment','items.product',]);
+        }
         $this->workflowService->validate($order,'paid');
         return DB::transaction(function () use ($order,$createdBy) {
-            $order->update(['payment_status'=>'paid',]);
+            $order->update(['payment_status' => 'paid',]);
             $this->workflowService->changeStatus($order,'paid','Payment berhasil diterima',$createdBy);
             return $order->fresh(['payment','items.product',]);
         });
     }
 
-    private function inventoryItems(Order $order): Collection {
-        return $order->items->map(
-            fn ($item) => [
-                'product' => $item->product,
-                'qty' => $item->quantity,
-            ]
-        );
+    private function inventoryItems(Order $order): Collection
+    {
+        return $order->items;
     }
 }

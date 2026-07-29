@@ -104,27 +104,21 @@ class OrderWorkflowService
     |--------------------------------------------------------------------------
     */
 
-    public function canTransition(
-        Order $order,
-        string $target
-    ): bool {
-
-        return in_array(
-            $target,
-            $this->transitions[$order->status] ?? [],
-            true
-        );
+    public function canTransition(Order $order,string $target): bool {
+        return in_array($target, $this->transitions[$order->status] ?? [],true);
     }
 
-    public function validate(
-        Order $order,
-        string $target
-    ): void {
-
+    public function validate(Order $order,string $target): void {
+        /*
+        |--------------------------------------------------------------------------
+        | Idempotent
+        |--------------------------------------------------------------------------
+        */
+        if ($order->status === $target) {
+            return;
+        }
         if (! $this->canTransition($order, $target)) {
-            throw new RuntimeException(
-                "Status {$order->status} tidak dapat berubah menjadi {$target}."
-            );
+            throw new RuntimeException("Status {$order->status} tidak dapat berubah menjadi {$target}.");
         }
     }
 
@@ -134,17 +128,19 @@ class OrderWorkflowService
     |--------------------------------------------------------------------------
     */
 
-    public function changeStatus(
-        Order $order,
-        string $status,
-        ?string $description = null,
-        ?string $createdBy = null,
-    ): Order {
+    public function changeStatus(Order $order,string $status,?string $description = null,?string $createdBy = null,): Order {
 
-        $this->validate(
-            $order,
-            $status
-        );
+        /*
+        |--------------------------------------------------------------------------
+        | Idempotent
+        |--------------------------------------------------------------------------
+        */
+
+        if ($order->status === $status) {
+            return $order->fresh();
+        }
+
+        $this->validate($order,$status);
 
         $data = [
             'status' => $status,
@@ -163,7 +159,6 @@ class OrderWorkflowService
             $createdBy ? 'admin' : 'system',
             $createdBy
         );
-
         return $order->fresh();
     }
 

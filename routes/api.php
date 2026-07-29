@@ -28,7 +28,7 @@ Route::prefix('tracking')
         );
     });
 
-Route::post('/midtrans/webhook', MidtransWebhookController::class);
+Route::post('/payment/notification', MidtransWebhookController::class);
 Route::middleware('guest.customer')
     ->post(
         '/checkout',

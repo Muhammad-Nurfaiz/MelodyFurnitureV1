@@ -34,7 +34,7 @@ class MidtransWebhookRequest extends FormRequest
 
             'transaction_status' => [
                 'required',
-                'in:pending,capture,settlement,deny,cancel,expire',
+                'in:pending,capture,settlement,deny,cancel,expire,refund',
             ],
 
             'order_id' => [
@@ -49,6 +49,7 @@ class MidtransWebhookRequest extends FormRequest
 
             'gross_amount' => [
                 'required',
+                'string',
             ],
 
             'signature_key' => [
@@ -74,12 +75,12 @@ class MidtransWebhookRequest extends FormRequest
 
             'transaction_time' => [
                 'nullable',
-                'string',
+                'date',
             ],
 
             'settlement_time' => [
                 'nullable',
-                'string',
+                'date',
             ],
 
             'va_numbers' => [
@@ -88,6 +89,16 @@ class MidtransWebhookRequest extends FormRequest
             ],
 
             'permata_va_number' => [
+                'nullable',
+                'string',
+            ],
+
+            'va_numbers.*.bank' => [
+                'nullable',
+                'string',
+            ],
+
+            'va_numbers.*.va_number' => [
                 'nullable',
                 'string',
             ],
@@ -128,6 +139,6 @@ class MidtransWebhookRequest extends FormRequest
      */
     public function payload(): array
     {
-        return $this->validated();
+        return $this->all();
     }
 }

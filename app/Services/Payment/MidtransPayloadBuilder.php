@@ -6,6 +6,7 @@ use App\Models\Order;
 
 class MidtransPayloadBuilder
 {
+    private const PAYMENT_RESULT = '/payment/result';
     /**
      * Build Snap Payload
      */
@@ -20,15 +21,16 @@ class MidtransPayloadBuilder
                 'email' => $order->customer->email,
                 'phone' => $order->customer->phone,
             ],
-            'enabled_payments' => [
-                'bank_transfer',
-                'gopay',
-                'qris',
-            ],
+            'enabled_payments' => config('payment.midtrans.enabled_payments'),
             'item_details' => $this->buildItems($order),
             'expiry' => [
                 'unit' => 'minute',
                 'duration' => (int) config('payment.expired_minutes'),
+            ],
+            'callbacks' => [
+                'finish' => config('app.frontend_url') . self::PAYMENT_RESULT,
+                'pending' => config('app.frontend_url') . self::PAYMENT_RESULT,
+                'error' => config('app.frontend_url') . self::PAYMENT_RESULT,
             ],
         ];
     }

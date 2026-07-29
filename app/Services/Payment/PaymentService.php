@@ -5,6 +5,7 @@ namespace App\Services\Payment;
 use App\Models\Order;
 use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PaymentService
 {
@@ -17,17 +18,14 @@ class PaymentService
     public function create(Order $order, array $midtrans): Payment {
         return Payment::create([
             'order_id'           => $order->id,
-            'transaction_id' => $midtrans['transaction_id'] ?? null,
+            'transaction_id'     => $midtrans['transaction_id'] ?? null,
             'snap_token'         => $midtrans['snap_token'],
             'payment_type'       => null,
             'bank'               => null,
             'va_number'          => null,
-
             'gross_amount'       => $order->total_payment,
-
             'expired_at'         => $midtrans['expiry_time'],
             'transaction_status' => 'pending',
-
             'raw_response'       => $midtrans,
         ]);
     }
@@ -39,6 +37,9 @@ class PaymentService
     */
 
     public function markPending(Payment $payment, array $notification = []): Payment {
+        if ($this->isPending($payment)) {
+            return $payment;
+        }
         return $this->updateStatus(
             $payment,
             [
@@ -49,6 +50,9 @@ class PaymentService
     }
 
     public function markPaid(Payment $payment, array $notification): Payment {
+        if ($this->isPaid($payment)) {
+            return $payment;
+        }
         return $this->updateStatus(
             $payment,
             [
@@ -63,9 +67,13 @@ class PaymentService
                 'raw_notification'  => $notification,
             ]
         );
+        Log::info('Payment updated');
     }
 
     public function markExpired(Payment $payment, array $notification = []): Payment {
+        if ($this->isExpired($payment)) {
+            return $payment;
+        }
         return $this->updateStatus(
             $payment,
             [
@@ -76,6 +84,9 @@ class PaymentService
     }
 
     public function markCancelled(Payment $payment, array $notification = []): Payment {
+        if ($this->isCancelled($payment)) {
+            return $payment;
+        }
         return $this->updateStatus(
             $payment,
             [
@@ -86,6 +97,9 @@ class PaymentService
     }
 
     public function markFailed(Payment $payment, array $notification = []): Payment {
+        if ($this->isFailed($payment)) {
+            return $payment;
+        }
         return $this->updateStatus(
             $payment,
             [
@@ -96,6 +110,9 @@ class PaymentService
     }
 
     public function markRefunded(Payment $payment, ?array $payload = null): Payment {
+        if ($this->isRefunded($payment)) {
+            return $payment;
+        }
         $payment->update([
             'transaction_status' => 'refunded',
             'paid_at' => $payment->paid_at,

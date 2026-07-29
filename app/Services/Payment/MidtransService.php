@@ -3,6 +3,7 @@
 namespace App\Services\Payment;
 
 use App\Models\Order;
+use App\Models\Payment;
 use Midtrans\Config;
 use Midtrans\Snap;
 use Midtrans\Transaction;
@@ -11,7 +12,7 @@ use App\Services\Payment\MidtransPayloadBuilder;
 class MidtransService
 {
     public function __construct(
-        protected MidtransPayloadBuilder $builder
+        protected MidtransPayloadBuilder $builder,
     ){
         Config::$serverKey = config('midtrans.server_key');
         Config::$clientKey = config('midtrans.client_key');

@@ -7,6 +7,7 @@ use App\Services\Payment\MidtransWebhookService;
 use App\Http\Requests\Api\MidtransWebhookRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class MidtransWebhookController extends Controller
 {
@@ -14,13 +15,14 @@ class MidtransWebhookController extends Controller
         protected MidtransWebhookService $webhookService,
     ) {}
 
-    /**
-     * Midtrans Webhook
-     */
     public function __invoke(
         MidtransWebhookRequest $request
     ): JsonResponse {
 
+        Log::info('Midtrans notification received', [
+            'payload' => $request->all(),
+        ]);
+    
         $this->webhookService
             ->handle($request->payload());
 

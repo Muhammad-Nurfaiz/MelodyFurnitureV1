@@ -16,140 +16,97 @@ class PaymentExpirationService
     ) {}
 
     /**
-     * Memproses seluruh payment yang telah melewati expiry_time.
+     * Memproses seluruh payment yang telah melewati batas waktu pembayaran.
      */
     public function processExpiredPayments(): int
     {
         $payments = Payment::query()
             ->with('order')
-            ->where('status', 'pending')
-            ->where('expiry_time', '<=', now())
+            ->where('transaction_status', 'pending')
+            ->where('expired_at', '<=', now())
             ->get();
 
         $processed = 0;
 
         foreach ($payments as $payment) {
 
+            /*
+            |--------------------------------------------------------------------------
+            | Pastikan Order Masih Ada
+            |--------------------------------------------------------------------------
+            */
+            $order = $payment->order;
+
+            if (!$order) {
+                continue;
+            }
+
             try {
 
-                /*
-                |--------------------------------------------------------------------------
-                | Ambil status terbaru dari Midtrans
-                |--------------------------------------------------------------------------
-                */
-
-                $status = $this->midtransService
-                    ->status($payment->transaction_id);
-
-                $transactionStatus =
-                    $status->transaction_status ?? null;
-
-                DB::transaction(function () use (
-                    $payment,
-                    $status,
-                    $transactionStatus
-                ) {
+                $status = $this->midtransService->status($order->midtrans_order_id);
+                $transactionStatus = $status->transaction_status ?? null;
+                $updated = false;
+                DB::transaction(function () use ($payment,$order,$status,$transactionStatus,&$updated) {
 
                     switch ($transactionStatus) {
 
                         /*
                         |--------------------------------------------------------------------------
-                        | Customer sudah berhasil membayar
+                        | Pembayaran Berhasil
                         |--------------------------------------------------------------------------
                         */
-
                         case 'settlement':
-
                         case 'capture':
-
-                            $this->paymentService
-                                ->markPaid(
-                                    $payment,
-                                    (array) $status
-                                );
-
-                            $this->orderService
-                                ->markPaid(
-                                    $payment->order
-                                );
-
+                            $this->paymentService->markPaid($payment, (array) $status);
+                            $this->orderService->markPaid($order);
+                            $updated = true;
                             break;
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Masih pending tetapi sudah lewat 10 menit
-                        |--------------------------------------------------------------------------
-                        */
 
                         case 'pending':
-
-                            $this->midtransService
-                                ->expire(
-                                    $payment->transaction_id
-                                );
-
-                            $this->paymentService
-                                ->markExpired(
-                                    $payment,
-                                    (array) $status
-                                );
-
-                            $this->orderService
-                                ->expireOrder(
-                                    $payment->order
-                                );
-
+                            $this->midtransService->expire($order->midtrans_order_id);
+                            $this->paymentService->markExpired($payment,['transaction_status' => 'expire']);
+                            $this->orderService->expireOrder($order);
+                            $updated = true;
                             break;
 
                         /*
                         |--------------------------------------------------------------------------
-                        | Midtrans sudah expire / cancel
+                        | Sudah Expire / Cancel di Midtrans
                         |--------------------------------------------------------------------------
                         */
-
                         case 'expire':
-
                         case 'cancel':
-
-                            $this->paymentService
-                                ->markExpired(
-                                    $payment,
-                                    (array) $status
-                                );
-
-                            $this->orderService
-                                ->expireOrder(
-                                    $payment->order
-                                );
-
+                            $this->paymentService->markExpired($payment, (array) $status);
+                            $this->orderService->expireOrder($order);
+                            $updated = true;
                             break;
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Status lain diabaikan
-                        |--------------------------------------------------------------------------
-                        */
 
                         default:
-
                             break;
-
                     }
-
                 });
-
-                $processed++;
-
+                if ($updated) {
+                    $processed++;
+                }
             } catch (Throwable $e) {
+                if ($e->getCode() == 404) {
+                    DB::transaction(function () use ($payment, $order) {
+                        $this->paymentService->markExpired(
+                            $payment,
+                            ['transaction_status' => 'expire']
+                        );
+                        $this->orderService->expireOrder($order);
+                    });
+                    $processed++;
+                    continue;
+                }
 
-                report($e);
-
-                continue;
-
+                Log::error('Payment expiration failed', [
+                    'order_number' => $order->order_number,
+                    'message' => $e->getMessage(),
+                ]);
             }
-
         }
-
         return $processed;
     }
 }
