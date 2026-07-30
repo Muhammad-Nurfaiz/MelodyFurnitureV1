@@ -264,4 +264,57 @@ class Order extends Model
     {
         return $this->status === 'shipped';
     }
+
+    public function canTrackShipment(): bool
+    {
+        return in_array(
+            $this->status,
+            [
+                'picked_up',
+                'shipped',
+                'completed',
+            ],
+            true
+        );
+    }
+
+    public function canDownloadInvoice(): bool
+    {
+        return in_array(
+            $this->status,
+            [
+                'paid',
+                'processing',
+                'picked_up',
+                'shipped',
+                'completed',
+            ],
+            true
+        );
+    }
+
+    public function canRequestCancel(): bool
+    {
+        return in_array(
+            $this->status,
+            [
+                'pending',
+                'paid',
+                'processing',
+                'picked_up',
+            ],
+            true
+        )
+        && is_null($this->cancellationRequest);
+    }
+
+    public function canContinuePayment(): bool
+    {
+        return
+            $this->status === 'pending'
+            &&
+            $this->payment_status === 'pending'
+            &&
+            ! $this->paymentExpired();
+    }
 }

@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\MidtransWebhookController;
 use App\Http\Controllers\Api\Customer\CustomerSessionController;
 use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\OrderTrackingController;
+use App\Http\Controllers\Api\ResumePaymentController;
+use App\Http\Controllers\Api\PaymentResultController;
 
 /*
 |--------------------------------------------------------------------------
@@ -70,3 +73,18 @@ Route::middleware('customer.session')
         );
 
     });
+
+Route::get(
+    '/orders/track/{trackingToken}',
+    [OrderTrackingController::class, 'show']
+);
+
+Route::get(
+    '/payments/resume/{trackingToken}',
+    [ResumePaymentController::class, 'show']
+);
+
+Route::get(
+    '/payment/result',
+    [PaymentResultController::class, 'show']
+);
