@@ -114,6 +114,7 @@
     <span x-text="tooltip.text"></span>
 
 </div>
+    @stack('scripts')
 </body>
 
 </html>

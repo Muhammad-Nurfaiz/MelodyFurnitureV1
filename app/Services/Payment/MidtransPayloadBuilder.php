@@ -7,30 +7,47 @@ use App\Models\Order;
 class MidtransPayloadBuilder
 {
     private const PAYMENT_RESULT = '/payment/result';
+
     /**
      * Build Snap Payload
      */
-    public function build(Order $order): array {
+    public function build(Order $order): array
+    {
+        $paymentResultUrl =
+            config('app.frontend_url')
+            . self::PAYMENT_RESULT
+            . '?order_id='
+            . urlencode($order->midtrans_order_id);
+
         return [
             'transaction_details' => [
                 'order_id' => $order->midtrans_order_id,
                 'gross_amount' => (int) $order->total_payment,
             ],
+
             'customer_details' => [
                 'first_name' => $order->customer->name,
                 'email' => $order->customer->email,
                 'phone' => $order->customer->phone,
             ],
-            'enabled_payments' => config('payment.midtrans.enabled_payments'),
+
+            'enabled_payments' => config(
+                'payment.midtrans.enabled_payments'
+            ),
+
             'item_details' => $this->buildItems($order),
+
             'expiry' => [
                 'unit' => 'minute',
-                'duration' => (int) config('payment.expired_minutes'),
+                'duration' => (int) config(
+                    'payment.expired_minutes'
+                ),
             ],
+
             'callbacks' => [
-                'finish' => config('app.frontend_url') . self::PAYMENT_RESULT,
-                'pending' => config('app.frontend_url') . self::PAYMENT_RESULT,
-                'error' => config('app.frontend_url') . self::PAYMENT_RESULT,
+                'finish' => $paymentResultUrl,
+                'pending' => $paymentResultUrl,
+                'error' => $paymentResultUrl,
             ],
         ];
     }
@@ -38,8 +55,10 @@ class MidtransPayloadBuilder
     /**
      * Item Details
      */
-    private function buildItems(Order $order): array {
+    private function buildItems(Order $order): array
+    {
         $items = [];
+
         foreach ($order->items as $item) {
             $items[] = [
                 'id' => $item->product_id,
@@ -78,6 +97,7 @@ class MidtransPayloadBuilder
                 'quantity' => 1,
             ];
         }
+
         return $items;
     }
 }

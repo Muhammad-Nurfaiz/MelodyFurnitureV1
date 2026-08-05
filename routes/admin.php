@@ -10,82 +10,42 @@ use App\Http\Controllers\Admin\Product\ProductMediaController;
 use App\Http\Controllers\Admin\Media\TemporaryMediaController;
 use App\Http\Controllers\Admin\Order\OrderController;
 use App\Http\Controllers\Admin\Shipment\ShipmentController;
+use App\Http\Controllers\Admin\Order\OrderCancellationController;
+use App\Http\Controllers\Admin\Payment\RefundController;
 
 Route::middleware(['auth'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
 
-        Route::get('/dashboard', [DashboardController::class, 'index'])
-            ->name('dashboard');
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-        Route::resource('/categories', CategoryController::class)
-            ->except([
-                'create',
-                'edit',
-            ]);
+        Route::resource('/categories', CategoryController::class)->except(['create','edit']);
+        Route::resource('/series', SeriesController::class)->except(['create','edit']);
+        Route::resource('/products', ProductController::class)->except(['show']);
 
-        Route::resource('/series', SeriesController::class)
-            ->except([
-                'create',
-                'edit',
-            ]);
+        Route::post('media/temporary', [TemporaryMediaController::class, 'store'])->name('media.temporary.store');
+        Route::delete('media/temporary/{id}', [TemporaryMediaController::class, 'destroy'])->name('media.temporary.destroy');
+        Route::delete('media/temporary/cleanup', [TemporaryMediaController::class, 'cleanup'])->name('media.temporary.cleanup');
+        Route::delete('products/media/{media}', [ProductMediaController::class, 'destroy'])->name('products.media.destroy');
+
+        Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/{order}', [OrderController::class,'show'])->name('orders.show');
+        Route::patch('/orders/{order}/processing', [OrderController::class, 'processing'])->name('orders.processing');
+
+        Route::patch('/order-cancellation/{cancellationRequest}/approve',[OrderCancellationController::class, 'approve'])->name('orders.cancellation.approve');
+        Route::patch('/order-cancellation/{cancellationRequest}/reject',[OrderCancellationController::class, 'reject'])->name('orders.cancellation.reject');
+        Route::patch('/orders/{order}/cancel',[OrderCancellationController::class, 'cancel'])->name('orders.cancel');
+            
+        Route::patch('/refunds/{refund}/start',[RefundController::class, 'start'])->name('refunds.start');
+        Route::patch('/refunds/{refund}/complete',[RefundController::class, 'complete'])->name('refunds.complete');
+        Route::patch('/refunds/{refund}/reject',[RefundController::class, 'reject'])->name('refunds.reject');
+
+        Route::post('/orders/{order}/shipment', [ShipmentController::class, 'store'])->name('shipments.store');
+        Route::patch('/shipments/{shipment}/pickup', [ShipmentController::class, 'pickup'])->name('shipments.pickup');
+        Route::patch('/shipments/{shipment}/transit', [ShipmentController::class, 'transit'])->name('shipments.transit');
+        Route::patch('/shipments/{shipment}/delivered', [ShipmentController::class, 'delivered'])->name('shipments.delivered');
+        Route::patch('/shipments/{shipment}/cancel', [ShipmentController::class, 'cancel'])->name('shipments.cancel');
         
-        Route::resource('/products', ProductController::class)
-            ->except(['show']);
 
-        Route::delete(
-            'products/media/{media}',
-            [ProductMediaController::class, 'destroy']
-        )->name('products.media.destroy');
-
-        Route::get('/orders', [OrderController::class, 'index'])
-            ->name('orders.index');
-
-        Route::post(
-            '/{order}',
-            [ShipmentController::class,'store']
-        );
-
-        Route::patch(
-            '/{shipment}/pickup',
-            [ShipmentController::class,'pickup']
-        );
-
-        Route::patch(
-            '/{shipment}/transit',
-            [ShipmentController::class,'transit']
-        );
-
-        Route::patch(
-            '/{shipment}/delivered',
-            [ShipmentController::class,'delivered']
-        );
-
-        Route::patch(
-            '/{shipment}/cancel',
-            [ShipmentController::class,'cancel']
-        );
-
-    });
-
-Route::prefix('admin')
-    ->middleware(['auth'])
-    ->name('admin.')
-    ->group(function () {
-
-        Route::post(
-            'media/temporary',
-            [TemporaryMediaController::class, 'store']
-        )->name('media.temporary.store');
-
-        Route::delete(
-            'media/temporary/{id}',
-            [TemporaryMediaController::class, 'destroy']
-        )->name('media.temporary.destroy');
-        
-        Route::delete(
-            'media/temporary/cleanup',
-            [TemporaryMediaController::class, 'cleanup']
-        )->name('media.temporary.cleanup');
     });

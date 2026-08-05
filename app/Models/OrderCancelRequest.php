@@ -88,4 +88,9 @@ class OrderCancelRequest extends Model
     {
         return $this->status === 'rejected';
     }
+    
+    public function previousStatus(): string
+    {
+        return $this->previous_status;
+    }
 }

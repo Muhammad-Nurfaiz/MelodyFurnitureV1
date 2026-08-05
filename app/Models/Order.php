@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\Refund;
 
 class Order extends Model
 {
@@ -233,7 +234,6 @@ class Order extends Model
                 'pending',
                 'paid',
                 'processing',
-                'picked_up',
             ],
             true
         );
@@ -298,10 +298,8 @@ class Order extends Model
         return in_array(
             $this->status,
             [
-                'pending',
                 'paid',
                 'processing',
-                'picked_up',
             ],
             true
         )

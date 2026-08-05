@@ -2,12 +2,18 @@
 
 namespace App\Models;
 
-use App\Models\Admin;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Refund extends Model
 {
+    use HasUuids;
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
 
         'order_id',
@@ -40,17 +46,19 @@ class Refund extends Model
 
     protected $casts = [
 
-        'requested_at'=>'datetime',
+        'amount' => 'decimal:2',
 
-        'processed_at'=>'datetime',
+        'requested_at' => 'datetime',
 
-        'completed_at'=>'datetime',
+        'processed_at' => 'datetime',
+
+        'completed_at' => 'datetime',
 
     ];
 
     /*
     |--------------------------------------------------------------------------
-    | Relationship
+    | Relationships
     |--------------------------------------------------------------------------
     */
 
@@ -74,5 +82,31 @@ class Refund extends Model
             Admin::class,
             'processed_by'
         );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Status Helpers
+    |--------------------------------------------------------------------------
+    */
+
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    public function isProcessing(): bool
+    {
+        return $this->status === 'processing';
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this->status === 'completed';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->status === 'rejected';
     }
 }

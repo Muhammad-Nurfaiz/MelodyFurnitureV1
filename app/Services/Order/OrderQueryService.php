@@ -14,8 +14,70 @@ class OrderQueryService
     | Base Query
     |--------------------------------------------------------------------------
     */
-    public function query(): Builder
+    /*
+    |--------------------------------------------------------------------------
+    | Order List
+    |--------------------------------------------------------------------------
+    */
+
+    public function list(Request $request): LengthAwarePaginator
     {
+        return $this->paginate($request);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Statistics
+    |--------------------------------------------------------------------------
+    */
+
+    public function stats(): array
+    {
+        return [
+            'total' => Order::query()->count(),
+
+            'pending_payment' => Order::query()
+                ->where('payment_status', 'pending')
+                ->count(),
+
+            'processing' => Order::query()
+                ->where('status', 'processing')
+                ->count(),
+
+            'completed' => Order::query()
+                ->where('status', 'completed')
+                ->count(),
+        ];
+    }
+
+    public function statistics(): array
+    {
+        return [
+            'total' => Order::query()->count(),
+
+            'pending_payment' => Order::query()
+                ->where('payment_status', 'pending')
+                ->count(),
+
+            'paid' => Order::query()
+                ->where('payment_status', 'paid')
+                ->count(),
+
+            'processing' => Order::query()
+                ->where('status', 'processing')
+                ->count(),
+
+            'completed' => Order::query()
+                ->where('status', 'completed')
+                ->count(),
+
+            'cancelled' => Order::query()
+                ->where('status', 'cancelled')
+                ->count(),
+        ];
+    }
+
+    public function query(): Builder {
         return Order::query()
             ->with([
                 'customer',
@@ -24,8 +86,7 @@ class OrderQueryService
             ]);
     }
 
-    public function detail(): Builder
-    {
+    public function detail(): Builder {
         return $this->query()
             ->with([
                 'items.product',
@@ -36,8 +97,7 @@ class OrderQueryService
             ]);
     }
 
-    public function requestCancel(): Builder
-    {
+    public function requestCancel(): Builder {
         return $this->status('req_cancel');
     }
 
@@ -47,12 +107,8 @@ class OrderQueryService
     |--------------------------------------------------------------------------
     */
 
-    public function paginate(
-        int $perPage = 15
-    ): LengthAwarePaginator {
-        return $this->query()
-            ->latest()
-            ->paginate($perPage);
+    public function paginate(Builder $query,int $perPage = 15): LengthAwarePaginator {
+        return $query->paginate($perPage)->withQueryString();
     }
 
     /*
@@ -61,22 +117,12 @@ class OrderQueryService
     |--------------------------------------------------------------------------
     */
 
-    public function find(
-        string $id
-    ): ?Order {
-        return $this->detail()
-            ->find($id);
+    public function find(string $id): ?Order {
+        return $this->detail()->find($id);
     }
 
-    public function findByNumber(
-        string $number
-    ): ?Order {
-        return $this->detail()
-            ->where(
-                'order_number',
-                $number
-            )
-            ->first();
+    public function findByNumber(string $number): ?Order {
+        return $this->detail()->where('order_number',$number)->first();
     }
 
     /*
@@ -84,28 +130,12 @@ class OrderQueryService
     | Find By Tracking Token
     |--------------------------------------------------------------------------
     */
-    public function findByTrackingToken(
-        string $trackingToken
-    ): ?Order {
-        return $this->detail()
-            ->where(
-                'tracking_token',
-                $trackingToken
-            )
-            ->first();
+    public function findByTrackingToken(string $trackingToken): ?Order {
+        return $this->detail()->where('tracking_token',$trackingToken)->first();
     }
 
-    public function byTrackingToken(
-        string $trackingToken
-    ): Builder {
-
-        return $this->query()
-
-            ->where(
-                'tracking_token',
-                $trackingToken
-            );
-
+    public function byTrackingToken(string $trackingToken): Builder {
+        return $this->query()->where('tracking_token',$trackingToken);
     }
 
     /*
@@ -114,14 +144,8 @@ class OrderQueryService
     |--------------------------------------------------------------------------
     */
 
-    public function customerOrders(
-        Customer $customer
-    ): Builder {
-        return $this->detail()
-            ->where(
-                'customer_id',
-                $customer->id
-            );
+    public function customerOrders(Customer $customer): Builder {
+        return $this->detail()->where('customer_id',$customer->id);
     }
 
     /*
@@ -130,44 +154,32 @@ class OrderQueryService
     |--------------------------------------------------------------------------
     */
 
-    public function pending(): Builder
-    {
+    public function pending(): Builder {
         return $this->status('pending');
     }
 
-    public function paid(): Builder
-    {
+    public function paid(): Builder {
         return $this->status('paid');
     }
 
-    public function processing(): Builder
-    {
+    public function processing(): Builder {
         return $this->status('processing');
     }
 
-    public function pickedUp(): Builder
-    {
+    public function pickedUp(): Builder {
         return $this->status('picked_up');
     }
 
-    public function completed(): Builder
-    {
+    public function completed(): Builder {
         return $this->status('completed');
     }
 
-    public function cancelled(): Builder
-    {
+    public function cancelled(): Builder {
         return $this->status('cancelled');
     }
 
-    protected function status(
-        string $status
-    ): Builder {
-        return $this->query()
-            ->where(
-                'status',
-                $status
-            );
+    protected function status(string $status): Builder {
+        return $this->query()->where('status', $status);
     }
 
     /*
@@ -176,13 +188,8 @@ class OrderQueryService
     |--------------------------------------------------------------------------
     */
 
-    public function paymentPending(): Builder
-    {
-        return $this->query()
-            ->where(
-                'payment_status',
-                'pending'
-            );
+    public function paymentPending(): Builder {
+        return $this->query()->where('payment_status', 'pending');
     }
 
     /*
@@ -191,10 +198,7 @@ class OrderQueryService
     |--------------------------------------------------------------------------
     */
 
-    public function search(
-        Builder $query,
-        ?string $keyword
-    ): Builder {
+    public function search(Builder $query,?string $keyword): Builder {
         if (blank($keyword)) {
             return $query;
         }
@@ -223,5 +227,40 @@ class OrderQueryService
                 "%{$keyword}%"
             );
         });
+    }
+
+    public function filterStatus(Builder $query, ?string $status): Builder {
+        if (blank($status) || $status === 'all') {
+            return $query;
+        }
+        return $query->where('status', $status);
+    }
+
+    public function filterPaymentStatus(Builder $query,?string $status): Builder {
+        if (blank($status) || $status === 'all') {
+            return $query;
+        }
+        return $query->where('payment_status', $status);
+    }
+
+    public function filterCourier(Builder $query,?string $courier): Builder {
+        if (blank($courier) || $courier === 'all') {
+            return $query;
+        }
+        return $query->where('courier', $courier);
+    }
+
+    public function filterDate(Builder $query,?string $from,?string $to): Builder {
+        if ($from) {
+            $query->whereDate('created_at','>=',$from);
+        }
+        if ($to) {
+            $query->whereDate('created_at','<=',$to);
+        }
+        return $query;
+    }
+
+    public function sort(Builder $query,string $column = 'created_at',string $direction = 'desc'): Builder {
+        return $query->orderBy($column,$direction);
     }
 }

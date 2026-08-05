@@ -15,9 +15,7 @@ class MidtransWebhookController extends Controller
         protected MidtransWebhookService $webhookService,
     ) {}
 
-    public function __invoke(
-        MidtransWebhookRequest $request
-    ): JsonResponse {
+    public function __invoke(MidtransWebhookRequest $request): JsonResponse {
 
         Log::info('Midtrans notification received', [
             'payload' => $request->all(),

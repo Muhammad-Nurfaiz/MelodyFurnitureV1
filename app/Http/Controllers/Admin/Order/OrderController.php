@@ -3,63 +3,50 @@
 namespace App\Http\Controllers\Admin\Order;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
+use App\Services\Order\OrderAdminService;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(
+        protected OrderAdminService $adminService,
+    ) {}
+
+    public function index(Request $request)
     {
-        return view('admin.modules.order.index');
+        $orders = $this->adminService->list($request);
+        $stats = $this->adminService->stats();
+        $statis = $this->adminService->statistics();
+
+        return view(
+            'admin.modules.order.index',
+            compact('orders', 'stats', 'statis')
+        );
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        //
+        $order = $this->adminService->show($id);
+
+        return view(
+            'admin.modules.order.show',
+            compact('order')
+        );
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function processing(Order $order)
     {
-        //
-    }
+        $order = $this->adminService->changeStatus(
+            order: $order,
+            status: 'processing',
+            description: 'Pesanan mulai diproses'
+        );
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return response()->json([
+            'success' => true,
+            'message' => 'Order berhasil diproses.',
+            'data' => $order,
+        ]);
     }
 }

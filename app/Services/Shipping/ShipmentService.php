@@ -25,7 +25,7 @@ class ShipmentService
         $shipment = Shipment::create([
             'order_id'        => $order->id,
             'courier'         => $order->courier,
-            'service'         => $order->shipping_service,
+            'service'         => $order->shipping_method,
             'booking_code'    => $shipment['booking_code'] ?? null,
             'tracking_number' => $shipment['tracking_number'] ?? null,
             'label_url'       => $shipment['label_url'] ?? null,

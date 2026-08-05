@@ -5,88 +5,167 @@ namespace App\Services\Payment;
 use App\Models\Admin;
 use App\Models\Order;
 use App\Models\Refund;
-use RuntimeException;
 use Illuminate\Support\Facades\DB;
-use App\Services\Payment\RefundNumberService;
+use RuntimeException;
 
 class RefundService
 {
     public function __construct(
         protected RefundNumberService $numberService,
+        protected PaymentService $paymentService,
     ) {}
+
     /*
     |--------------------------------------------------------------------------
     | Create Refund
     |--------------------------------------------------------------------------
     */
 
-    public function create(
-        Order $order
-    ): Refund {
+    public function create(Order $order): Refund {
+        return DB::transaction(function () use ($order) {
+            $order->loadMissing([
+                'payment',
+                'refund',
+            ]);
 
-        if ($order->refund) {
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Existing Refund
+            |--------------------------------------------------------------------------
+            */
 
-            throw new RuntimeException(
-                'Refund sudah pernah dibuat.'
-            );
+            if ($order->refund) {
+                throw new RuntimeException('Refund sudah pernah dibuat untuk order ini.');
+            }
 
-        }
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Payment
+            |--------------------------------------------------------------------------
+            */
 
-        return Refund::create([
+            if (! $order->payment) {
+                throw new RuntimeException('Order belum memiliki payment.');
+            }
 
-            'refund_number'
-                => $this->numberService->generate(),
+            if (! $this->paymentService->isPaid($order->payment)) {
+                throw new RuntimeException('Payment belum berada pada status yang dapat direfund.');
+            }
 
-            'order_id'
-                => $order->id,
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Amount
+            |--------------------------------------------------------------------------
+            */
 
-            'payment_id'
-                => $order->payment->id,
+            $amount = (float) $order->total_payment;
+            $grossAmount = (float) $order->payment->gross_amount;
 
-            'amount'
-                => $order->total_payment,
+            if ($amount <= 0) {
+                throw new RuntimeException('Jumlah refund tidak valid.');
+            }
 
-            'status'
-                => 'pending',
+            if ($amount > $grossAmount) {
+                throw new RuntimeException('Jumlah refund melebihi jumlah payment.');
+            }
 
-            'requested_at'
-                => now(),
+            /*
+            |--------------------------------------------------------------------------
+            | Create Refund
+            |--------------------------------------------------------------------------
+            */
 
-        ]);
-
+            return Refund::create([
+                'refund_number' => $this->numberService->generate(),
+                'order_id' => $order->id,
+                'payment_id' => $order->payment->id,
+                'amount' => $amount,
+                'status' => 'pending',
+                'requested_at' => now(),
+            ]);
+        });
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Processing Refund
+    | Start Refund Processing
     |--------------------------------------------------------------------------
     */
 
-    public function start(
-        Refund $refund,
-        Admin $admin
-    ): Refund {
+    public function start(Refund $refund, Admin $admin): Refund {
 
-        if ($refund->status !== 'pending') {
+        return DB::transaction(function () use ($refund, $admin) {
 
-            throw new RuntimeException(
-                'Refund tidak dapat diproses.'
-            );
+            /*
+            |--------------------------------------------------------------------------
+            | Reload Fresh Data
+            |--------------------------------------------------------------------------
+            */
 
-        }
+            $refund = Refund::query()
+                ->lockForUpdate()
+                ->with([
+                    'payment',
+                    'order',
+                ])
+                ->findOrFail($refund->id);
 
-        $refund->update([
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Refund Status
+            |--------------------------------------------------------------------------
+            */
 
-            'status' => 'processing',
+            if (! $refund->isPending()) {
+                throw new RuntimeException('Hanya refund dengan status pending yang dapat diproses.');
+            }
 
-            'processed_by' => $admin->id,
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Payment
+            |--------------------------------------------------------------------------
+            */
 
-            'processed_at' => now(),
+            if (! $refund->payment) {
+                throw new RuntimeException('Payment untuk refund tidak ditemukan.');
+            }
 
-        ]);
+            if (! $this->paymentService->isPaid($refund->payment)) {
+                throw new RuntimeException('Payment tidak berada pada status yang dapat direfund.');
+            }
 
-        return $refund->fresh();
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Refund Amount
+            |--------------------------------------------------------------------------
+            */
 
+            if ((float) $refund->amount <= 0) {
+                throw new RuntimeException('Jumlah refund tidak valid.');
+            }
+
+            if ((float) $refund->amount > (float) $refund->payment->gross_amount) {
+                throw new RuntimeException('Jumlah refund melebihi jumlah payment.');
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Start Processing
+            |--------------------------------------------------------------------------
+            */
+
+            $refund->update([
+                'status' => 'processing',
+                'processed_by' => $admin->id,
+                'processed_at' => now(),
+            ]);
+
+            return $refund->fresh([
+                'order',
+                'payment',
+                'processor',
+            ]);
+        });
     }
 
     /*
@@ -95,50 +174,87 @@ class RefundService
     |--------------------------------------------------------------------------
     */
 
-    public function complete(
-        Refund $refund,
-        Admin $admin,
-        ?string $notes = null
-    ): Refund {
+    public function complete(Refund $refund, Admin $admin, ?string $notes = null): Refund {
 
-        if (
+        return DB::transaction(function () use ($refund,$admin,$notes) {
 
-            ! in_array(
+            /*
+            |--------------------------------------------------------------------------
+            | Reload With Lock
+            |--------------------------------------------------------------------------
+            */
 
-                $refund->status,
+            $refund = Refund::query()
+                ->lockForUpdate()
+                ->with([
+                    'payment',
+                    'order',
+                ])
+                ->findOrFail($refund->id);
 
-                [
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Refund Status
+            |--------------------------------------------------------------------------
+            */
 
-                    'pending',
+            if (! $refund->isProcessing()) {
+                throw new RuntimeException('Refund hanya dapat diselesaikan dari status processing.');
+            }
 
-                    'processing',
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Payment
+            |--------------------------------------------------------------------------
+            */
 
-                ]
+            if (! $refund->payment) {
+                throw new RuntimeException('Payment untuk refund tidak ditemukan.');
+            }
 
-            )
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Refund Amount
+            |--------------------------------------------------------------------------
+            */
 
-        ) {
+            if ((float) $refund->amount <= 0) {
+                throw new RuntimeException('Jumlah refund tidak valid.');
+            }
 
-            throw new RuntimeException(
-                'Refund tidak dapat diselesaikan.'
-            );
+            if ((float) $refund->amount > (float) $refund->payment->gross_amount) {
+                throw new RuntimeException('Jumlah refund melebihi jumlah payment.');
+            }
 
-        }
+            /*
+            |--------------------------------------------------------------------------
+            | Complete Refund
+            |--------------------------------------------------------------------------
+            */
 
-        $refund->update([
+            $refund->update([
+                'status' => 'completed',
+                'processed_by' => $admin->id,
+                'notes' => $notes,
+                'completed_at' => now(),
+            ]);
 
-            'status' => 'completed',
+            /*
+            |--------------------------------------------------------------------------
+            | Mark Payment Refunded
+            |--------------------------------------------------------------------------
+            */
 
-            'processed_by' => $admin->id,
+            if (! $this->paymentService->isRefunded($refund->payment)) {
+                $this->paymentService->markRefunded($refund->payment);
+            }
 
-            'notes' => $notes,
-
-            'completed_at' => now(),
-
-        ]);
-
-        return $refund->fresh();
-
+            return $refund->fresh([
+                'order',
+                'payment',
+                'processor',
+            ]);
+        });
     }
 
     /*
@@ -147,33 +263,50 @@ class RefundService
     |--------------------------------------------------------------------------
     */
 
-    public function reject(
-        Refund $refund,
-        Admin $admin,
-        string $notes
-    ): Refund {
+    public function reject(Refund $refund, Admin $admin, string $notes): Refund {
 
-        if ($refund->status !== 'pending') {
-
-            throw new RuntimeException(
-                'Refund tidak dapat ditolak.'
-            );
-
+        if (blank(trim($notes))) {
+            throw new RuntimeException('Alasan penolakan refund wajib diisi.');
         }
 
-        $refund->update([
+        return DB::transaction(function () use ($refund,$admin,$notes) {
 
-            'status' => 'rejected',
+            /*
+            |--------------------------------------------------------------------------
+            | Reload With Lock
+            |--------------------------------------------------------------------------
+            */
 
-            'processed_by' => $admin->id,
+            $refund = Refund::query()->lockForUpdate()->findOrFail($refund->id);
 
-            'notes' => $notes,
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Status
+            |--------------------------------------------------------------------------
+            */
 
-            'processed_at' => now(),
+            if (! $refund->isPending()) {
+                throw new RuntimeException('Refund hanya dapat ditolak dari status pending.');
+            }
 
-        ]);
+            /*
+            |--------------------------------------------------------------------------
+            | Reject Refund
+            |--------------------------------------------------------------------------
+            */
 
-        return $refund->fresh();
+            $refund->update([
+                'status' => 'rejected',
+                'processed_by' => $admin->id,
+                'notes' => trim($notes),
+                'processed_at' => now(),
+            ]);
 
+            return $refund->fresh([
+                'order',
+                'payment',
+                'processor',
+            ]);
+        });
     }
 }

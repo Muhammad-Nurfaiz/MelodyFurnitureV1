@@ -21,10 +21,10 @@ class PaymentResultService
             ->first();
 
         if (! $order) {
-            throw new ModelNotFoundException(
-                'Order tidak ditemukan.'
-            );
+            throw new ModelNotFoundException('Order tidak ditemukan.');
         }
+
+        $payment = $order->payment;
 
         return [
 
@@ -35,6 +35,7 @@ class PaymentResultService
             */
 
             'order_number' => $order->order_number,
+
             'tracking_token' => $order->tracking_token,
 
             /*
@@ -44,7 +45,12 @@ class PaymentResultService
             */
 
             'status' => $this->mapStatus($order),
+
             'payment_status' => $order->payment_status,
+
+            'transaction_status' => $payment?->transaction_status,
+
+            'payment_type' => $payment?->payment_type,
 
             /*
             |--------------------------------------------------------------------------
@@ -73,23 +79,20 @@ class PaymentResultService
 
     private function mapStatus(Order $order): string
     {
-        if ($order->payment_status === 'paid') {
-            return 'paid';
-        }
+        $transactionStatus = $order->payment?->transaction_status;
 
-        if ($order->payment_status === 'expired') {
-            return 'expired';
-        }
-
-        if ($order->status === 'cancelled') {
-            return 'cancelled';
-        }
-
-        if ($order->payment_status === 'pending') {
-            return 'pending';
-        }
-
-        return 'failed';
+        return match ($transactionStatus) {
+            'capture',
+            'settlement' => 'paid',
+            'pending' => 'pending',
+            'expire' => 'expired',
+            'cancel' => 'cancelled',
+            'deny' => 'failed',
+            'refund',
+            'partial_refund',
+            'refunded' => 'refunded',
+            default => $order->payment_status === 'paid' ? 'paid' : 'pending',
+        };
     }
 
     /*
@@ -101,10 +104,11 @@ class PaymentResultService
     private function message(Order $order): string
     {
         return match ($this->mapStatus($order)) {
-            'paid' =>'Pembayaran berhasil.',
+            'paid' => 'Pembayaran berhasil.',
             'pending' => 'Menunggu pembayaran.',
             'expired' => 'Pembayaran telah kedaluwarsa.',
             'cancelled' => 'Pesanan telah dibatalkan.',
+            'refunded' => 'Pembayaran telah dikembalikan.',
             default => 'Pembayaran gagal.',
         };
     }

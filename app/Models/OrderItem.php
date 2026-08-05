@@ -37,6 +37,8 @@ class OrderItem extends Model
 
         'product_image',
 
+        'product_sku',
+
         /*
         |--------------------------------------------------------------------------
         | Order Detail
@@ -73,5 +75,10 @@ class OrderItem extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function admin()
+    {
+        return $this->belongsTo(Admin::class);
     }
 }

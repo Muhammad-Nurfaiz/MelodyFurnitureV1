@@ -58,14 +58,13 @@ class OrderWorkflowService
         ],
 
         'req_cancel' => [
+            'paid',
             'processing',
             'cancelled',
         ],
 
         'picked_up' => [
             'shipped',
-            'req_cancel',
-            'cancelled',
         ],
 
         'shipped' => [
@@ -75,7 +74,6 @@ class OrderWorkflowService
         'completed' => [],
 
         'cancelled' => [],
-
     ];
 
     /*
@@ -128,7 +126,12 @@ class OrderWorkflowService
     |--------------------------------------------------------------------------
     */
 
-    public function changeStatus(Order $order,string $status,?string $description = null,?string $createdBy = null,): Order {
+    public function changeStatus(
+        Order $order,
+        string $status,
+        ?string $description = null,
+        ?string $adminId = null,
+    ): Order {
 
         /*
         |--------------------------------------------------------------------------
@@ -140,7 +143,19 @@ class OrderWorkflowService
             return $order->fresh();
         }
 
-        $this->validate($order,$status);
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Transition
+        |--------------------------------------------------------------------------
+        */
+
+        $this->validate($order, $status);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Update Order
+        |--------------------------------------------------------------------------
+        */
 
         $data = [
             'status' => $status,
@@ -152,13 +167,20 @@ class OrderWorkflowService
 
         $order->update($data);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Timeline
+        |--------------------------------------------------------------------------
+        */
+
         $this->timelineService->record(
-            $order,
-            $status,
-            $description,
-            $createdBy ? 'admin' : 'system',
-            $createdBy
+            order: $order,
+            status: $status,
+            description: $description,
+            actor: $adminId ? 'admin' : 'system',
+            adminId: $adminId,
         );
+
         return $order->fresh();
     }
 
@@ -214,11 +236,8 @@ class OrderWorkflowService
                 in_array(
                     $order->status,
                     [
-                        'pending',
                         'paid',
                         'processing',
-                        'picked_up',
-                        'shipped',
                     ],
                     true
                 ) && is_null($order->cancellationRequest),
