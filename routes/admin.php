@@ -12,6 +12,8 @@ use App\Http\Controllers\Admin\Order\OrderController;
 use App\Http\Controllers\Admin\Shipment\ShipmentController;
 use App\Http\Controllers\Admin\Order\OrderCancellationController;
 use App\Http\Controllers\Admin\Payment\RefundController;
+use App\Http\Controllers\Admin\Profile\ProfileController;
+use App\Http\Controllers\Admin\Settings\SettingsController;
 
 Route::middleware(['auth'])
     ->prefix('admin')
@@ -19,6 +21,10 @@ Route::middleware(['auth'])
     ->group(function () {
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
+        Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::patch('/profile/password', [ProfileController::class, 'password'])->name('profile.password');
 
         Route::resource('/categories', CategoryController::class)->except(['create','edit']);
         Route::resource('/series', SeriesController::class)->except(['create','edit']);
@@ -47,5 +53,19 @@ Route::middleware(['auth'])
         Route::patch('/shipments/{shipment}/delivered', [ShipmentController::class, 'delivered'])->name('shipments.delivered');
         Route::patch('/shipments/{shipment}/cancel', [ShipmentController::class, 'cancel'])->name('shipments.cancel');
         
-
+        /*
+        |--------------------------------------------------------------------------
+        | Settings
+        |--------------------------------------------------------------------------
+        */
+        Route::get('/settings',[SettingsController::class, 'index'])->name('settings.index');
+        Route::patch('/settings/store',[SettingsController::class, 'updateStore'])->name('settings.store.update');
+        Route::patch('settings/branding',[SettingsController::class, 'updateBranding'])->name('settings.branding.update');
+        Route::post('/settings/hero',[SettingsController::class, 'storeHero'])->name('settings.hero.store');
+        Route::patch('/settings/hero/{heroSlide}',[SettingsController::class, 'updateHero'])->name('settings.hero.update');
+        Route::delete('/settings/hero/{heroSlide}',[SettingsController::class, 'destroyHero'])->name('settings.hero.destroy');
+        Route::post('/settings/promo',[SettingsController::class, 'storePromo'])->name('settings.promo.store');
+        Route::patch('/settings/promo/sort',[SettingsController::class, 'sortPromo'])->name('settings.promo.sort');
+        Route::patch('/settings/promo/{promoBanner}',[SettingsController::class, 'updatePromo'])->name('settings.promo.update');
+        Route::delete('/settings/promo/{promoBanner}',[SettingsController::class, 'destroyPromo'])->name('settings.promo.destroy');
     });

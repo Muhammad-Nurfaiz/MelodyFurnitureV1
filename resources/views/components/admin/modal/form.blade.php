@@ -31,7 +31,7 @@
             <input
                 type="hidden"
                 name="_method"
-                value="PUT">
+                value="PATCH">
         </template>
 
         {{-- =============================== --}}

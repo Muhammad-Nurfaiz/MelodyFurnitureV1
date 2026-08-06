@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 abstract class AdminController extends Controller
 {
@@ -12,13 +14,21 @@ abstract class AdminController extends Controller
      */
     protected function success(
         string $route,
-        string $message
-    ): RedirectResponse {
+        string $message,
+        array $data = []
+    ): RedirectResponse|JsonResponse {
+
+        if (request()->expectsJson()) {
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data'    => $data,
+            ]);
+        }
 
         return redirect()
-
             ->route($route)
-
             ->with('success', $message);
     }
 

@@ -23,14 +23,14 @@ class TemporaryMediaService
             $filename = Str::uuid().'.'.$file->extension();
 
             $path = $file->storeAs(
-                'temp/products',
+                'temp',
                 $filename,
                 $this->disk
             );
 
             return TemporaryMedia::create([
 
-                'admin_id'    => auth()->id(),
+                'user_id'    => auth()->id(),
 
                 'disk'       => $this->disk,
 
@@ -55,13 +55,10 @@ class TemporaryMediaService
      */
     public function delete(string $uuid): void
     {
-        $media = TemporaryMedia::find($uuid);
+        $media = $this->find($uuid);
 
-        if (!$media) {
-            return;
-        }
-
-        Storage::disk($media->disk)->delete($media->path);
+        Storage::disk($media->disk)
+            ->delete($media->path);
 
         $media->delete();
     }
@@ -73,7 +70,7 @@ class TemporaryMediaService
     {
         return TemporaryMedia::query()
             ->whereKey($uuid)
-            ->where('admin_id', auth()->id())
+            ->where('user_id', auth()->id())
             ->firstOrFail();
     }
 
@@ -135,12 +132,18 @@ class TemporaryMediaService
 
     public function exists(string $uuid): bool
     {
-        return TemporaryMedia::whereKey($uuid)->exists();
+        return TemporaryMedia::query()
+            ->whereKey($uuid)
+            ->where('user_id', auth()->id())
+            ->exists();
     }
 
     public function getMany(array $uuids)
     {
-        return TemporaryMedia::whereIn('id', $uuids)->get();
+        return TemporaryMedia::query()
+            ->whereIn('id', $uuids)
+            ->where('user_id', auth()->id())
+            ->get();
     }
 
     public function purgeExpired(): void
@@ -182,11 +185,15 @@ class TemporaryMediaService
             return;
         }
 
-        $media = TemporaryMedia::whereIn('id', $ids)->get();
+        $media = TemporaryMedia::query()
+            ->whereIn('id', $ids)
+            ->where('user_id', auth()->id())
+            ->get();
 
         foreach ($media as $item) {
 
-            Storage::disk('public')->delete($item->path);
+            Storage::disk($item->disk)
+                ->delete($item->path);
 
             $item->delete();
 

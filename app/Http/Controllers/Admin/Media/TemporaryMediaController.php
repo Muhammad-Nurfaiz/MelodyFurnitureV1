@@ -78,25 +78,11 @@ class TemporaryMediaController extends Controller
         ]);
     }
 
-    public function cleanup(Request $request)
+    public function cleanup(Request $request): JsonResponse
     {
         $ids = $request->input('ids', []);
-        dd(
-            $ids,
-            TemporaryMedia::whereIn('id', $ids)->count()
-        );
-        if (empty($ids)) {
-            return response()->json(['success' => true]);
-        }
 
-        $media = TemporaryMedia::whereIn('id', $ids)->get();
-
-        foreach ($media as $item) {
-
-            Storage::disk('public')->delete($item->path);
-
-            $item->delete();
-        }
+        $this->service->cleanup($ids);
 
         return response()->json([
             'success' => true,

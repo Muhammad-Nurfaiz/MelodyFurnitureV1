@@ -30,3 +30,15 @@
 
     --radius:14px;
 }
+
+.sortable-chosen {
+    @apply ring-2 ring-blue-400;
+}
+
+.sortable-ghost {
+    @apply opacity-50;
+}
+
+.sortable-drag {
+    @apply shadow-xl;
+}

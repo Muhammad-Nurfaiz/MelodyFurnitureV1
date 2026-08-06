@@ -25,6 +25,10 @@ import './admin/order/workflow';
 |--------------------------------------------------------------------------
 */
 import mediaManager from './admin/product/media-manager';
+import heroCrud from './admin/settings/hero';
+import brandingCrud from "./admin/settings/branding";
+import fileUpload from "./admin/components/file-upload";
+import promoCrud from "./admin/settings/promo";
 
 /*
 |--------------------------------------------------------------------------
@@ -32,7 +36,9 @@ import mediaManager from './admin/product/media-manager';
 |--------------------------------------------------------------------------
 */
 window.Alpine = Alpine;
-
 Alpine.data('mediaManager', mediaManager);
-
+Alpine.data('heroCrud', heroCrud);
+Alpine.data("brandingCrud", brandingCrud);
+Alpine.data("fileUpload", fileUpload);
+Alpine.data("promoCrud", promoCrud);
 Alpine.start();

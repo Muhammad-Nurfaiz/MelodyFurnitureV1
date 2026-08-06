@@ -1,162 +1,382 @@
 @props([
-    'name',
+'name',
 
-    'accept' => 'image/*',
+'accept' => 'image/*',
 
-    'preview' => null,
+'preview' => null,
 
-    'label' => 'Klik atau Drag gambar ke sini',
+'label' => 'Klik atau Drag gambar ke sini',
 
-    'helper' => 'JPG, PNG, WEBP (Maksimal 2MB)',
+'helper' => 'JPG, PNG, WEBP (Maksimal 2MB)',
 
-    'multiple' => false,
+'multiple' => false,
+
+'temporaryUpload' => false,
+
 ])
 
 @php
 
-    $hasError = $errors->has(str_replace('[]', '', $name));
+
+$hasError = $errors->has(
+    str_replace('[]', '', $name)
+);
 
 @endphp
 
 <div
 
-    x-data="{
 
-        multiple:@js($multiple),
+x-data="fileUpload({
+        multiple: @js($multiple),
+        temporaryUpload: @js($temporaryUpload),
+        preview: @js($preview),
+    })"
 
-        drag:false,
+x-init="init()"
 
-        previews:[],
 
-        filenames:[],
+x-on:beforeunload.window="clearObjectUrls()"
 
-        init(){
-
-            if(@js($preview)){
-
-                if(this.multiple){
-
-                    this.previews = @js($preview);
-
-                }else{
-
-                    this.previews = [@js($preview)];
-
-                }
-
-            }
-
-        },
-
-        updatePreview(event){
-
-            this.clearObjectUrls();
-
-            this.previews = [];
-
-            this.filenames = [];
-
-            [...event.target.files].forEach(file=>{
-
-                this.previews.push(URL.createObjectURL(file));
-
-                this.filenames.push(file.name);
-
-            });
-
-        },
-
-        dropFile(event){
-
-            this.drag=false;
-
-            this.$refs.input.files = event.dataTransfer.files;
-
-            this.updatePreview({
-
-                target:this.$refs.input
-
-            });
-
-        },
-
-        remove(index=null){
-
-            this.clearObjectUrls();
-
-            this.previews=[];
-
-            this.filenames=[];
-
-            this.$refs.input.value='';
-
-        },
-
-        clearObjectUrls(){
-
-            this.previews.forEach(url=>{
-
-                if(url.startsWith('blob:')){
-
-                    URL.revokeObjectURL(url);
-
-                }
-
-            });
-
-        }
-
-    }"
-
-    x-init="init()"
-
-    x-on:beforeunload.window="clearObjectUrls()"
-
-    class="space-y-4"
+class="space-y-3"
 
 >
 
-    {{-- Preview --}}
+{{-- ===================================================== --}}
+{{-- UPLOAD / PREVIEW AREA --}}
+{{-- ===================================================== --}}
+
+<label
+
+    @dragover.prevent="drag = true"
+
+    @dragleave="drag = false"
+
+    @drop.prevent="dropFile($event)"
+
+    :class="{
+        'pointer-events-none opacity-60': uploading,
+        'border-blue-500 bg-blue-50': drag,
+        'border-red-400 bg-red-50': {{ $hasError ? 'true' : 'false' }},
+
+        'border-gray-300 hover:border-blue-500 hover:bg-blue-50':
+            !drag &&
+            !{{ $hasError ? 'true' : 'false' }}
+
+    }"
+
+    class="group relative flex min-h-64 cursor-pointer
+           flex-col items-center justify-center
+           overflow-hidden rounded-2xl border-2
+           border-dashed transition-all duration-200"
+
+>
+
+    {{-- ================================================= --}}
+    {{-- FILE INPUT --}}
+    {{-- ================================================= --}}
+
+    <input
+
+        x-ref="input"
+        :disabled="uploading"
+        type="file"
+
+        name="{{ $name }}"
+
+        accept="{{ $accept }}"
+
+        @if($multiple)
+
+            multiple
+
+        @endif
+
+        @change="updatePreview"
+
+        {{ $attributes
+            ->except([
+                'name',
+                'accept',
+                'multiple'
+            ])
+            ->merge([
+                'class' => 'hidden'
+            ])
+        }}
+
+    >
+
+    <template x-if="uploading">
+
+        <div
+            class="absolute inset-0 z-20 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+
+            <div class="flex flex-col items-center gap-3">
+
+                <svg
+                    class="h-8 w-8 animate-spin text-blue-600"
+                    viewBox="0 0 24 24"
+                    fill="none">
+
+                    <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        class="opacity-25"/>
+
+                    <path
+                        fill="currentColor"
+                        class="opacity-75"
+                        d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"/>
+
+                </svg>
+
+                <span
+                    class="text-sm font-medium text-gray-700">
+
+                    Mengupload...
+
+                </span>
+
+            </div>
+
+        </div>
+
+    </template>
+
+
+    {{-- ================================================= --}}
+    {{-- PREVIEW --}}
+    {{-- ================================================= --}}
 
     <template x-if="previews.length">
 
         <div
 
-            class="grid gap-4"
+            class="absolute inset-0 flex items-center
+                   justify-center bg-white p-3"
 
-            :class="multiple
-                ? 'grid-cols-2 md:grid-cols-4'
-                : 'grid-cols-1'">
+        >
 
-            <template
+            @if($multiple)
 
-                x-for="(image,index) in previews"
-
-                :key="index">
+                {{-- ===================================== --}}
+                {{-- MULTIPLE PREVIEW --}}
+                {{-- ===================================== --}}
 
                 <div
 
-                    class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white">
+                    class="grid w-full grid-cols-2
+                           gap-3 md:grid-cols-3"
 
-                    <img
+                >
 
-                        :src="image"
+                    <template
 
-                        class="aspect-square w-full object-cover">
+                        x-for="(image, index) in previews"
 
-                    <button
+                        :key="image + index"
 
-                        type="button"
+                    >
 
-                        @click="remove(index)"
+                        <div
 
-                        class="absolute right-2 top-2 hidden rounded-lg bg-white/90 p-1 shadow group-hover:block">
+                            class="group/image relative
+                                   overflow-hidden rounded-xl
+                                   border border-gray-200
+                                   bg-gray-50"
 
-                        <x-heroicon-o-x-mark class="h-4 w-4"/>
+                        >
 
-                    </button>
+                            <img
+
+                                :src="image"
+
+                                class="aspect-square w-full
+                                       object-cover"
+
+                            >
+
+                            <button
+
+                                type="button"
+
+                                @click.stop="remove(index)"
+
+                                class="absolute right-2 top-2
+                                       hidden rounded-lg
+                                       bg-white/95 p-1.5
+                                       text-gray-700 shadow
+                                       group-hover/image:block
+                                       hover:bg-white"
+
+                            >
+
+                                <x-heroicon-o-x-mark
+                                    class="h-4 w-4"
+                                />
+
+                            </button>
+
+                        </div>
+
+                    </template>
 
                 </div>
+
+            @else
+
+                {{-- ===================================== --}}
+                {{-- SINGLE PREVIEW --}}
+                {{-- ===================================== --}}
+
+                <div
+
+                    class="group/preview relative h-full
+                           w-full overflow-hidden rounded-xl"
+
+                >
+
+                    <template
+
+                        x-for="(image, index) in previews"
+
+                        :key="image"
+
+                    >
+
+                        <img
+
+                            :src="image"
+
+                            class="h-full max-h-56 w-full
+                                   object-contain"
+
+                        >
+
+                    </template>
+
+                    {{-- Hover overlay --}}
+
+                    <div
+
+                        class="absolute inset-0 flex items-center
+                               justify-center bg-black/0
+                               transition group-hover/preview:bg-black/40"
+
+                    >
+
+                        <span
+
+                            class="rounded-lg bg-white/95
+                                   px-4 py-2 text-sm font-medium
+                                   text-gray-800 opacity-0
+                                   shadow transition
+                                   group-hover/preview:opacity-100"
+
+                        >
+
+                            Klik untuk mengganti gambar
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+            @endif
+
+        </div>
+
+    </template>
+
+
+    {{-- ================================================= --}}
+    {{-- EMPTY STATE --}}
+    {{-- ================================================= --}}
+
+    <template x-if="!previews.length">
+
+        <div
+
+            class="flex flex-col items-center
+                   justify-center px-8 py-10 text-center"
+
+        >
+
+            <div
+
+                class="flex h-16 w-16 items-center
+                       justify-center rounded-full
+                       bg-blue-100"
+
+            >
+
+                <x-heroicon-o-photo
+                    class="h-8 w-8 text-blue-600"
+                />
+
+            </div>
+
+            <h4
+
+                class="mt-5 text-base font-semibold
+                       text-gray-800"
+
+            >
+
+                {{ $label }}
+
+            </h4>
+
+            <p
+
+                class="mt-2 text-sm text-gray-500"
+
+            >
+
+                {{ $helper }}
+
+            </p>
+
+        </div>
+
+    </template>
+
+
+    {{-- ================================================= --}}
+    {{-- SELECTED FILE NAME --}}
+    {{-- ================================================= --}}
+
+    <template x-if="filenames.length">
+
+        <div
+
+            class="absolute bottom-3 left-3 right-3
+                   rounded-lg bg-white/95 px-3 py-2
+                   shadow-sm"
+
+        >
+
+            <template
+
+                x-for="file in filenames"
+
+                :key="file"
+
+            >
+
+                <p
+
+                    class="truncate text-xs font-medium
+                           text-blue-600"
+
+                    x-text="file"
+
+                ></p>
 
             </template>
 
@@ -164,161 +384,81 @@
 
     </template>
 
-    {{-- Upload Area --}}
+</label>
 
-    <label
 
-        @dragover.prevent="drag=true"
+{{-- ===================================================== --}}
+{{-- ACTIONS --}}
+{{-- ===================================================== --}}
 
-        @dragleave="drag=false"
+<template x-if="previews.length">
 
-        @drop.prevent="dropFile($event)"
+    <div
 
-        :class="{
+        class="flex flex-wrap gap-3"
 
-            'border-blue-500 bg-blue-50':drag,
+    >
 
-            'border-red-400 bg-red-50':{{ $hasError ? 'true':'false' }},
+        <button
 
-            'border-gray-300 hover:border-blue-500 hover:bg-blue-50':!drag && !{{ $hasError ? 'true':'false' }}
+            type="button"
 
-        }"
+            @click="if(!uploading) $refs.input.click()"
 
-        class="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-8 py-10 transition-all duration-200">
-
-        <input
-
-            x-ref="input"
-
-            type="file"
-
-            name="{{ $name }}"
-
-            accept="{{ $accept }}"
-
-            @if($multiple)
-
-                multiple
-
-            @endif
-
-            @change="updatePreview"
-
-            {{ $attributes
-                ->except([
-                    'name',
-                    'accept',
-                    'multiple'
-                ])
-                ->merge([
-                    'class'=>'hidden'
-                ])
-            }}
+            class="rounded-xl border border-gray-300
+                   px-4 py-2 text-sm transition
+                   hover:bg-gray-50"
 
         >
 
-        <div
+            Ganti Gambar
 
-            class="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+        </button>
 
-            <x-heroicon-o-photo
+        <button
 
-                class="h-8 w-8 text-blue-600"/>
+            type="button"
 
-        </div>
+            @click="if(!uploading) remove()"
 
-        <h4
+            class="rounded-xl border border-red-200
+                   px-4 py-2 text-sm text-red-600
+                   transition hover:bg-red-50"
 
-            class="mt-5 text-base font-semibold text-gray-800">
+        >
 
-            {{ $label }}
+            Hapus Semua
 
-        </h4>
+        </button>
 
-        <p
+    </div>
 
-            class="mt-2 text-center text-sm text-gray-500">
+</template>
 
-            {{ $helper }}
+<template x-if="uploadError">
 
-        </p>
+    <p
+        class="text-sm text-red-600"
+        x-text="uploadError">
 
-        <template x-if="filenames.length">
+    </p>
 
-            <div
+</template>
 
-                class="mt-5 space-y-1 text-center">
 
-                <template
+{{-- ===================================================== --}}
+{{-- VALIDATION --}}
+{{-- ===================================================== --}}
 
-                    x-for="file in filenames"
+@if($hasError)
 
-                    :key="file">
+    <p class="text-sm text-red-600">
 
-                    <p
+        {{ $errors->first(
+            str_replace('[]', '', $name)
+        ) }}
 
-                        class="text-xs font-medium text-blue-600"
+    </p>
 
-                        x-text="file">
-
-                    </p>
-
-                </template>
-
-            </div>
-
-        </template>
-
-    </label>
-
-    {{-- Actions --}}
-
-    <template x-if="previews.length">
-
-        <div
-
-            class="flex flex-wrap gap-3">
-
-            <button
-
-                type="button"
-
-                @click="$refs.input.click()"
-
-                class="rounded-xl border border-gray-300 px-4 py-2 text-sm transition hover:bg-gray-50">
-
-                Ganti {{ $multiple ? 'Gambar' : 'Gambar' }}
-
-            </button>
-
-            <button
-
-                type="button"
-
-                @click="remove()"
-
-                class="rounded-xl border border-red-200 px-4 py-2 text-sm text-red-600 transition hover:bg-red-50">
-
-                Hapus Semua
-
-            </button>
-
-        </div>
-
-    </template>
-
-    {{-- Validation --}}
-
-    @if($hasError)
-
-        <p
-
-            class="text-sm text-red-600">
-
-            {{ $errors->first(str_replace('[]', '', $name)) }}
-
-        </p>
-
-    @endif
-
+@endif
 </div>

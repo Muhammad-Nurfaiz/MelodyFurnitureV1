@@ -92,9 +92,23 @@
                 class="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-gray-100">
 
                 <div
-                    class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+                    class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100">
 
-                    <x-heroicon-o-user class="h-5 w-5 text-blue-600"/>
+                    @if(Auth::user()->profile_photo)
+
+                        <img
+                            src="{{ asset('storage/' . Auth::user()->profile_photo) }}"
+                            alt="{{ Auth::user()->full_name }}"
+                            class="h-full w-full object-cover"
+                        >
+
+                    @else
+
+                        <x-heroicon-o-user
+                            class="h-5 w-5 text-blue-600"
+                        />
+
+                    @endif
 
                 </div>
 
@@ -125,12 +139,22 @@
                 class="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
 
                 <a
-                    href="{{ route('profile.edit') }}"
+                    href="{{ route('admin.profile.index') }}"
                     class="flex items-center gap-3 px-4 py-3 text-sm transition hover:bg-gray-50">
 
                     <x-heroicon-o-user-circle class="h-5 w-5"/>
 
                     Profil
+
+                </a>
+
+                <a
+                    href="{{ route('admin.settings.index') }}"
+                    class="flex items-center gap-3 px-4 py-3 text-sm transition hover:bg-gray-50">
+
+                    <x-heroicon-o-cog-6-tooth class="h-5 w-5"/>
+
+                    Setting
 
                 </a>
 
