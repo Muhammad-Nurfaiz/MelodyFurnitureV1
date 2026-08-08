@@ -127,6 +127,11 @@ class OrderService
                 'customer_id' => $customer->id,
                 'voucher_id' => $voucher?->id,
 
+                'customer_name' => $customer->name,
+                'customer_email' => $customer->email,
+                'customer_phone' => $customer->phone,
+                'customer_address' => $shipping['address'],
+
                 'order_number' => $orderNumber,
                 'midtrans_order_id' => $orderNumber,
                 'tracking_token' => $this->trackingTokenService->generate(),

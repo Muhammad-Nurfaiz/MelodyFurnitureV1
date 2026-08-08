@@ -26,9 +26,9 @@ class MidtransPayloadBuilder
             ],
 
             'customer_details' => [
-                'first_name' => $order->customer->name,
-                'email' => $order->customer->email,
-                'phone' => $order->customer->phone,
+                'first_name' => $order->customer_name,
+                'email' => $order->customer_email,
+                'phone' => $order->customer_phone,
             ],
 
             'enabled_payments' => config(

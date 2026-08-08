@@ -29,6 +29,18 @@ class OrderResource extends JsonResource
 
             /*
             |--------------------------------------------------------------------------
+            | Customer Snapshot
+            |--------------------------------------------------------------------------
+            */
+
+            'customer' => [
+                'name' => $this->customer_name,
+                'email' => $this->customer_email,
+                'phone' => $this->customer_phone,
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
             | Price
             |--------------------------------------------------------------------------
             */
@@ -54,8 +66,8 @@ class OrderResource extends JsonResource
             |--------------------------------------------------------------------------
             */
 
-            'created_at' => optional($this->created_at) ?->toISOString(),
-            'payment_expired_at' => optional($this->payment_expired_at) ?->toISOString(),
+            'created_at' => optional($this->created_at)?->toISOString(),
+            'payment_expired_at' => optional($this->payment_expired_at)?->toISOString(),
 
             /*
             |--------------------------------------------------------------------------
@@ -63,8 +75,13 @@ class OrderResource extends JsonResource
             |--------------------------------------------------------------------------
             */
 
-            'payment' => PaymentResource::make($this->whenLoaded('payment')),
-            'items' => OrderItemResource::collection($this->whenLoaded('items')),
+            'payment' => PaymentResource::make(
+                $this->whenLoaded('payment')
+            ),
+
+            'items' => OrderItemResource::collection(
+                $this->whenLoaded('items')
+            ),
         ];
     }
 }

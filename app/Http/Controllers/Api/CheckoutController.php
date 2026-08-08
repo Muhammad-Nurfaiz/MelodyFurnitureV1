@@ -23,24 +23,21 @@ class CheckoutController extends Controller
     /**
      * Checkout
      */
-    public function store(CheckoutRequest $request): JsonResponse {
+    public function store(CheckoutRequest $request): JsonResponse
+    {
         $payload = $request->payload();
 
         /*
         |--------------------------------------------------------------------------
-        | Customer
+        | Cart Customer
         |--------------------------------------------------------------------------
+        |
+        | Customer dari guest token hanya digunakan sebagai pemilik cart.
+        | Data customer checkout TIDAK boleh mengubah record ini.
+        |
         */
 
-        $customer = $this->customerService->updateProfile(
-            $request->attributes->get('customer'),
-            [
-                'name'    => $payload['name'],
-                'email'   => $payload['email'],
-                'phone'   => $payload['phone'],
-                'address' => $payload['shipping_address']['address'],
-            ]
-        );
+        $cartCustomer = $request->attributes->get('customer');
 
         /*
         |--------------------------------------------------------------------------
@@ -49,7 +46,26 @@ class CheckoutController extends Controller
         */
 
         $products = $this->cartService
-            ->checkoutItems($customer);
+            ->checkoutItems($cartCustomer);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Checkout Customer
+        |--------------------------------------------------------------------------
+        |
+        | Customer sebenarnya ditentukan berdasarkan nomor telepon.
+        |
+        | - Phone sudah ada  → gunakan customer existing.
+        | - Phone belum ada  → buat customer baru.
+        |
+        */
+
+        $customer = $this->customerService->resolveCheckoutCustomer([
+            'name'    => $payload['name'],
+            'email'   => $payload['email'],
+            'phone'   => $payload['phone'],
+            'address' => $payload['shipping_address']['address'],
+        ]);
 
         /*
         |--------------------------------------------------------------------------
@@ -58,11 +74,14 @@ class CheckoutController extends Controller
         */
 
         $voucher = null;
+
         if (!empty($payload['voucher_code'])) {
+
             $voucher = $this->voucherService
                 ->findByCode(
                     $payload['voucher_code']
                 );
+
         }
 
         /*

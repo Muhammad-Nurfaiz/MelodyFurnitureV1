@@ -688,16 +688,22 @@
 
                                 <div class="font-medium text-gray-900">
 
-                                    {{ $order->customer->name }}
+                                    {{ $order->customer_name ?: '-' }}
 
                                 </div>
 
-                                @if($order->customer->email)
+                                @if($order->customer_email)
 
                                     <div class="mt-1 text-xs text-gray-500">
+                                        {{ $order->customer_email }}
+                                    </div>
 
-                                        {{ $order->customer->email }}
+                                @endif
 
+                                @if($order->customer_phone)
+
+                                    <div class="mt-1 text-xs text-gray-500">
+                                        {{ $order->customer_phone }}
                                     </div>
 
                                 @endif

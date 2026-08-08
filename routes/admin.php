@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\Order\OrderCancellationController;
 use App\Http\Controllers\Admin\Payment\RefundController;
 use App\Http\Controllers\Admin\Profile\ProfileController;
 use App\Http\Controllers\Admin\Settings\SettingsController;
+use App\Http\Controllers\Admin\Customer\CustomerController;
 
 Route::middleware(['auth'])
     ->prefix('admin')
@@ -68,4 +69,13 @@ Route::middleware(['auth'])
         Route::patch('/settings/promo/sort',[SettingsController::class, 'sortPromo'])->name('settings.promo.sort');
         Route::patch('/settings/promo/{promoBanner}',[SettingsController::class, 'updatePromo'])->name('settings.promo.update');
         Route::delete('/settings/promo/{promoBanner}',[SettingsController::class, 'destroyPromo'])->name('settings.promo.destroy');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Management
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+        Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
     });

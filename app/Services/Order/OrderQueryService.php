@@ -14,16 +14,6 @@ class OrderQueryService
     | Base Query
     |--------------------------------------------------------------------------
     */
-    /*
-    |--------------------------------------------------------------------------
-    | Order List
-    |--------------------------------------------------------------------------
-    */
-
-    public function list(Request $request): LengthAwarePaginator
-    {
-        return $this->paginate($request);
-    }
 
     /*
     |--------------------------------------------------------------------------
@@ -80,7 +70,6 @@ class OrderQueryService
     public function query(): Builder {
         return Order::query()
             ->with([
-                'customer',
                 'payment',
                 'shipment',
             ]);
@@ -199,28 +188,43 @@ class OrderQueryService
     */
 
     public function search(Builder $query,?string $keyword): Builder {
+
         if (blank($keyword)) {
             return $query;
         }
+
         return $query->where(function ($q) use ($keyword) {
+
             $q->where(
                 'order_number',
                 'like',
                 "%{$keyword}%"
             )
+
             ->orWhere(
                 'tracking_token',
                 'like',
                 "%{$keyword}%"
             )
-            ->orWhereHas(
-                'customer',
-                fn ($customer) => $customer->where(
-                    'name',
-                    'like',
-                    "%{$keyword}%"
-                )
+
+            ->orWhere(
+                'customer_name',
+                'like',
+                "%{$keyword}%"
             )
+
+            ->orWhere(
+                'customer_email',
+                'like',
+                "%{$keyword}%"
+            )
+
+            ->orWhere(
+                'customer_phone',
+                'like',
+                "%{$keyword}%"
+            )
+
             ->orWhere(
                 'tracking_number',
                 'like',

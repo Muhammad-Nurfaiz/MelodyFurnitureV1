@@ -17,7 +17,7 @@
                 </p>
 
                 <p class="font-semibold">
-                    {{ $order->customer->name }}
+                    {{ $order->customer_name ?? '-' }}
                 </p>
 
             </div>
@@ -29,7 +29,7 @@
                 </p>
 
                 <p>
-                    {{ $order->customer->email }}
+                    {{ $order->customer_email ?? '-' }}
                 </p>
 
             </div>
@@ -41,7 +41,7 @@
                 </p>
 
                 <p>
-                    {{ $order->customer->phone ?? '-' }}
+                    {{ $order->customer_phone ?? '-' }}
                 </p>
 
             </div>

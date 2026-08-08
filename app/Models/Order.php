@@ -31,7 +31,9 @@ class Order extends Model
         | Identity
         |--------------------------------------------------------------------------
         */
-
+        'customer_name',
+        'customer_phone',
+        'customer_email',
         'order_number',
         'midtrans_order_id',
         'tracking_token',

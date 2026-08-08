@@ -21,16 +21,16 @@ class ShipmentService
     |--------------------------------------------------------------------------
     */
 
-    public function create(Order $order,array $shipment): Shipment {
+    public function create(Order $order,array $data): Shipment {
         $shipment = Shipment::create([
             'order_id'        => $order->id,
             'courier'         => $order->courier,
             'service'         => $order->shipping_method,
-            'booking_code'    => $shipment['booking_code'] ?? null,
-            'tracking_number' => $shipment['tracking_number'] ?? null,
-            'label_url'       => $shipment['label_url'] ?? null,
-            'status'          => $shipment['status'] ?? 'waiting_pickup',
-            'metadata'        => $shipment['metadata'] ?? null,
+            'booking_code'    => $data['booking_code'] ?? null,
+            'tracking_number' => $data['tracking_number'] ?? null,
+            'label_url'       => $data['label_url'] ?? null,
+            'status'          => $data['status'] ?? 'waiting_pickup',
+            'metadata'        => $data['metadata'] ?? null,
         ]);
         return $this->refreshShipment($shipment);
     }
@@ -66,7 +66,7 @@ class ShipmentService
         $this->validatePickup($shipment);
         return DB::transaction(function () use ($shipment,$admin) {
             $shipment = $this->updateShipment($shipment,['status' => 'picked_up','picked_up_at' => now(),]);
-            $this->workflowService->changeStatus($shipment->order,'picked_up','Barang telah diambil kurir.',$admin->name);
+            $this->workflowService->changeStatus($shipment->order,'picked_up','Barang telah diambil kurir.',(string) $admin->id);
             return $this->refreshShipment($shipment);
         });
     }
@@ -81,7 +81,7 @@ class ShipmentService
         $this->validateTransit($shipment);
         return DB::transaction(function () use ($shipment,$admin) {
             $shipment = $this->updateShipment($shipment,['status' => 'in_transit',]);
-            $this->workflowService->changeStatus($shipment->order,'shipped','Barang sedang dikirim.',$admin->name);
+            $this->workflowService->changeStatus($shipment->order,'shipped','Barang sedang dikirim.',(string) $admin->id);
             return $this->refreshShipment($shipment);
         });
     }
@@ -96,7 +96,7 @@ class ShipmentService
         $this->validateDelivered($shipment);
         return DB::transaction(function () use ($shipment,$admin) {
             $shipment = $this->updateShipment($shipment,['status' => 'delivered','delivered_at' => now(),]);
-            $this->workflowService->changeStatus($shipment->order,'completed','Pesanan telah diterima customer.',$admin->name);
+            $this->workflowService->changeStatus($shipment->order,'completed','Pesanan telah diterima customer.',(string) $admin->id);
             return $this->refreshShipment($shipment);
         });
     }
@@ -110,7 +110,7 @@ class ShipmentService
     public function cancel(Shipment $shipment,Admin $admin): Shipment {
         return DB::transaction(function () use ($shipment,$admin) {
             $shipment = $this->updateShipment($shipment,['status' => 'cancelled',]);
-            $this->workflowService->changeStatus($shipment->order,'processing','Pengiriman dibatalkan.',$admin->name);
+            $this->workflowService->changeStatus($shipment->order,'processing','Pengiriman dibatalkan.',(string) $admin->id);
             return $this->refreshShipment($shipment);
         });
 
@@ -123,7 +123,7 @@ class ShipmentService
     */
 
     public function findByTracking(string $trackingNumber): ?Shipment {
-        return Shipment::with('order','order.customer',)->where('tracking_number',$trackingNumber)->first();
+        return Shipment::with('order','order.payment',)->where('tracking_number',$trackingNumber)->first();
     }
 
     /*
@@ -155,7 +155,7 @@ class ShipmentService
     }
 
     private function refreshShipment(Shipment $shipment): Shipment {
-        return $shipment->fresh(['order','order.customer','order.payment',]);
+        return $shipment->fresh(['order','order.payment',]);
     }
 
 }
