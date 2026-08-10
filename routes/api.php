@@ -45,3 +45,4 @@ Route::get('/orders/track/{trackingToken}',[OrderTrackingController::class, 'sho
 Route::get('/payments/resume/{trackingToken}',[ResumePaymentController::class, 'show']);
 Route::get('/payment/result',[PaymentResultController::class, 'show']);
 Route::post('/payment/notification', MidtransWebhookController::class);
+

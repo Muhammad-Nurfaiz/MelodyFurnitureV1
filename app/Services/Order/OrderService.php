@@ -61,12 +61,14 @@ class OrderService
 
     public function checkout(
         Customer $customer,
+        Customer $cartCustomer,
         Collection $products,
         ?Voucher $voucher,
         array $shipping
     ): Order {
         return DB::transaction(function () use (
             $customer,
+            $cartCustomer,
             $products,
             $voucher,
             $shipping
@@ -233,11 +235,11 @@ class OrderService
             |--------------------------------------------------------------------------
             */
 
-            $customer->loadMissing('cart');
+            $cartCustomer->loadMissing('cart');
 
-            if ($customer->cart) {
+            if ($cartCustomer->cart) {
                 $this->cartService->clearCart(
-                    $customer->cart
+                    $cartCustomer->cart
                 );
             }
 
@@ -617,6 +619,12 @@ class OrderService
             | Order Status
             |--------------------------------------------------------------------------
             */
+
+            if ($order->voucher) {
+                $this->voucherService->markUsed(
+                    $order->voucher
+                );
+            }
 
             $this->workflowService->changeStatus(
                 order: $order,

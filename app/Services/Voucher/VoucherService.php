@@ -18,47 +18,83 @@ class VoucherService
         float $subtotal
     ): void {
 
-        if (!$voucher) {
+        if (! $voucher) {
             return;
         }
 
-        if (!$voucher->is_active) {
+        /*
+        |--------------------------------------------------------------------------
+        | Active
+        |--------------------------------------------------------------------------
+        */
 
+        if (! $voucher->is_active) {
             throw ValidationException::withMessages([
-
-                'voucher' => 'Voucher tidak aktif.'
-
+                'voucher' => 'Voucher tidak aktif.',
             ]);
-
         }
 
-        if ($voucher->expired_at &&
-            now()->greaterThan($voucher->expired_at)
-        ) {
-
-            throw ValidationException::withMessages([
-
-                'voucher' => 'Voucher sudah expired.'
-
-            ]);
-
-        }
+        /*
+        |--------------------------------------------------------------------------
+        | Start Date
+        |--------------------------------------------------------------------------
+        */
 
         if (
-            $voucher->minimum_purchase &&
-            $subtotal < $voucher->minimum_purchase
+            $voucher->start_date &&
+            now()->lessThan($voucher->start_date)
         ) {
-
             throw ValidationException::withMessages([
-
-                'voucher' =>
-                    'Minimal pembelian belum memenuhi.'
-
+                'voucher' => 'Voucher belum mulai berlaku.',
             ]);
-
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Expiry Date
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $voucher->expiry_date &&
+            now()->greaterThan($voucher->expiry_date)
+        ) {
+            throw ValidationException::withMessages([
+                'voucher' => 'Voucher sudah expired.',
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Minimum Order Amount
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $voucher->min_order_amount > 0 &&
+            $subtotal < $voucher->min_order_amount
+        ) {
+            throw ValidationException::withMessages([
+                'voucher' => 'Minimal pembelian belum memenuhi.',
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Usage Limit
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $voucher->usage_limit !== null &&
+            $voucher->used_count >= $voucher->usage_limit
+        ) {
+            throw ValidationException::withMessages([
+                'voucher' => 'Batas penggunaan voucher sudah tercapai.',
+            ]);
+        }
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -71,47 +107,59 @@ class VoucherService
         float $subtotal
     ): float {
 
-        if (!$voucher) {
-
+        if (! $voucher) {
             return 0;
-
         }
 
-        if (
-            $voucher->discount_type === 'fixed'
-        ) {
+        /*
+        |--------------------------------------------------------------------------
+        | Fixed
+        |--------------------------------------------------------------------------
+        */
+
+        if ($voucher->discount_type === 'fixed') {
 
             return min(
-
-                $voucher->discount_value,
-
+                (float) $voucher->discount_value,
                 $subtotal
-
             );
-
         }
 
-        $discount =
+        /*
+        |--------------------------------------------------------------------------
+        | Percentage
+        |--------------------------------------------------------------------------
+        */
 
-            ($subtotal * $voucher->discount_value)
+        $discount = (
+            $subtotal * (float) $voucher->discount_value
+        ) / 100;
 
-            / 100;
+        /*
+        |--------------------------------------------------------------------------
+        | Maximum Discount
+        |--------------------------------------------------------------------------
+        */
 
-        if ($voucher->maximum_discount) {
-
+        if (
+            $voucher->max_discount_amount !== null &&
+            $voucher->max_discount_amount > 0
+        ) {
             $discount = min(
-
                 $discount,
-
-                $voucher->maximum_discount
-
+                (float) $voucher->max_discount_amount
             );
-
         }
 
-        return $discount;
+        /*
+        |--------------------------------------------------------------------------
+        | Never Exceed Subtotal
+        |--------------------------------------------------------------------------
+        */
 
+        return min($discount, $subtotal);
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -123,19 +171,53 @@ class VoucherService
         Voucher $voucher
     ): bool {
 
-        if (!$voucher->expired_at) {
-
+        if (! $voucher->expiry_date) {
             return false;
-
         }
 
         return now()->greaterThan(
-
-            $voucher->expired_at
-
+            $voucher->expiry_date
         );
-
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Is Started
+    |--------------------------------------------------------------------------
+    */
+
+    public function isStarted(
+        Voucher $voucher
+    ): bool {
+
+        if (! $voucher->start_date) {
+            return true;
+        }
+
+        return now()->greaterThanOrEqualTo(
+            $voucher->start_date
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Usage Limit Reached
+    |--------------------------------------------------------------------------
+    */
+
+    public function isUsageLimitReached(
+        Voucher $voucher
+    ): bool {
+
+        if ($voucher->usage_limit === null) {
+            return false;
+        }
+
+        return $voucher->used_count >= $voucher->usage_limit;
+    }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -151,27 +233,38 @@ class VoucherService
         try {
 
             $this->validate(
-
                 $voucher,
-
                 $subtotal
-
             );
 
             return true;
 
-        }
-
-        catch (\Throwable) {
+        } catch (\Throwable) {
 
             return false;
-
         }
-
     }
 
-    public function findByCode(string $code): ?Voucher
+
+    /*
+    |--------------------------------------------------------------------------
+    | Find By Code
+    |--------------------------------------------------------------------------
+    */
+
+    public function findByCode(
+        string $code
+    ): ?Voucher {
+
+        return Voucher::query()
+            ->where('code', $code)
+            ->first();
+    }
+
+    public function markUsed(Voucher $voucher): void
     {
-        return Voucher::where('code', $code)->first();
+        $voucher->increment('used_count');
     }
+
+    
 }

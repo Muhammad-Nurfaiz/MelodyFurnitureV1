@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\Payment\RefundController;
 use App\Http\Controllers\Admin\Profile\ProfileController;
 use App\Http\Controllers\Admin\Settings\SettingsController;
 use App\Http\Controllers\Admin\Customer\CustomerController;
+use App\Http\Controllers\Admin\Voucher\VoucherController;
 
 Route::middleware(['auth'])
     ->prefix('admin')
@@ -78,4 +79,21 @@ Route::middleware(['auth'])
 
         Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
         Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Voucher Management
+        |--------------------------------------------------------------------------
+        */
+
+        Route::prefix('vouchers')->name('vouchers.')->controller(VoucherController::class)->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/create', 'create')->name('create');
+                Route::post('/', 'store')->name('store');
+                Route::get('/{id}', 'show')->name('show');
+                Route::get('/{id}/edit', 'edit')->name('edit');
+                Route::put('/{id}', 'update')->name('update');
+                Route::delete('/{id}', 'destroy')->name('destroy');
+                Route::patch('/{id}/toggle-active', 'toggleActive')->name('toggle-active');
+            });
     });

@@ -99,6 +99,7 @@ class CheckoutController extends Controller
         $order = $this->orderService
             ->checkout(
                 customer: $customer,
+                cartCustomer: $cartCustomer,
                 products: $products,
                 voucher: $voucher,
                 shipping: $shipping,
