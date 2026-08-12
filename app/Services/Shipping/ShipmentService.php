@@ -22,6 +22,7 @@ class ShipmentService
     */
 
     public function create(Order $order,array $data): Shipment {
+        $trackingNumber = $data['tracking_number'] ?? null;
         $shipment = Shipment::create([
             'order_id'        => $order->id,
             'courier'         => $order->courier,
@@ -32,6 +33,11 @@ class ShipmentService
             'status'          => $data['status'] ?? 'waiting_pickup',
             'metadata'        => $data['metadata'] ?? null,
         ]);
+        if (filled($trackingNumber)) {
+            $order->update([
+                'tracking_number' => $trackingNumber,
+            ]);
+        }
         return $this->refreshShipment($shipment);
     }
 
@@ -53,7 +59,11 @@ class ShipmentService
     */
 
     public function setTrackingNumber(Shipment $shipment,string $trackingNumber): Shipment {
-        return $this->updateShipment($shipment,['tracking_number' => $trackingNumber,]);
+        return DB::transaction(function () use ($shipment,$trackingNumber) {
+            $shipment = $this->updateShipment($shipment,['tracking_number' => $trackingNumber,]);
+            $shipment->order()->update(['tracking_number' => $trackingNumber,]);
+            return $this->refreshShipment($shipment);
+        });
     }
 
     /*

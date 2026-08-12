@@ -2,6 +2,7 @@
 
 namespace App\Services\Order;
 
+use App\Events\OrderStatusChanged;
 use App\Models\Order;
 use RuntimeException;
 
@@ -156,7 +157,7 @@ class OrderWorkflowService
         | Update Order
         |--------------------------------------------------------------------------
         */
-
+        $previousStatus = $order->status;
         $data = [
             'status' => $status,
         ];
@@ -180,6 +181,18 @@ class OrderWorkflowService
             actor: $adminId ? 'admin' : 'system',
             adminId: $adminId,
         );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Dispatch Order Status Changed Event
+        |--------------------------------------------------------------------------
+        */
+
+        event(new OrderStatusChanged(
+            order: $order->fresh(),
+            previousStatus: $previousStatus,
+            newStatus: $status,
+        ));
 
         return $order->fresh();
     }

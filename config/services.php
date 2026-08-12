@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'waha' => [
+        'url' => env('WAHA_URL', 'http://127.0.0.1:3000'),
+        'api_key' => env('WAHA_API_KEY'),
+        'session' => env('WAHA_SESSION', 'Melody'),
+    ],
+
 ];

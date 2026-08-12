@@ -16,6 +16,8 @@ use App\Http\Controllers\Admin\Profile\ProfileController;
 use App\Http\Controllers\Admin\Settings\SettingsController;
 use App\Http\Controllers\Admin\Customer\CustomerController;
 use App\Http\Controllers\Admin\Voucher\VoucherController;
+use App\Http\Controllers\Admin\Whatsapp\WhatsappConnectionController;
+use App\Http\Controllers\Admin\Whatsapp\WhatsappAutomationController;
 
 Route::middleware(['auth'])
     ->prefix('admin')
@@ -95,5 +97,29 @@ Route::middleware(['auth'])
                 Route::put('/{id}', 'update')->name('update');
                 Route::delete('/{id}', 'destroy')->name('destroy');
                 Route::patch('/{id}/toggle-active', 'toggleActive')->name('toggle-active');
+            });
+
+        /*
+        |--------------------------------------------------------------------------
+        | WhatsApp Automation
+        |--------------------------------------------------------------------------
+        */
+
+        /*
+        |--------------------------------------------------------------------------
+        | WhatsApp Automation
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/whatsapp', [WhatsappAutomationController::class, 'index'])->name('whatsapp.index');
+        Route::get('whatsapp/queues',[WhatsappAutomationController::class, 'queues'])->name('whatsapp.queues');
+        Route::post('whatsapp/{id}/retry',[WhatsappAutomationController::class, 'retry'])->name('whatsapp.retry');
+        Route::prefix('/whatsapp/connection')->name('whatsapp.connection.')->group(function () {
+                Route::get('/status', [WhatsappConnectionController::class,'status'])->name('status');
+                Route::post('/connect', [WhatsappConnectionController::class,'connect'])->name('connect');
+                Route::get('/qr', [WhatsappConnectionController::class, 'qr'])->name('qr');
+                Route::post('/stop', [WhatsappConnectionController::class,'stop'])->name('stop');
+                Route::post('/restart', [WhatsappConnectionController::class,'restart'])->name('restart');
+                Route::post('/logout', [WhatsappConnectionController::class,'logout'])->name('logout');
             });
     });
