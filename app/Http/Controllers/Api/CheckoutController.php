@@ -10,6 +10,8 @@ use App\Services\Cart\CartService;
 use App\Services\Voucher\VoucherService;
 use App\Services\Customer\CustomerService;
 use Illuminate\Http\JsonResponse;
+use MadeByClowd\Nusantara\Models\Regency;
+use RuntimeException;
 
 class CheckoutController extends Controller
 {
@@ -90,10 +92,68 @@ class CheckoutController extends Controller
         |--------------------------------------------------------------------------
         */
 
+        /*
+        |--------------------------------------------------------------------------
+        | Resolve Shipping Regency
+        |--------------------------------------------------------------------------
+        */
+
+        $regency = Regency::query()
+            ->with('province')
+            ->find(
+                $payload['shipping_address']['regency_id']
+            );
+
+        if (!$regency) {
+            throw new RuntimeException(
+                'Kabupaten/Kota pengiriman tidak ditemukan.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Normalize Shipping Address
+        |--------------------------------------------------------------------------
+        |
+        | city dan province tidak dipercaya dari frontend.
+        | Nilainya selalu diambil dari database Nusantara
+        | berdasarkan regency_id.
+        |
+        */
+
+        $shippingAddress = [
+            'recipient_name' =>
+                $payload['shipping_address']['recipient_name'],
+
+            'phone' =>
+                $payload['shipping_address']['phone'],
+
+            'regency_id' =>
+                $regency->id,
+
+            'city' =>
+                $regency->name,
+
+            'province' =>
+                $regency->province->name,
+
+            'address' =>
+                $payload['shipping_address']['address'],
+
+            'postal_code' =>
+                $payload['shipping_address']['postal_code'],
+        ];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Shipping
+        |--------------------------------------------------------------------------
+        */
+
         $shipping = [
             'courier' => $payload['courier'],
-            'service' => $payload['service'],
-            'address' => $payload['shipping_address'],
+            'service' => 'regular',
+            'address' => $shippingAddress,
         ];
 
         $order = $this->orderService

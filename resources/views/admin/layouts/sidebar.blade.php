@@ -93,7 +93,7 @@
 
             @endif
 
-            <ul class="mb-6 space-y-1">
+            <ul class="mb-4 space-y-1">
 
                 @foreach($group['items'] as $menu)
 

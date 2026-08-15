@@ -44,9 +44,16 @@ class ProductMediaService
                     $newPath
                 );
             }
+            
+            $mediaType = str_starts_with(
+                $temp->mime_type,
+                'video/'
+            )
+                ? 'video'
+                : 'image';
 
             $productMedia = $product->media()->create([
-                'media_type'    => 'image',
+                'media_type'    => $mediaType,
                 'media_url'     => $newPath,
                 'thumbnail_url' => $newPath,
                 'alt_text'      => $product->name,

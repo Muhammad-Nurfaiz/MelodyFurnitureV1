@@ -105,46 +105,107 @@ export default (existingMedia = []) => ({
     */
 
     async preview(event) {
+
         const files = [...event.target.files];
+
         event.target.value = "";
+
         const allowed = [
             "image/jpeg",
             "image/png",
             "image/webp",
+            "video/mp4",
+            "video/webm",
+            "video/quicktime",
         ];
+
         this.uploading = true;
+
         try {
+
             for (const file of files) {
+
                 if (!allowed.includes(file.type)) {
-                    alert("Format gambar tidak didukung.");
+
+                    alert(
+                        "Format media tidak didukung. Gunakan JPG, JPEG, PNG, WEBP, MP4, WEBM, atau MOV."
+                    );
+
                     continue;
                 }
-                if (file.size > 2 * 1024 * 1024) {
-                    alert("Ukuran maksimal 2 MB.");
+
+                /*
+                |--------------------------------------------------------------------------
+                | Maximum File Size
+                |--------------------------------------------------------------------------
+                */
+
+                const maxSize = file.type.startsWith("video/")
+                    ? 50 * 1024 * 1024
+                    : 2 * 1024 * 1024;
+
+                if (file.size > maxSize) {
+
+                    alert(
+                        file.type.startsWith("video/")
+                            ? "Ukuran video maksimal 50 MB."
+                            : "Ukuran gambar maksimal 2 MB."
+                    );
+
                     continue;
                 }
+
                 const result = await this.uploadTemporary(file);
+
                 this.media.push({
+
                     id: result.id,
+
                     url: result.url,
+
                     media_url: result.path,
+
+                    mime_type: result.mime_type,
+
+                    media_type: result.media_type,
+
+                    filename: result.filename,
+
                     uploaded: true,
+
                     temporary: true,
+
                     is_main: this.media.length === 0,
+
                 });
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Ensure Main Media
+            |--------------------------------------------------------------------------
+            */
+
             if (
                 !this.media.some(item => item.is_main)
                 &&
                 this.media.length
             ) {
+
                 this.media[0].is_main = true;
+
             }
+
             this.$nextTick(() => {
+
                 this.initSortable();
+
             });
+
         } finally {
+
             this.uploading = false;
+
         }
     },
 

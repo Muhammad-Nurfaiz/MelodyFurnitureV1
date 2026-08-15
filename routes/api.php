@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\OrderTrackingController;
 use App\Http\Controllers\Api\ResumePaymentController;
 use App\Http\Controllers\Api\PaymentResultController;
 use App\Http\Controllers\Api\Customer\CustomerOrderCancellationController;
+use App\Http\Controllers\Api\ShippingController;
+use App\Http\Controllers\Api\LocationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -45,4 +47,25 @@ Route::get('/orders/track/{trackingToken}',[OrderTrackingController::class, 'sho
 Route::get('/payments/resume/{trackingToken}',[ResumePaymentController::class, 'show']);
 Route::get('/payment/result',[PaymentResultController::class, 'show']);
 Route::post('/payment/notification', MidtransWebhookController::class);
+Route::middleware('customer.session') ->post('/shipping/estimate', [ShippingController::class, 'estimate']);
+Route::get('/shipping/couriers',[ShippingController::class,'couriers']);
 
+/*
+|--------------------------------------------------------------------------
+| Location
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('locations')
+    ->group(function () {
+
+        Route::get(
+            '/provinces',
+            [LocationController::class, 'provinces']
+        );
+
+        Route::get(
+            '/provinces/{provinceId}/regencies',
+            [LocationController::class, 'regencies']
+        );
+    });

@@ -27,16 +27,16 @@ class TemporaryMediaController extends Controller
         ]);
     }
     /**
-     * Upload temporary image
+     * Upload temporary media
      */
     public function store(Request $request): JsonResponse
     {
         $request->validate([
             'file' => [
                 'required',
-                'image',
-                'mimes:jpg,jpeg,png,webp',
-                'max:2048',
+                'file',
+                'mimes:jpg,jpeg,png,webp,mp4,webm,mov',
+                'max:51200',
             ],
         ]);
 
@@ -45,23 +45,24 @@ class TemporaryMediaController extends Controller
         );
 
         return response()->json([
-
             'success' => true,
 
             'message' => 'Media berhasil diupload.',
 
             'data' => [
-
                 'id' => $media->id,
-
                 'url' => asset('storage/'.$media->path),
-
                 'path' => $media->path,
-
                 'filename' => $media->filename,
-
+                'mime_type' => $media->mime_type,
+                'extension' => $media->extension,
+                'media_type' => str_starts_with(
+                    $media->mime_type,
+                    'video/'
+                )
+                    ? 'video'
+                    : 'image',
             ],
-
         ]);
     }
 

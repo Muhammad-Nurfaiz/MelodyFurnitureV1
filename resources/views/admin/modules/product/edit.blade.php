@@ -5,10 +5,10 @@
 @section('content')
 
 <form
-    action="{{ route('admin.products.update',$product) }}"
+    action="{{ route('admin.products.update', $product) }}"
     method="POST"
     enctype="multipart/form-data"
-    @submit.prevent="isSubmitting = true">
+    @submit="isSubmitting = true">
 
     @include('admin.modules.product._form')
 

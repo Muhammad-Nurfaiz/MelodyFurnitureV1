@@ -123,6 +123,16 @@ return [
                 ],
             ],
 
+            [
+                'title' => 'Tarif Shipping',
+                'route' => 'admin.shipping-rates.index',
+                'icon'  => 'truck',
+
+                'active' => [
+                    'admin.shipping-rates.*',
+                ],
+            ],
+
         ],
 
     ],

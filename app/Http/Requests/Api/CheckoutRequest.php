@@ -69,12 +69,6 @@ class CheckoutRequest extends FormRequest
                 'max:50',
             ],
 
-            'service' => [
-                'required',
-                'string',
-                'max:100',
-            ],
-
             /*
             |--------------------------------------------------------------------------
             | Shipping Address
@@ -98,6 +92,12 @@ class CheckoutRequest extends FormRequest
                 'max:30',
             ],
 
+            'shipping_address.regency_id' => [
+                'required',
+                'string',
+                'exists:regencies,id',
+            ],
+
             'shipping_address.address' => [
                 'required',
                 'string',
@@ -105,15 +105,13 @@ class CheckoutRequest extends FormRequest
             ],
 
             'shipping_address.city' => [
-                'required',
+                'nullable',
                 'string',
-                'max:100',
             ],
 
             'shipping_address.province' => [
-                'required',
+                'nullable',
                 'string',
-                'max:100',
             ],
 
             'shipping_address.postal_code' => [
@@ -143,7 +141,6 @@ class CheckoutRequest extends FormRequest
             'phone.max' => 'Nomor telepon maksimal 30 karakter.',
 
             'courier.required' => 'Kurir wajib dipilih.',
-            'service.required' => 'Layanan pengiriman wajib dipilih.',
 
             'shipping_address.required' => 'Alamat pengiriman wajib diisi.',
 
@@ -156,11 +153,11 @@ class CheckoutRequest extends FormRequest
             'shipping_address.address.required'
                 => 'Alamat wajib diisi.',
 
-            'shipping_address.city.required'
-                => 'Kota wajib diisi.',
+            'shipping_address.regency_id.required'
+                => 'Kabupaten/Kota wajib dipilih.',
 
-            'shipping_address.province.required'
-                => 'Provinsi wajib diisi.',
+            'shipping_address.regency_id.exists'
+                => 'Kabupaten/Kota yang dipilih tidak valid.',
 
             'shipping_address.postal_code.required'
                 => 'Kode pos wajib diisi.',

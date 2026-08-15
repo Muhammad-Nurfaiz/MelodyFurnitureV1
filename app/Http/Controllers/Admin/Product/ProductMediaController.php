@@ -16,7 +16,7 @@ class ProductMediaController extends Controller
 
         return back()->with(
             'success',
-            'Gambar berhasil dihapus.'
+            'Media berhasil dihapus.'
         );
     }
 }

@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\Customer\CustomerController;
 use App\Http\Controllers\Admin\Voucher\VoucherController;
 use App\Http\Controllers\Admin\Whatsapp\WhatsappConnectionController;
 use App\Http\Controllers\Admin\Whatsapp\WhatsappAutomationController;
+use App\Http\Controllers\Admin\Shipping\ShippingRateController;
 
 Route::middleware(['auth'])
     ->prefix('admin')
@@ -105,12 +106,6 @@ Route::middleware(['auth'])
         |--------------------------------------------------------------------------
         */
 
-        /*
-        |--------------------------------------------------------------------------
-        | WhatsApp Automation
-        |--------------------------------------------------------------------------
-        */
-
         Route::get('/whatsapp', [WhatsappAutomationController::class, 'index'])->name('whatsapp.index');
         Route::get('whatsapp/queues',[WhatsappAutomationController::class, 'queues'])->name('whatsapp.queues');
         Route::post('whatsapp/{id}/retry',[WhatsappAutomationController::class, 'retry'])->name('whatsapp.retry');
@@ -121,5 +116,17 @@ Route::middleware(['auth'])
                 Route::post('/stop', [WhatsappConnectionController::class,'stop'])->name('stop');
                 Route::post('/restart', [WhatsappConnectionController::class,'restart'])->name('restart');
                 Route::post('/logout', [WhatsappConnectionController::class,'logout'])->name('logout');
+            });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Shipping Rate Management
+        |--------------------------------------------------------------------------
+        */
+
+        Route::prefix('shipping-rates') ->name('shipping-rates.') ->controller(ShippingRateController::class) ->group(function () {
+                Route::get('/', 'index') ->name('index');
+                Route::get('/{shippingRate}/edit', 'edit') ->name('edit');
+                Route::patch('/{shippingRate}', 'update') ->name('update');
             });
     });

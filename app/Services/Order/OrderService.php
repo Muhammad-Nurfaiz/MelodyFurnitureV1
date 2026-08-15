@@ -16,7 +16,6 @@ use App\Services\Payment\MidtransService;
 use App\Services\Inventory\ProductInventoryService;
 use App\Services\Voucher\VoucherService;
 use App\Services\Cart\CartService;
-use App\Services\Shipping\ShippingService;
 
 class OrderService
 {
@@ -25,7 +24,6 @@ class OrderService
         protected MidtransService $midtransService,
         protected ProductInventoryService $inventoryService,
         protected VoucherService $voucherService,
-        protected ShippingService $shippingService,
         protected OrderNumberService $numberService,
         protected OrderWorkflowService $workflowService,
         protected OrderCalculatorService $calculatorService,
@@ -109,6 +107,7 @@ class OrderService
                 voucher: $voucher,
                 courier: $shipping['courier'],
                 service: $shipping['service'],
+                regencyId: $shipping['address']['regency_id'],
             );
 
             /*

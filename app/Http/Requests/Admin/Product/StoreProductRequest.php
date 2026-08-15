@@ -7,19 +7,14 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreProductRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        return $this->user()->can('create', \App\Models\Product::class);
+        return $this->user()->can(
+            'create',
+            \App\Models\Product::class
+        );
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
@@ -30,12 +25,31 @@ class StoreProductRequest extends FormRequest
             |--------------------------------------------------------------------------
             */
 
-            'category_id' => ['required', 'exists:categories,id'],
-            'series_id' => ['nullable', 'exists:series,id'],
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255'],
-            'description' => ['required', 'string'],
-            'product_detail' => ['nullable', 'string'],
+            'category_id' => [
+                'required',
+                'exists:categories,id',
+            ],
+
+            'series_id' => [
+                'nullable',
+                'exists:series,id',
+            ],
+
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'description' => [
+                'required',
+                'string',
+            ],
+
+            'product_detail' => [
+                'nullable',
+                'string',
+            ],
 
             /*
             |--------------------------------------------------------------------------
@@ -43,10 +57,39 @@ class StoreProductRequest extends FormRequest
             |--------------------------------------------------------------------------
             */
 
-            'dimensions' => ['required', 'string', 'max:100'],
-            'seat_height' => ['required', 'string', 'max:50'],
-            'load_capacity' => ['required', 'string', 'max:50'],
-            'material_details' => ['required', 'string'],
+            'dimensions' => [
+                'required',
+                'string',
+                'max:100',
+            ],
+
+            'weight' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
+            'packing_weight' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
+            'load_capacity' => [
+                'required',
+                'string',
+                'max:50',
+            ],
+
+            'material_details' => [
+                'required',
+                'string',
+            ],
+
+            'assembly_required' => [
+                'nullable',
+                'boolean',
+            ],
 
             /*
             |--------------------------------------------------------------------------
@@ -54,20 +97,18 @@ class StoreProductRequest extends FormRequest
             |--------------------------------------------------------------------------
             */
 
-            'original_price' => ['required', 'numeric', 'min:0'],
+            'original_price' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
             'discount_price' => [
                 'nullable',
                 'numeric',
                 'min:0',
                 'lt:original_price',
             ],
-            'discount_percentage' => [
-                'nullable',
-                'numeric',
-                'min:0',
-                'max:100',
-            ],
-            'is_sale' => ['nullable', 'boolean'],
 
             /*
             |--------------------------------------------------------------------------
@@ -75,8 +116,11 @@ class StoreProductRequest extends FormRequest
             |--------------------------------------------------------------------------
             */
 
-            'ready_stock' => ['required', 'integer', 'min:0'],
-            'locked_stock' => ['nullable', 'integer', 'min:0'],
+            'ready_stock' => [
+                'required',
+                'integer',
+                'min:0',
+            ],
 
             /*
             |--------------------------------------------------------------------------
@@ -84,8 +128,17 @@ class StoreProductRequest extends FormRequest
             |--------------------------------------------------------------------------
             */
 
-            'average_rating' => ['nullable', 'numeric', 'between:0,5'],
-            'total_sold' => ['nullable', 'integer', 'min:0'],
+            'average_rating' => [
+                'nullable',
+                'numeric',
+                'between:0,5',
+            ],
+
+            'total_sold' => [
+                'nullable',
+                'integer',
+                'min:0',
+            ],
 
             /*
             |--------------------------------------------------------------------------
@@ -93,8 +146,10 @@ class StoreProductRequest extends FormRequest
             |--------------------------------------------------------------------------
             */
 
-            'origin_city' => ['nullable', 'string', 'max:100'],
-            'video_tutorial_url' => ['nullable', 'url'],
+            'video_tutorial_url' => [
+                'nullable',
+                'url',
+            ],
 
             /*
             |--------------------------------------------------------------------------
@@ -142,7 +197,6 @@ class StoreProductRequest extends FormRequest
             'deleted_media.*' => [
                 'uuid',
             ],
-
         ];
     }
 
@@ -150,6 +204,7 @@ class StoreProductRequest extends FormRequest
     {
         $this->merge([
             'is_sale' => $this->boolean('is_sale'),
+            'assembly_required' => $this->boolean('assembly_required'),
         ]);
     }
 
@@ -159,36 +214,30 @@ class StoreProductRequest extends FormRequest
 
             'category_id' => 'Kategori',
             'series_id' => 'Series',
+
             'name' => 'Nama Produk',
-            'slug' => 'Slug',
             'description' => 'Deskripsi',
             'product_detail' => 'Detail Produk',
 
             'dimensions' => 'Dimensi',
-            'seat_height' => 'Tinggi Dudukan',
+            'weight' => 'Berat Produk',
+            'packing_weight' => 'Berat Setelah Packing',
             'load_capacity' => 'Kapasitas Beban',
             'material_details' => 'Material',
+            'assembly_required' => 'Perlu Dirakit',
 
             'original_price' => 'Harga Normal',
             'discount_price' => 'Harga Diskon',
-            'discount_percentage' => 'Persentase Diskon',
 
             'ready_stock' => 'Ready Stock',
-            'locked_stock' => 'Locked Stock',
 
             'average_rating' => 'Average Rating',
             'total_sold' => 'Total Terjual',
 
-            'origin_city' => 'Kota Asal',
-
             'temporary_media' => 'Media Produk',
-
             'media_order' => 'Urutan Media',
-
             'main_media' => 'Thumbnail',
-
             'deleted_media' => 'Media yang dihapus',
-
         ];
     }
 
@@ -197,10 +246,10 @@ class StoreProductRequest extends FormRequest
         return [
 
             'temporary_media.required' =>
-                'Minimal upload satu gambar produk.',
+                'Minimal upload satu media produk.',
 
             'temporary_media.min' =>
-                'Minimal upload satu gambar produk.',
+                'Minimal upload satu media produk.',
 
             'temporary_media.*.exists' =>
                 'Media temporary tidak ditemukan.',
@@ -225,7 +274,6 @@ class StoreProductRequest extends FormRequest
 
             'discount_price.lt' =>
                 'Harga diskon harus lebih kecil dari harga normal.',
-
         ];
     }
 }

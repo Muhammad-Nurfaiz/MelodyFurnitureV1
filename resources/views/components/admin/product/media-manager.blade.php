@@ -5,12 +5,14 @@
 <div
     x-data="mediaManager(@js(
         $media->map(fn($item) => [
-            'id'        => $item->id,
-            'url'       => Storage::url($item->media_url),
-            'media_url' => $item->media_url,
-            'uploaded'  => true,
-            'is_main'   => (bool) $item->is_main,
-            'file'      => null,
+            'id'         => $item->id,
+            'url'        => Storage::url($item->media_url),
+            'media_url'  => $item->media_url,
+            'media_type' => $item->media_type ?? 'image',
+            'uploaded'   => true,
+            'temporary'  => false,
+            'is_main'    => (bool) $item->is_main,
+            'file'       => null,
         ])->values()
     ))"
     x-init="init()"
@@ -58,6 +60,7 @@
         >
     </template>
 
+
     {{-- ================= GRID ================= --}}
 
     <div
@@ -75,7 +78,8 @@
                 :data-id="image.id"
             >
 
-                {{-- IMAGE --}}
+                {{-- ================= MEDIA PREVIEW ================= --}}
+
                 <div
                     class="overflow-hidden rounded-xl border-2 transition-all duration-200"
                     :class="image.is_main
@@ -83,14 +87,34 @@
                         : 'border-gray-200'"
                 >
 
-                    <img
-                        :src="image.url"
-                        class="h-28 w-28 object-cover"
-                    >
+                    {{-- IMAGE --}}
+
+                    <template x-if="image.media_type !== 'video'">
+                        <img
+                            :src="image.url"
+                            class="h-28 w-28 object-cover"
+                            alt=""
+                        >
+                    </template>
+
+
+                    {{-- VIDEO --}}
+
+                    <template x-if="image.media_type === 'video'">
+                        <video
+                            :src="image.url"
+                            class="h-28 w-28 object-cover"
+                            muted
+                            playsinline
+                            preload="metadata"
+                        ></video>
+                    </template>
 
                 </div>
 
-                {{-- BADGE --}}
+
+                {{-- ================= BADGE ================= --}}
+
                 <div
                     x-show="image.is_main"
                     x-transition.opacity
@@ -99,9 +123,21 @@
                     Thumbnail
                 </div>
 
-                {{-- TOOLBAR --}}
+
+                {{-- ================= VIDEO INDICATOR ================= --}}
+
                 <div
-                    x-show = "!uploading"
+                    x-show="image.media_type === 'video'"
+                    class="pointer-events-none absolute right-2 top-2 rounded bg-black/70 px-2 py-1 text-[10px] font-semibold text-white"
+                >
+                    VIDEO
+                </div>
+
+
+                {{-- ================= TOOLBAR ================= --}}
+
+                <div
+                    x-show="!uploading"
                     class="absolute inset-x-0 bottom-2 flex justify-center opacity-0 group-hover:opacity-100 transition"
                 >
 
@@ -110,6 +146,7 @@
                     >
 
                         {{-- Thumbnail --}}
+
                         <button
                             type="button"
                             @click="setMain(index)"
@@ -117,35 +154,45 @@
                         >
 
                             {{-- aktif --}}
+
                             <template x-if="image.is_main">
                                 <x-heroicon-s-star
-                                    class="h-4 w-4 text-yellow-500"/>
+                                    class="h-4 w-4 text-yellow-500"
+                                />
                             </template>
 
                             {{-- non aktif --}}
+
                             <template x-if="!image.is_main">
                                 <x-heroicon-o-star
-                                    class="h-4 w-4 text-yellow-500"/>
+                                    class="h-4 w-4 text-yellow-500"
+                                />
                             </template>
 
                         </button>
 
+
                         {{-- Delete --}}
+
                         <button
                             type="button"
                             @click="remove(index)"
                             class="rounded p-1 hover:bg-red-100"
                         >
                             <x-heroicon-o-trash
-                                class="h-4 w-4 text-red-500"/>
+                                class="h-4 w-4 text-red-500"
+                            />
                         </button>
 
+
                         {{-- Drag --}}
+
                         <div
                             class="drag-handle cursor-move rounded p-1 hover:bg-gray-100"
                         >
                             <x-heroicon-o-bars-3
-                                class="h-4 w-4 text-gray-500"/>
+                                class="h-4 w-4 text-gray-500"
+                            />
                         </div>
 
                     </div>
@@ -156,7 +203,9 @@
 
         </template>
 
-        {{-- Upload --}}
+
+        {{-- ================= UPLOAD ================= --}}
+
         <label
             :class="uploading
                 ? 'pointer-events-none opacity-50'
@@ -168,14 +217,15 @@
                 type="file"
                 multiple
                 class="hidden"
-                accept=".jpg,.jpeg,.png,.webp"
+                accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
                 @change="preview($event)"
             >
 
             <div class="text-center">
 
                 <x-heroicon-o-plus
-                    class="mx-auto h-8 w-8 text-primary"/>
+                    class="mx-auto h-8 w-8 text-primary"
+                />
 
                 <div
                     class="mt-1 text-xs font-medium text-gray-600"
@@ -184,8 +234,12 @@
                 </div>
 
             </div>
-            
+
         </label>
+
+
+        {{-- ================= UPLOADING ================= --}}
+
         <div
             x-show="uploading"
             x-cloak

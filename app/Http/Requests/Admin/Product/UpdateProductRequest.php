@@ -7,57 +7,48 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateProductRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        return $this->user()->can('update', $this->product);
+        return $this->user()->can(
+            'update',
+            $this->product
+        );
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
+
+            /*
+            |--------------------------------------------------------------------------
+            | Product
+            |--------------------------------------------------------------------------
+            */
+
             'category_id' => [
                 'required',
-                'exists:categories,id'
+                'exists:categories,id',
             ],
 
             'series_id' => [
                 'nullable',
-                'exists:series,id'
+                'exists:series,id',
             ],
 
             'name' => [
                 'required',
                 'string',
-                'max:255'
-            ],
-
-            'slug' => [
-                'nullable',
-                'string',
                 'max:255',
-                'slug' => [
-                    'nullable',
-                    'string',
-                    'max:255',
-                ],
             ],
 
             'description' => [
                 'required',
-                'string'
+                'string',
             ],
 
             'product_detail' => [
                 'nullable',
-                'string'
+                'string',
             ],
 
             /*
@@ -69,24 +60,35 @@ class UpdateProductRequest extends FormRequest
             'dimensions' => [
                 'required',
                 'string',
-                'max:100'
+                'max:100',
             ],
 
-            'seat_height' => [
+            'weight' => [
                 'required',
-                'string',
-                'max:50'
+                'numeric',
+                'min:0',
+            ],
+
+            'packing_weight' => [
+                'required',
+                'numeric',
+                'min:0',
             ],
 
             'load_capacity' => [
                 'required',
                 'string',
-                'max:50'
+                'max:50',
             ],
 
             'material_details' => [
                 'required',
-                'string'
+                'string',
+            ],
+
+            'assembly_required' => [
+                'nullable',
+                'boolean',
             ],
 
             /*
@@ -98,7 +100,7 @@ class UpdateProductRequest extends FormRequest
             'original_price' => [
                 'required',
                 'numeric',
-                'min:0'
+                'min:0',
             ],
 
             'discount_price' => [
@@ -106,18 +108,6 @@ class UpdateProductRequest extends FormRequest
                 'numeric',
                 'min:0',
                 'lt:original_price',
-            ],
-
-            'discount_percentage' => [
-                'nullable',
-                'numeric',
-                'min:0',
-                'max:100'
-            ],
-
-            'is_sale' => [
-                'nullable',
-                'boolean'
             ],
 
             /*
@@ -129,13 +119,7 @@ class UpdateProductRequest extends FormRequest
             'ready_stock' => [
                 'required',
                 'integer',
-                'min:0'
-            ],
-
-            'locked_stock' => [
-                'nullable',
-                'integer',
-                'min:0'
+                'min:0',
             ],
 
             /*
@@ -153,7 +137,7 @@ class UpdateProductRequest extends FormRequest
             'total_sold' => [
                 'nullable',
                 'integer',
-                'min:0'
+                'min:0',
             ],
 
             /*
@@ -162,39 +146,16 @@ class UpdateProductRequest extends FormRequest
             |--------------------------------------------------------------------------
             */
 
-            'origin_city' => [
-                'nullable',
-                'string',
-                'max:100'
-            ],
-
             'video_tutorial_url' => [
                 'nullable',
-                'url'
+                'url',
             ],
 
             /*
             |--------------------------------------------------------------------------
-            | Media
+            | Temporary Media
             |--------------------------------------------------------------------------
             */
-
-            // Gallery
-            'gallery' => [
-                'nullable',
-                'array',
-            ],
-
-            'gallery.*' => [
-                \Illuminate\Validation\Rules\File::image()
-                    ->types([
-                        'jpg',
-                        'jpeg',
-                        'png',
-                        'webp',
-                    ])
-                    ->max(2048),
-            ],
 
             'temporary_media' => [
                 'nullable',
@@ -206,19 +167,24 @@ class UpdateProductRequest extends FormRequest
                 'exists:temporary_media,id',
             ],
 
-            // Media Manager
+            /*
+            |--------------------------------------------------------------------------
+            | Media Manager
+            |--------------------------------------------------------------------------
+            */
+
             'media_order' => [
                 'nullable',
                 'array',
             ],
 
             'media_order.*' => [
-                'string',
+                'uuid',
             ],
 
             'main_media' => [
                 'nullable',
-                'string',
+                'uuid',
             ],
 
             'deleted_media' => [
@@ -227,24 +193,19 @@ class UpdateProductRequest extends FormRequest
             ],
 
             'deleted_media.*' => [
-                'string',
+                'uuid',
             ],
         ];
     }
 
-    /**
-     * Prepare data before validation
-     */
     protected function prepareForValidation(): void
     {
         $this->merge([
             'is_sale' => $this->boolean('is_sale'),
+            'assembly_required' => $this->boolean('assembly_required'),
         ]);
     }
 
-    /**
-     * Custom Attribute Names
-     */
     public function attributes(): array
     {
         return [
@@ -253,32 +214,28 @@ class UpdateProductRequest extends FormRequest
             'series_id' => 'Series',
 
             'name' => 'Nama Produk',
-            'slug' => 'Slug',
-
             'description' => 'Deskripsi',
             'product_detail' => 'Detail Produk',
 
             'dimensions' => 'Dimensi',
-            'seat_height' => 'Tinggi Dudukan',
+            'weight' => 'Berat Produk',
+            'packing_weight' => 'Berat Setelah Packing',
             'load_capacity' => 'Kapasitas Beban',
             'material_details' => 'Material',
+            'assembly_required' => 'Perlu Dirakit',
 
             'original_price' => 'Harga Normal',
             'discount_price' => 'Harga Diskon',
-            'discount_percentage' => 'Persentase Diskon',
 
             'ready_stock' => 'Ready Stock',
-            'locked_stock' => 'Locked Stock',
 
             'average_rating' => 'Average Rating',
             'total_sold' => 'Total Terjual',
 
-            'origin_city' => 'Kota Asal',
-            'gallery.*' => 'Galeri',
+            'temporary_media' => 'Media Produk',
             'media_order' => 'Urutan Media',
             'main_media' => 'Thumbnail',
             'deleted_media' => 'Media yang dihapus',
-
         ];
     }
 
@@ -286,16 +243,20 @@ class UpdateProductRequest extends FormRequest
     {
         return [
 
-            'gallery.*.image' => 'Gallery harus berupa gambar.',
+            'media_order.array' =>
+                'Format urutan media tidak valid.',
 
-            'gallery.*.max' => 'Ukuran gallery maksimal 2 MB.',
+            'media_order.*.uuid' =>
+                'Format ID media tidak valid.',
 
-            'media_order.array' => 'Format urutan media tidak valid.',
+            'main_media.uuid' =>
+                'Thumbnail yang dipilih tidak valid.',
 
-            'deleted_media.array' => 'Media yang dihapus tidak valid.',
+            'deleted_media.array' =>
+                'Media yang dihapus tidak valid.',
 
-            'discount_price.lt' => 'Harga diskon harus lebih kecil dari harga normal.',
-
+            'discount_price.lt' =>
+                'Harga diskon harus lebih kecil dari harga normal.',
         ];
     }
 }

@@ -16,6 +16,7 @@ import './admin/core/crud-base';
 */
 import './admin/category';
 import './admin/series';
+import './admin/shipping-rate';
 import './admin/product-form';
 import './admin/order/workflow';
 

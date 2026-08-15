@@ -5,6 +5,7 @@ namespace App\Services\Product;
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\Product\ProductMediaService;
 use App\Services\Media\TemporaryMediaService;
 
 class ProductService
@@ -77,13 +78,12 @@ class ProductService
             });
     }
 
-    protected function updateProduct(
-        Product $product,
-        array $data
-    ): void {
-
+    protected function updateProduct(Product $product,array $data): void {
         $originalPrice = (float) $data['original_price'];
-        $discountPrice = $data['discount_price'];
+
+        $discountPrice = filled($data['discount_price'])
+            ? (float) $data['discount_price']
+            : null;
 
         $discountPercentage = null;
 
@@ -92,32 +92,28 @@ class ProductService
             $discountPrice > 0 &&
             $discountPrice < $originalPrice
         ) {
-
             $discountPercentage = round(
                 (($originalPrice - $discountPrice) / $originalPrice) * 100
             );
-
         }
 
         $product->update([
 
             'category_id' => $data['category_id'],
 
-            'series_id' => $data['series_id'],
+            'series_id' => $data['series_id'] ?? null,
 
             'name' => $data['name'],
 
             'slug' => $this->generateUniqueSlug(
-                filled($data['slug'])
-                    ? $data['slug']
-                    : $data['name'],
+                $data['name'],
                 $product
             ),
 
             'description' => $data['description'],
 
-            'product_detail' => $data['product_detail'],
-                
+            'product_detail' => $data['product_detail'] ?? null,
+
             'original_price' => $originalPrice,
 
             'discount_price' => $discountPrice,
@@ -128,34 +124,44 @@ class ProductService
 
             'ready_stock' => $data['ready_stock'],
 
-            'locked_stock' => $data['locked_stock'],
+            /*
+            |--------------------------------------------------------------------------
+            | Locked Stock
+            |--------------------------------------------------------------------------
+            |
+            | Tidak disentuh oleh Product form.
+            | Nantinya akan dikelola oleh Order Service.
+            |
+            */
 
-            'origin_city' => $data['origin_city'],
+            'video_tutorial_url' =>
+                $data['video_tutorial_url'] ?? null,
 
-            'video_tutorial_url' => $data['video_tutorial_url'],
+            'average_rating' =>
+                $data['average_rating'] ?? 0,
 
-            'average_rating' => $data['average_rating'],
-
-            'total_sold' => $data['total_sold'],
+            'total_sold' =>
+                $data['total_sold'] ?? 0,
 
         ]);
-
     }
 
-    protected function updateSpecification(
-        Product $product,
-        array $data
-    ): void {
+    protected function updateSpecification(Product $product,array $data): void {
 
         $product->specification()->update([
 
             'dimensions' => $data['dimensions'],
 
-            'seat_height' => $data['seat_height'],
+            'weight' => $data['weight'],
+
+            'packing_weight' => $data['packing_weight'],
 
             'load_capacity' => $data['load_capacity'],
 
             'material_details' => $data['material_details'],
+
+            'assembly_required' =>
+                $data['assembly_required'] ?? false,
 
         ]);
     }
@@ -182,43 +188,22 @@ class ProductService
         }
 
         return Product::create([
-
             'category_id' => $data['category_id'],
-
             'series_id' => $data['series_id'] ?? null,
-
             'name' => $data['name'],
-
-            'slug' => $this->generateUniqueSlug(
-                filled($data['slug'])
-                    ? $data['slug']
-                    : $data['name']
-            ),
-
+            'slug' => $this->generateUniqueSlug($data['name']),
             'description' => $data['description'],
-
-            'product_detail' => $data['product_detail'] ?? null,
-
+            'product_detail' =>$data['product_detail'] ?? null,
             'original_price' => $originalPrice,
-
             'discount_price' => $discountPrice,
-
             'discount_percentage' => $discountPercentage,
-
             'is_sale' => $discountPercentage > 0,
-
             'ready_stock' => $data['ready_stock'],
-
-            'locked_stock' => $data['locked_stock'] ?? 0,
-
+            'locked_stock' => 0,
+            'origin_city' => 'Malang',
             'video_tutorial_url' => $data['video_tutorial_url'] ?? null,
-
-            'origin_city' => $data['origin_city'] ?? null,
-
             'average_rating' => $data['average_rating'] ?? 0,
-
             'total_sold' => $data['total_sold'] ?? 0,
-
         ]);
     }
 
@@ -234,17 +219,13 @@ class ProductService
     ): void {
 
         $product->specification()->create([
-
             'dimensions' => $data['dimensions'],
-
-            'seat_height' => $data['seat_height'],
-
+            'weight' => $data['weight'],
+            'packing_weight' => $data['packing_weight'],
             'load_capacity' => $data['load_capacity'],
-
             'material_details' => $data['material_details'],
-
+            'assembly_required' => $data['assembly_required'] ?? false,
         ]);
-
     }
 
     protected ProductMediaService $mediaService;
