@@ -295,6 +295,21 @@ class Order extends Model
         );
     }
 
+    public function canDownloadPackingLabel(): bool
+    {
+        return in_array(
+            $this->status,
+            [
+                'paid',
+                'processing',
+                'picked_up',
+                'shipped',
+                'completed',
+            ],
+            true
+        );
+    }
+    
     public function canRequestCancel(): bool
     {
         return in_array(

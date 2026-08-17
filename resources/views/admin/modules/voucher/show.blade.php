@@ -805,5 +805,322 @@
     </div>
 
 </div>
+{{-- ===================================================== --}}
+{{-- USAGE HISTORY --}}
+{{-- ===================================================== --}}
 
+<x-admin.card class="mt-6">
+
+    <div class="flex flex-col gap-4 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+
+        <div>
+
+            <h3 class="text-base font-semibold text-gray-900">
+                Riwayat Penggunaan Voucher
+            </h3>
+
+            <p class="mt-1 text-sm text-gray-500">
+                Daftar pesanan yang menggunakan voucher ini dan telah berhasil dibayar.
+            </p>
+
+        </div>
+
+        <x-admin.button
+            href="{{ route('admin.vouchers.export-usage', $voucher) }}"
+            icon="arrow-down-tray"
+        >
+            Export Excel
+        </x-admin.button>
+
+    </div>
+
+    {{-- ================================================= --}}
+    {{-- TABLE --}}
+    {{-- ================================================= --}}
+
+    <x-admin.table.table>
+
+        <x-admin.table.thead>
+
+            <tr>
+
+                <x-admin.table.th>
+                    Order
+                </x-admin.table.th>
+
+                <x-admin.table.th>
+                    Pelanggan
+                </x-admin.table.th>
+
+                <x-admin.table.th>
+                    Total Belanja
+                </x-admin.table.th>
+
+                <x-admin.table.th>
+                    Diskon Voucher
+                </x-admin.table.th>
+
+                <x-admin.table.th>
+                    Total Pembayaran
+                </x-admin.table.th>
+
+                <x-admin.table.th>
+                    Status
+                </x-admin.table.th>
+
+                <x-admin.table.th>
+                    Digunakan Pada
+                </x-admin.table.th>
+
+            </tr>
+
+        </x-admin.table.thead>
+
+
+        <x-admin.table.tbody>
+
+            @if($usageOrders->isEmpty())
+
+                <tr>
+
+                    <td
+                        colspan="7"
+                        class="px-6 py-16 text-center"
+                    >
+
+                        <x-admin.empty-state
+                            title="Belum ada penggunaan"
+                            description="Belum ada pesanan berhasil dibayar yang menggunakan voucher ini."
+                        />
+
+                    </td>
+
+                </tr>
+
+            @else
+
+                @foreach($usageOrders as $order)
+
+                    <x-admin.table.tr>
+
+                        {{-- ORDER --}}
+
+                        <x-admin.table.td>
+
+                            <a
+                                href="{{ route('admin.orders.show', $order->id) }}"
+                                class="
+                                    font-semibold
+                                    text-gray-900
+                                    transition
+                                    hover:text-blue-600
+                                "
+                            >
+                                {{ $order->order_number }}
+                            </a>
+
+                            <div class="mt-1 text-xs text-gray-500">
+
+                                {{ $order->midtrans_order_id }}
+
+                            </div>
+
+                        </x-admin.table.td>
+
+
+                        {{-- CUSTOMER --}}
+
+                        <x-admin.table.td>
+
+                            <div class="font-medium text-gray-900">
+
+                                {{ $order->customer_name }}
+
+                            </div>
+
+                            @if($order->customer_email)
+
+                                <div class="mt-1 text-xs text-gray-500">
+
+                                    {{ $order->customer_email }}
+
+                                </div>
+
+                            @endif
+
+                        </x-admin.table.td>
+
+
+                        {{-- TOTAL PRODUCT --}}
+
+                        <x-admin.table.td>
+
+                            Rp
+                            {{ number_format(
+                                $order->total_product_price,
+                                0,
+                                ',',
+                                '.'
+                            ) }}
+
+                        </x-admin.table.td>
+
+
+                        {{-- VOUCHER DISCOUNT --}}
+
+                        <x-admin.table.td>
+
+                            <span class="font-medium text-green-600">
+
+                                - Rp
+                                {{ number_format(
+                                    $order->voucher_discount_amount,
+                                    0,
+                                    ',',
+                                    '.'
+                                ) }}
+
+                            </span>
+
+                        </x-admin.table.td>
+
+
+                        {{-- TOTAL PAYMENT --}}
+
+                        <x-admin.table.td>
+
+                            <span class="font-semibold text-gray-900">
+
+                                Rp
+                                {{ number_format(
+                                    $order->total_payment,
+                                    0,
+                                    ',',
+                                    '.'
+                                ) }}
+
+                            </span>
+
+                        </x-admin.table.td>
+
+
+                        {{-- STATUS --}}
+
+                        <x-admin.table.td>
+
+                            @switch($order->status)
+
+                                @case('pending')
+
+                                    <x-admin.badge variant="warning">
+                                        Pending
+                                    </x-admin.badge>
+
+                                    @break
+
+                                @case('paid')
+
+                                    <x-admin.badge variant="success">
+                                        Paid
+                                    </x-admin.badge>
+
+                                    @break
+
+                                @case('processing')
+
+                                    <x-admin.badge variant="info">
+                                        Processing
+                                    </x-admin.badge>
+
+                                    @break
+
+                                @case('picked_up')
+
+                                    <x-admin.badge variant="info">
+                                        Picked Up
+                                    </x-admin.badge>
+
+                                    @break
+
+                                @case('shipped')
+
+                                    <x-admin.badge variant="info">
+                                        Shipped
+                                    </x-admin.badge>
+
+                                    @break
+
+                                @case('completed')
+
+                                    <x-admin.badge variant="success">
+                                        Completed
+                                    </x-admin.badge>
+
+                                    @break
+
+                                @case('cancelled')
+
+                                    <x-admin.badge variant="danger">
+                                        Cancelled
+                                    </x-admin.badge>
+
+                                    @break
+
+                                @default
+
+                                    <x-admin.badge>
+                                        {{ ucfirst($order->status) }}
+                                    </x-admin.badge>
+
+                            @endswitch
+
+                        </x-admin.table.td>
+
+
+                        {{-- DATE --}}
+
+                        <x-admin.table.td>
+
+                            <div class="text-sm text-gray-900">
+
+                                {{ $order->created_at?->format('d M Y') }}
+
+                            </div>
+
+                            <div class="mt-1 text-xs text-gray-500">
+
+                                {{ $order->created_at?->format('H:i') }}
+
+                            </div>
+
+                        </x-admin.table.td>
+
+                    </x-admin.table.tr>
+
+                @endforeach
+
+            @endif
+
+        </x-admin.table.tbody>
+
+    </x-admin.table.table>
+
+
+    {{-- ================================================= --}}
+    {{-- PAGINATION --}}
+    {{-- ================================================= --}}
+
+    @if($usageOrders->hasPages())
+
+        <div class="border-t border-gray-200 px-6 py-4">
+
+            <x-admin.pagination.pagination
+                :paginator="$usageOrders"
+            />
+
+        </div>
+
+    @endif
+
+</x-admin.card>
 @endsection

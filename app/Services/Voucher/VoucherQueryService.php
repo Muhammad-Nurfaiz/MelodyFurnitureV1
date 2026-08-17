@@ -3,8 +3,10 @@
 namespace App\Services\Voucher;
 
 use App\Models\Voucher;
+use App\Models\Order;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class VoucherQueryService
 {
@@ -50,6 +52,26 @@ class VoucherQueryService
         return $this->query()
             ->where('code', $code)
             ->first();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Usage / Orders
+    |--------------------------------------------------------------------------
+    */
+
+    public function usage(
+        Voucher $voucher,
+        int $perPage = 10
+    ): LengthAwarePaginator {
+        return $voucher
+            ->orders()
+            ->with([
+                'customer',
+            ])
+            ->latest()
+            ->paginate($perPage, ['*'], 'usage_page')
+            ->withQueryString();
     }
 
     /*
@@ -221,6 +243,14 @@ class VoucherQueryService
             $column,
             $direction
         );
+    }
+
+    public function usageOrders(
+        string $voucherId
+    ): Builder {
+        return Order::query()
+            ->where('voucher_id', $voucherId)
+            ->with('customer');
     }
 
     /*

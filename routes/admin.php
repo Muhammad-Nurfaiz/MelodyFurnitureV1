@@ -19,6 +19,10 @@ use App\Http\Controllers\Admin\Voucher\VoucherController;
 use App\Http\Controllers\Admin\Whatsapp\WhatsappConnectionController;
 use App\Http\Controllers\Admin\Whatsapp\WhatsappAutomationController;
 use App\Http\Controllers\Admin\Shipping\ShippingRateController;
+use App\Http\Controllers\Admin\Document\InvoiceController;
+use App\Http\Controllers\Admin\Document\PackingLabelController;
+use App\Http\Controllers\Admin\Export\OrderExportController;
+use App\Http\Controllers\Admin\Export\VoucherUsageExportController;
 
 Route::middleware(['auth'])
     ->prefix('admin')
@@ -39,8 +43,9 @@ Route::middleware(['auth'])
         Route::delete('media/temporary/{id}', [TemporaryMediaController::class, 'destroy'])->name('media.temporary.destroy');
         Route::delete('media/temporary/cleanup', [TemporaryMediaController::class, 'cleanup'])->name('media.temporary.cleanup');
         Route::delete('products/media/{media}', [ProductMediaController::class, 'destroy'])->name('products.media.destroy');
-
+        
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/export',[OrderExportController::class, 'export'])->name('orders.export');
         Route::get('/orders/{order}', [OrderController::class,'show'])->name('orders.show');
         Route::patch('/orders/{order}/processing', [OrderController::class, 'processing'])->name('orders.processing');
 
@@ -93,6 +98,7 @@ Route::middleware(['auth'])
                 Route::get('/', 'index')->name('index');
                 Route::get('/create', 'create')->name('create');
                 Route::post('/', 'store')->name('store');
+                Route::get('/{voucher}/export-usage',[VoucherUsageExportController::class, 'export'])->name('export-usage');
                 Route::get('/{id}', 'show')->name('show');
                 Route::get('/{id}/edit', 'edit')->name('edit');
                 Route::put('/{id}', 'update')->name('update');
@@ -129,4 +135,9 @@ Route::middleware(['auth'])
                 Route::get('/{shippingRate}/edit', 'edit') ->name('edit');
                 Route::patch('/{shippingRate}', 'update') ->name('update');
             });
+
+        Route::get('orders/{order}/invoice',[InvoiceController::class, 'show'])->name('orders.invoice');
+        Route::get('orders/{order}/invoice/download',[InvoiceController::class, 'download'])->name('orders.invoice.download');
+        Route::get('/orders/{order}/packing-label',[PackingLabelController::class, 'show'])->name('orders.packing-label');
+        Route::get('/orders/{order}/packing-label/download',[PackingLabelController::class, 'download'])->name('orders.packing-label.download');
     });

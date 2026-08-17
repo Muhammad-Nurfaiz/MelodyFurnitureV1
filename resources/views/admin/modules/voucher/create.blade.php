@@ -1,6 +1,7 @@
 @extends('admin.layouts.app')
 @php
-    $isEdit = isset($voucher) && $voucher;
+    $voucher = $voucher ?? null;
+    $isEdit = $voucher !== null;
 @endphp
 @section('title', $isEdit ? 'Edit Voucher' : 'Tambah Voucher')
 

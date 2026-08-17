@@ -263,8 +263,31 @@ class VoucherService
 
     public function markUsed(Voucher $voucher): void
     {
-        $voucher->increment('used_count');
+        $query = Voucher::query()
+            ->whereKey($voucher->id);
+
+        if ($voucher->usage_limit !== null) {
+            $query->where(
+                'used_count',
+                '<',
+                $voucher->usage_limit
+            );
+        }
+
+        $updated = $query->increment('used_count');
+
+        if ($updated === 0) {
+            throw ValidationException::withMessages([
+                'voucher' => 'Batas penggunaan voucher sudah tercapai.',
+            ]);
+        }
     }
 
-    
+    public function releaseUsage(Voucher $voucher): void
+    {
+        Voucher::query()
+            ->whereKey($voucher->id)
+            ->where('used_count', '>', 0)
+            ->decrement('used_count');
+    }   
 }

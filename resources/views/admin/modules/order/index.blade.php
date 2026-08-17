@@ -4,7 +4,9 @@
 
 @section('content')
 
-<div>
+<div
+    x-data="crudBase()"
+    x-init="init()">
 
 {{-- ===================================================== --}}
 {{-- PAGE HEADER --}}
@@ -17,8 +19,12 @@
     <x-slot:actions>
 
         <x-admin.button
-            icon="arrow-down-tray">
+            icon="arrow-down-tray"
+            x-data
+            x-on:click="$dispatch('open-modal', 'order-export-modal')">
+
             Export
+
         </x-admin.button>
 
     </x-slot:actions>
@@ -975,7 +981,160 @@
 
 </x-admin.card>
 
+{{-- ===================================================== --}}
+{{-- EXPORT ORDER MODAL --}}
+{{-- ===================================================== --}}
 
+<x-admin.modal
+    name="order-export-modal">
+
+    <form
+        method="GET"
+        action="{{ route('admin.orders.export') }}"
+    >
+
+        <div class="space-y-4">
+
+            <x-admin.form.group
+                label="Tanggal Mulai"
+                required>
+
+                <x-admin.form.input
+                    type="date"
+                    name="start_date"
+                    value="{{ now()->startOfMonth()->format('Y-m-d') }}"
+                    required
+                />
+
+            </x-admin.form.group>
+
+
+            <x-admin.form.group
+                label="Tanggal Akhir"
+                required>
+
+                <x-admin.form.input
+                    type="date"
+                    name="end_date"
+                    value="{{ now()->format('Y-m-d') }}"
+                    required
+                />
+
+            </x-admin.form.group>
+
+
+            <x-admin.form.group
+                label="Status Order">
+
+                <x-admin.form.select
+                    name="status">
+
+                    <option value="all">
+                        Semua Status
+                    </option>
+
+                    <option value="pending">
+                        Pending
+                    </option>
+
+                    <option value="paid">
+                        Paid
+                    </option>
+
+                    <option value="processing">
+                        Diproses
+                    </option>
+
+                    <option value="picked_up">
+                        Picked Up
+                    </option>
+
+                    <option value="shipped">
+                        Dikirim
+                    </option>
+
+                    <option value="completed">
+                        Completed
+                    </option>
+
+                    <option value="cancelled">
+                        Cancelled
+                    </option>
+
+                    <option value="req_cancel">
+                        Permintaan Cancel
+                    </option>
+
+                </x-admin.form.select>
+
+            </x-admin.form.group>
+
+
+            <x-admin.form.group
+                label="Status Pembayaran">
+
+                <x-admin.form.select
+                    name="payment_status">
+
+                    <option value="all">
+                        Semua Status
+                    </option>
+
+                    <option value="unpaid">
+                        Unpaid
+                    </option>
+
+                    <option value="pending">
+                        Pending
+                    </option>
+
+                    <option value="paid">
+                        Paid
+                    </option>
+
+                    <option value="expired">
+                        Expired
+                    </option>
+
+                    <option value="failed">
+                        Failed
+                    </option>
+
+                </x-admin.form.select>
+
+            </x-admin.form.group>
+
+        </div>
+
+
+        <div class="mt-6 flex justify-end gap-3">
+
+            <x-admin.button
+                type="button"
+                variant="secondary"
+                x-on:click="$dispatch(
+                    'close-modal',
+                    'order-export-modal'
+                )">
+
+                Batal
+
+            </x-admin.button>
+
+
+            <x-admin.button
+                type="submit"
+                icon="arrow-down-tray">
+
+                Export Excel
+
+            </x-admin.button>
+
+        </div>
+
+    </form>
+
+</x-admin.modal>
 </div>
 
 @endsection

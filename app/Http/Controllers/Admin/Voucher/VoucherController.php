@@ -70,13 +70,20 @@ class VoucherController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function show(string $id)
-    {
+    public function show(Request $request,string $id) {
         $voucher = $this->adminService->show($id);
+
+        $usageOrders = $this->adminService->usageOrders(
+            $id,
+            $request
+        );
 
         return view(
             'admin.modules.voucher.show',
-            compact('voucher')
+            compact(
+                'voucher',
+                'usageOrders'
+            )
         );
     }
 

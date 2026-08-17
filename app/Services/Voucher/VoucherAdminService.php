@@ -178,6 +178,22 @@ class VoucherAdminService
         return $voucher;
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Usage
+    |--------------------------------------------------------------------------
+    */
+
+    public function usage(
+        Voucher $voucher,
+        int $perPage = 10
+    ): LengthAwarePaginator {
+        return $this->queries->usage(
+            $voucher,
+            $perPage
+        );
+    }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -223,7 +239,138 @@ class VoucherAdminService
         return $this->queries->stats();
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Voucher Usage - Orders
+    |--------------------------------------------------------------------------
+    */
 
+    public function usageOrders(
+        string $voucherId,
+        Request $request,
+        int $perPage = 15
+    ): LengthAwarePaginator {
+
+        $query = $this->queries->usageOrders(
+            $voucherId
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Only Successfully Paid Orders
+        |--------------------------------------------------------------------------
+        |
+        | Voucher dianggap benar-benar digunakan setelah pembayaran berhasil.
+        |
+        */
+
+        $query->where(
+            'payment_status',
+            'paid'
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Search
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->filled('search')) {
+
+            $keyword = trim(
+                $request->input('search')
+            );
+
+            $query->where(function ($q) use ($keyword) {
+
+                $q->where(
+                    'order_number',
+                    'like',
+                    "%{$keyword}%"
+                )
+
+                ->orWhere(
+                    'customer_name',
+                    'like',
+                    "%{$keyword}%"
+                )
+
+                ->orWhere(
+                    'customer_email',
+                    'like',
+                    "%{$keyword}%"
+                )
+
+                ->orWhere(
+                    'customer_phone',
+                    'like',
+                    "%{$keyword}%"
+                );
+
+            });
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Order Status
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $request->filled('status') &&
+            $request->input('status') !== 'all'
+        ) {
+
+            $query->where(
+                'status',
+                $request->input('status')
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Date Range
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->filled('start_date')) {
+
+            $query->whereDate(
+                'created_at',
+                '>=',
+                $request->input('start_date')
+            );
+        }
+
+        if ($request->filled('end_date')) {
+
+            $query->whereDate(
+                'created_at',
+                '<=',
+                $request->input('end_date')
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sorting
+        |--------------------------------------------------------------------------
+        */
+
+        $query->latest(
+            'created_at'
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pagination
+        |--------------------------------------------------------------------------
+        */
+
+        return $query
+            ->paginate($perPage)
+            ->withQueryString();
+    }
     /*
     |--------------------------------------------------------------------------
     | Validation - Create

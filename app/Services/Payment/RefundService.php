@@ -5,6 +5,7 @@ namespace App\Services\Payment;
 use App\Models\Admin;
 use App\Models\Order;
 use App\Models\Refund;
+use App\Services\Voucher\VoucherService;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -13,6 +14,7 @@ class RefundService
     public function __construct(
         protected RefundNumberService $numberService,
         protected PaymentService $paymentService,
+        protected VoucherService $voucherService,
     ) {}
 
     /*
@@ -247,6 +249,14 @@ class RefundService
 
             if (! $this->paymentService->isRefunded($refund->payment)) {
                 $this->paymentService->markRefunded($refund->payment);
+            }
+
+            $refund->order->loadMissing('voucher');
+
+            if ($refund->order->voucher) {
+                $this->voucherService->releaseUsage(
+                    $refund->order->voucher
+                );
             }
 
             return $refund->fresh([

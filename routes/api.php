@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\PaymentResultController;
 use App\Http\Controllers\Api\Customer\CustomerOrderCancellationController;
 use App\Http\Controllers\Api\ShippingController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\Customer\CustomerInvoiceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,6 +41,12 @@ Route::middleware('customer.session')
         Route::patch('/items/{item}',[CartController::class,'update']);
         Route::delete('/items/{item}',[CartController::class,'destroy']);
         Route::delete('/',[CartController::class,'clear']);
+    });
+
+Route::middleware('customer.session')
+    ->prefix('orders')
+    ->group(function () {
+        Route::get('/{order}/invoice',[CustomerInvoiceController::class, 'download']);
     });
 
 Route::get('/items/{item}',[CartController::class,'destroy']);
