@@ -34,16 +34,30 @@ class ProductInventoryService
     */
     public function decreaseStock(
         Collection $products
-    ): void {
+    ): Collection {
+        $lowStockProductIds = collect();
+
         foreach ($products as $item) {
             /** @var Product $product */
             $product = $item->product;
             $qty = $item->quantity;
+
             $product->decrement(
                 'ready_stock',
                 $qty
             );
+
+            if (
+                $product->fresh()->ready_stock
+                <= 3
+            ) {
+                $lowStockProductIds->push(
+                    $product->id
+                );
+            }
         }
+
+        return $lowStockProductIds->unique()->values();
     }
 
     /*

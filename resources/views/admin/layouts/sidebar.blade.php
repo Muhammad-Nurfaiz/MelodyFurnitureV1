@@ -32,9 +32,14 @@
             x-transition.opacity
             class="overflow-hidden">
 
-            <h1 class="whitespace-nowrap text-lg font-bold tracking-wide text-gray-800">
+            <img
+                src="{{asset("images/output.png")}}"
+                alt="logo"
+                class="h-12 w-auto">
+
+            <!-- <h1 class="whitespace-nowrap text-lg font-bold tracking-wide text-gray-800">
                 Melody Furniture
-            </h1>
+            </h1> -->
 
         </div>
 

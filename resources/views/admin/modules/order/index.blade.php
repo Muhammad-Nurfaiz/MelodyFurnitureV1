@@ -322,6 +322,13 @@
                         value="{{ request('courier') }}">
                 @endif
 
+                @if(request('date'))
+                    <input
+                        type="hidden"
+                        name="date"
+                        value="{{ request('date') }}">
+                @endif
+
                 <x-admin.form.search-input
                     name="search"
                     value="{{ request('search') }}"
@@ -453,6 +460,23 @@
 
                 </select>
 
+                {{-- Tanggal --}}
+                <x-admin.form.input
+                    type="date"
+                    name="date"
+                    value="{{ request('date') }}"
+                    onchange="this.form.submit()"
+                    class="
+                        !w-auto
+                        rounded-lg
+                        border-gray-300
+                        bg-white
+                        text-sm
+                        focus:border-blue-500
+                        focus:ring-blue-500
+                    "
+                />
+
             </form>
 
         </x-slot:right>
@@ -468,7 +492,8 @@
         request()->filled('search') ||
         (request()->filled('status') && request('status') !== 'all') ||
         (request()->filled('payment_status') && request('payment_status') !== 'all') ||
-        request()->filled('courier')
+        request()->filled('courier') ||
+        request()->filled('date')
     )
 
         <div
@@ -546,6 +571,26 @@
 
                     Payment:
                     {{ ucfirst(request('payment_status')) }}
+
+                </span>
+
+            @endif
+
+            @if(request('date'))
+
+                <span
+                    class="
+                        rounded-full
+                        bg-green-100
+                        px-3
+                        py-1
+                        text-xs
+                        font-medium
+                        text-green-700
+                    ">
+
+                    Tanggal:
+                    {{ \Carbon\Carbon::parse(request('date'))->translatedFormat('d M Y') }}
 
                 </span>
 

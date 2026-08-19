@@ -64,6 +64,26 @@
                     />
                 </x-admin.form.group>
 
+                {{-- SKU Produk --}}
+                <x-admin.form.group
+                    label="SKU Produk"
+                    required
+                >
+                    <x-admin.form.input
+                        name="sku"
+                        x-ref="sku"
+                        :value="old('sku', $product?->sku)"
+                        placeholder="Contoh: MF-001-ABC"
+                        maxlength="100"
+                        autocomplete="off"
+                        @input="normalizeSku()"
+                    />
+
+                    <p class="mt-1 text-xs text-gray-500">
+                        Masukkan SKU produk dari perusahaan. Gunakan huruf, angka, dan tanda strip (-).
+                    </p>
+                </x-admin.form.group>
+
                 {{-- Kategori & Series --}}
                 <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
@@ -236,22 +256,6 @@
                         )"
                         placeholder="Contoh: 120 kg"
                     />
-                </x-admin.form.group>
-
-                {{-- Material --}}
-                <x-admin.form.group
-                    label="Detail Material"
-                    required
-                >
-                    <x-admin.form.textarea
-                        name="material_details"
-                        x-ref="material_details"
-                        rows="8"
-                        placeholder="Tuliskan material utama, finishing, jenis kayu, kain, foam, dan informasi material lainnya..."
-                    >{{ old(
-                        'material_details',
-                        $specification?->material_details
-                    ) }}</x-admin.form.textarea>
                 </x-admin.form.group>
 
                 {{-- Assembly --}}

@@ -6,11 +6,12 @@ use App\Models\Order;
 use App\Models\Voucher;
 use App\Models\Customer;
 use App\Models\OrderItem;
+use App\Models\Product;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
-
+use App\Services\Admin\AdminNotificationService;
 use App\Services\Payment\PaymentService;
 use App\Services\Payment\MidtransService;
 use App\Services\Inventory\ProductInventoryService;
@@ -29,6 +30,7 @@ class OrderService
         protected OrderCalculatorService $calculatorService,
         protected OrderTrackingTokenService $trackingTokenService,
         protected CartService $cartService,
+        protected AdminNotificationService $adminNotificationService,
     ) {}
 
     /*
@@ -175,7 +177,7 @@ class OrderService
             |--------------------------------------------------------------------------
             */
 
-            $this->inventoryService->decreaseStock(
+            $lowStockProductIds = $this->inventoryService->decreaseStock(
                 $products
             );
 
@@ -244,6 +246,39 @@ class OrderService
 
             /*
             |--------------------------------------------------------------------------
+            | Low Stock Notification
+            |--------------------------------------------------------------------------
+            */
+
+            if ($lowStockProductIds->isNotEmpty()) {
+                DB::afterCommit(function () use ($lowStockProductIds) {
+
+                    Product::query()
+                        ->whereIn('id', $lowStockProductIds)
+                        ->get()
+                        ->each(function (Product $product) {
+
+                            try {
+                                $this->adminNotificationService
+                                    ->notifyLowStockProduct($product);
+                            } catch (\Throwable $e) {
+
+                                Log::error(
+                                    'Failed to create low stock notification',
+                                    [
+                                        'product_id' => $product->id,
+                                        'product_name' => $product->name,
+                                        'ready_stock' => $product->ready_stock,
+                                        'message' => $e->getMessage(),
+                                    ]
+                                );
+                            }
+                        });
+                });
+            }
+
+            /*
+            |--------------------------------------------------------------------------
             | Return
             |--------------------------------------------------------------------------
             */
@@ -297,6 +332,8 @@ class OrderService
                 'product_image' =>
                     $product->thumbnail?->url
                     ?? $product->thumbnail?->media_url,
+
+                'product_sku' => $product->sku,
 
                 'quantity' => $item->quantity,
 

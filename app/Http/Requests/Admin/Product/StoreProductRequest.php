@@ -41,6 +41,14 @@ class StoreProductRequest extends FormRequest
                 'max:255',
             ],
 
+            'sku' => [
+                'required',
+                'string',
+                'max:100',
+                'regex:/^[A-Z0-9-]+$/',
+                'unique:products,sku',
+            ],
+
             'description' => [
                 'required',
                 'string',
@@ -79,11 +87,6 @@ class StoreProductRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-            ],
-
-            'material_details' => [
-                'required',
-                'string',
             ],
 
             'assembly_required' => [
@@ -216,6 +219,7 @@ class StoreProductRequest extends FormRequest
             'series_id' => 'Series',
 
             'name' => 'Nama Produk',
+            'sku' => 'SKU Produk',
             'description' => 'Deskripsi',
             'product_detail' => 'Detail Produk',
 
@@ -223,7 +227,6 @@ class StoreProductRequest extends FormRequest
             'weight' => 'Berat Produk',
             'packing_weight' => 'Berat Setelah Packing',
             'load_capacity' => 'Kapasitas Beban',
-            'material_details' => 'Material',
             'assembly_required' => 'Perlu Dirakit',
 
             'original_price' => 'Harga Normal',
@@ -274,6 +277,15 @@ class StoreProductRequest extends FormRequest
 
             'discount_price.lt' =>
                 'Harga diskon harus lebih kecil dari harga normal.',
+                
+            'sku.required' =>
+                'SKU produk wajib diisi.',
+
+            'sku.regex' =>
+                'SKU hanya boleh berisi huruf besar A-Z, angka, dan tanda strip (-), tanpa spasi atau simbol lainnya.',
+
+            'sku.unique' =>
+                'SKU produk sudah digunakan.',
         ];
     }
 }

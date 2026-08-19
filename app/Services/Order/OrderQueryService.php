@@ -254,14 +254,11 @@ class OrderQueryService
         return $query->where('courier', $courier);
     }
 
-    public function filterDate(Builder $query,?string $from,?string $to): Builder {
-        if ($from) {
-            $query->whereDate('created_at','>=',$from);
+    public function filterDate(Builder $query, ?string $date): Builder {
+        if (blank($date)) {
+            return $query;
         }
-        if ($to) {
-            $query->whereDate('created_at','<=',$to);
-        }
-        return $query;
+        return $query->whereDate('created_at', $date);
     }
 
     public function sort(Builder $query,string $column = 'created_at',string $direction = 'desc'): Builder {

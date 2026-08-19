@@ -18,7 +18,6 @@ class ProductSpecification extends Model
         'weight',
         'packing_weight',
         'load_capacity',
-        'material_details',
         'assembly_required',
     ];
 

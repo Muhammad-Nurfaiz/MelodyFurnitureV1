@@ -26,12 +26,34 @@ class InvoiceService
     {
         $order = $this->prepare($order);
 
+        $logoPath = public_path('images/output.png');
+
+        if (! file_exists($logoPath)) {
+            throw new \RuntimeException(
+                "Logo invoice tidak ditemukan: {$logoPath}"
+            );
+        }
+
+        $logoBase64 = base64_encode(
+            file_get_contents($logoPath)
+        );
+        
         return Pdf::loadView(
             'documents.invoice.order',
             [
                 'order' => $order,
+                'logoBase64' => $logoBase64,
             ]
-        )->setPaper('a4', 'portrait');
+        )
+            ->setPaper('a4', 'portrait')
+            ->setOption([
+                'isRemoteEnabled' => true,
+                'isHtml5ParserEnabled' => true,
+                'chroot' => [
+                    public_path(),
+                    base_path(),
+                ],
+            ]);
     }
 
     /**

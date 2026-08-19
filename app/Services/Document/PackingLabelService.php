@@ -16,13 +16,71 @@ class PackingLabelService
             'items',
         ]);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Logo Melody Furniture
+        |--------------------------------------------------------------------------
+        */
+
+        $logoPath = public_path('images/output.png');
+
+        abort_unless(
+            file_exists($logoPath),
+            500,
+            'Logo packing label tidak ditemukan.'
+        );
+
+        $logoBase64 = 'data:image/png;base64,' . base64_encode(
+            file_get_contents($logoPath)
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Fragile Image
+        |--------------------------------------------------------------------------
+        */
+
+        $fragilePath = public_path('images/fragile.png');
+
+        abort_unless(
+            file_exists($fragilePath),
+            500,
+            'Gambar fragile tidak ditemukan.'
+        );
+
+        $fragileBase64 = 'data:image/png;base64,' . base64_encode(
+            file_get_contents($fragilePath)
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Generate PDF
+        |--------------------------------------------------------------------------
+        */
+
         return Pdf::loadView(
             'documents.packing-label.order',
             [
                 'order' => $order,
+
+                'logoBase64' =>
+                    $logoBase64,
+
+                'fragileBase64' =>
+                    $fragileBase64,
             ]
         )
-        ->setPaper('a5', 'portrait');
+        ->setPaper('a5', 'portrait')
+        ->setOption([
+            'isRemoteEnabled' => true,
+            'isHtml5ParserEnabled' => true,
+            'chroot' => [
+                public_path(),
+                base_path(),
+            ],
+        ]);
     }
 
     /**

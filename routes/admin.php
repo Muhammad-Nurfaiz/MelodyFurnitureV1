@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\Document\InvoiceController;
 use App\Http\Controllers\Admin\Document\PackingLabelController;
 use App\Http\Controllers\Admin\Export\OrderExportController;
 use App\Http\Controllers\Admin\Export\VoucherUsageExportController;
+use App\Http\Controllers\Admin\Notification\NotificationController;
 
 Route::middleware(['auth'])
     ->prefix('admin')
@@ -30,6 +31,10 @@ Route::middleware(['auth'])
     ->group(function () {
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::patch('/notifications/{notification}/read',[NotificationController::class, 'markAsRead'])->name('notifications.read');
+        Route::patch('/notifications/read-all',[NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+        Route::delete('/notifications/{notification}',[NotificationController::class, 'destroy'])->name('notifications.destroy');
 
         Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

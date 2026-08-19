@@ -49,6 +49,17 @@ window.productForm = () => ({
     | Helpers
     |--------------------------------------------------------------------------
     */
+    normalizeSku() {
+
+        const input = this.$refs.sku;
+
+        if (!input) {
+            return;
+        }
+
+        input.value = input.value.toUpperCase();
+
+    },
 
     isStep(step) {
         return this.step === step;
@@ -112,6 +123,20 @@ window.productForm = () => ({
                     return false;
                 }
 
+                if (!this.$refs.sku.value.trim()) {
+                    alert('SKU produk wajib diisi');
+                    return false;
+                }
+
+                const sku = this.$refs.sku.value.trim();
+
+                if (!/^[A-Z0-9-]+$/.test(sku)) {
+                    alert(
+                        'SKU hanya boleh menggunakan huruf kapital, angka, dan tanda strip (-).'
+                    );
+                    return false;
+                }
+
                 if (!this.$refs.category.value) {
                     alert('Kategori wajib dipilih');
                     return false;
@@ -132,10 +157,6 @@ window.productForm = () => ({
 
                 if (!this.$refs.dimensions.value.trim()) {
                     alert('Dimensi wajib diisi');
-                    return false;
-                }
-                if (!this.$refs.material_details.value.trim()) {
-                    alert('Detail Material wajib diisi');
                     return false;
                 }
                 

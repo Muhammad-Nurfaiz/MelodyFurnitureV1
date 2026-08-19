@@ -19,6 +19,7 @@ import './admin/series';
 import './admin/shipping-rate';
 import './admin/product-form';
 import './admin/order/workflow';
+import './admin/dashboard';
 
 /*
 |--------------------------------------------------------------------------

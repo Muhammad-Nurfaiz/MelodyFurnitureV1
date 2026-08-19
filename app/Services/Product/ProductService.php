@@ -105,6 +105,8 @@ class ProductService
 
             'name' => $data['name'],
 
+            'sku' => strtoupper(trim($data['sku'])),
+
             'slug' => $this->generateUniqueSlug(
                 $data['name'],
                 $product
@@ -158,8 +160,6 @@ class ProductService
 
             'load_capacity' => $data['load_capacity'],
 
-            'material_details' => $data['material_details'],
-
             'assembly_required' =>
                 $data['assembly_required'] ?? false,
 
@@ -191,6 +191,7 @@ class ProductService
             'category_id' => $data['category_id'],
             'series_id' => $data['series_id'] ?? null,
             'name' => $data['name'],
+            'sku' => strtoupper(trim($data['sku'])),
             'slug' => $this->generateUniqueSlug($data['name']),
             'description' => $data['description'],
             'product_detail' =>$data['product_detail'] ?? null,
@@ -223,7 +224,6 @@ class ProductService
             'weight' => $data['weight'],
             'packing_weight' => $data['packing_weight'],
             'load_capacity' => $data['load_capacity'],
-            'material_details' => $data['material_details'],
             'assembly_required' => $data['assembly_required'] ?? false,
         ]);
     }

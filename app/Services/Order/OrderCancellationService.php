@@ -12,6 +12,8 @@ use RuntimeException;
 use App\Services\Payment\PaymentService;
 use App\Services\Payment\RefundService;
 use App\Services\Inventory\ProductInventoryService;
+use App\Services\Admin\AdminNotificationService;
+use Illuminate\Support\Facades\Log;
 
 class OrderCancellationService
 {
@@ -20,6 +22,7 @@ class OrderCancellationService
         protected RefundService $refundService,
         protected ProductInventoryService $inventoryService,
         protected PaymentService $paymentService,
+        protected AdminNotificationService $adminNotificationService,
     ) {}
 
     /*
@@ -33,7 +36,7 @@ class OrderCancellationService
         string $reason
     ): OrderCancelRequest {
 
-        return DB::transaction(function () use ($order, $reason) {
+        $request = DB::transaction(function () use ($order, $reason) {
 
             /*
             |--------------------------------------------------------------------------
@@ -89,6 +92,34 @@ class OrderCancellationService
                 'customer',
             ]);
         });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Notification
+        |--------------------------------------------------------------------------
+        */
+
+        DB::afterCommit(function () use ($request) {
+
+            try {
+                $this->adminNotificationService
+                    ->notifyCancellationRequest($request);
+
+            } catch (\Throwable $e) {
+
+                Log::error(
+                    'Failed to create cancellation request notification',
+                    [
+                        'cancellation_request_id' => $request->id,
+                        'order_id' => $request->order_id,
+                        'order_number' => $request->order?->order_number,
+                        'message' => $e->getMessage(),
+                    ]
+                );
+            }
+        });
+
+        return $request;
     }
 
     private function createCancellationRequest(
@@ -117,7 +148,7 @@ class OrderCancellationService
         ?string $notes = null
     ): Order {
 
-        return DB::transaction(function () use (
+        $order = DB::transaction(function () use (
             $request,
             $admin,
             $notes
@@ -243,6 +274,31 @@ class OrderCancellationService
                 adminId: $admin->id,
             );
 
+            DB::afterCommit(function () use ($request) {
+                try {
+                    $this->adminNotificationService
+                        ->notifyCancellationApproved(
+                            $request->fresh([
+                                'order',
+                            ])
+                        );
+                } catch (\Throwable $e) {
+                    Log::error(
+                        'Failed to create cancellation approved notification',
+                        [
+                            'cancellation_request_id' =>
+                                $request->id,
+
+                            'order_id' =>
+                                $request->order_id,
+
+                            'message' =>
+                                $e->getMessage(),
+                        ]
+                    );
+                }
+            });
+
             return $order->fresh([
                 'payment',
                 'refund',
@@ -353,6 +409,31 @@ class OrderCancellationService
                 description: 'Permintaan pembatalan ditolak oleh admin.',
                 adminId: $admin->id,
             );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Cancellation Rejected Notification
+            |--------------------------------------------------------------------------
+            */
+
+            DB::afterCommit(function () use ($request) {
+                try {
+                    $this->adminNotificationService
+                        ->notifyCancellationRejected(
+                            $request->fresh(['order'])
+                        );
+                } catch (\Throwable $e) {
+                    Log::error(
+                        'Failed to create cancellation rejected notification',
+                        [
+                            'cancellation_request_id' => $request->id,
+                            'order_id' => $request->order_id,
+                            'order_number' => $request->order?->order_number,
+                            'message' => $e->getMessage(),
+                        ]
+                    );
+                }
+            });
 
             return $order->fresh([
                 'cancellationRequest',
@@ -763,7 +844,30 @@ class OrderCancellationService
             );
         }
 
-        $this->refundService->create($order);
+        $refund = $this->refundService->create($order);
+
+        DB::afterCommit(function () use ($refund) {
+
+            try {
+                $this->adminNotificationService
+                    ->notifyPendingRefund(
+                        $refund->fresh([
+                            'order',
+                        ])
+                    );
+            } catch (\Throwable $e) {
+
+                Log::error(
+                    'Failed to create pending refund notification',
+                    [
+                        'refund_id' => $refund->id,
+                        'refund_number' => $refund->refund_number,
+                        'order_id' => $refund->order_id,
+                        'message' => $e->getMessage(),
+                    ]
+                );
+            }
+        });
     }
 
     /*

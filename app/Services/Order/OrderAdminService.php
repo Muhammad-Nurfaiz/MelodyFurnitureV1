@@ -28,7 +28,7 @@ class OrderAdminService
         $query = $this->queries->filterStatus($query,$request->input('status'));
         $query = $this->queries->filterPaymentStatus($query,$request->input('payment_status'));
         $query = $this->queries->filterCourier($query,$request->input('courier'));
-        $query = $this->queries->filterDate($query,$request->input('from'),$request->input('to'));
+        $query = $this->queries->filterDate($query,$request->input('date'));
         $query = $this->queries->sort($query,$request->input('sort', 'created_at'),$request->input('direction', 'desc'));
         return $this->queries->paginate($query,$perPage);
     }

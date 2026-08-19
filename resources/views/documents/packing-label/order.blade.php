@@ -31,30 +31,59 @@
             width: 100%;
         }
 
+
+        /* =========================================================
+           HEADER
+        ========================================================= */
+
         .header {
             border-bottom: 2px solid #111827;
             padding-bottom: 10px;
             margin-bottom: 12px;
         }
 
-        .brand {
-            font-size: 16px;
-            font-weight: bold;
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .header-table td {
+            vertical-align: middle;
+        }
+
+        .logo-cell {
+            width: 62%;
+        }
+
+        .logo {
+            width: 180px;
+            height: auto;
+        }
+
+        .title-cell {
+            width: 38%;
+            text-align: right;
         }
 
         .title {
-            margin-top: 3px;
             font-size: 11px;
+            font-weight: bold;
             color: #6b7280;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
         .order-number {
-            margin-top: 8px;
-            font-size: 18px;
+            margin-top: 6px;
+            font-size: 15px;
             font-weight: bold;
+            color: #111827;
         }
+
+
+        /* =========================================================
+           SECTION
+        ========================================================= */
 
         .section {
             margin-bottom: 12px;
@@ -69,6 +98,11 @@
             letter-spacing: .8px;
         }
 
+
+        /* =========================================================
+           RECIPIENT
+        ========================================================= */
+
         .recipient {
             font-size: 14px;
             font-weight: bold;
@@ -78,6 +112,11 @@
             margin-top: 4px;
             line-height: 1.5;
         }
+
+
+        /* =========================================================
+           SHIPPING
+        ========================================================= */
 
         .shipping-box {
             border: 1px solid #d1d5db;
@@ -100,6 +139,11 @@
         .value {
             font-weight: bold;
         }
+
+
+        /* =========================================================
+           ITEMS
+        ========================================================= */
 
         table {
             width: 100%;
@@ -133,6 +177,11 @@
             color: #6b7280;
         }
 
+
+        /* =========================================================
+           TOTAL ITEM
+        ========================================================= */
+
         .total-box {
             margin-top: 10px;
             border: 2px solid #111827;
@@ -153,11 +202,75 @@
             font-weight: bold;
         }
 
+
+        /* =========================================================
+           WARNING / FRAGILE
+        ========================================================= */
+
+        .warning-box {
+            margin-top: 12px;
+            border: 2px solid #dc2626;
+            background: #fef2f2;
+            border-radius: 6px;
+            padding: 9px;
+        }
+
+        .warning-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .warning-table td {
+            padding: 0;
+            border: none;
+            vertical-align: middle;
+        }
+
+        .fragile-cell {
+            width: 105px;
+            text-align: center;
+            padding-right: 8px !important;
+        }
+
+        .fragile-image {
+            width: 85px;
+            height: auto;
+        }
+
+        .warning-content {
+            vertical-align: top !important;
+        }
+
+        .warning-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #b91c1c;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .warning-text {
+            font-size: 9px;
+            line-height: 1.45;
+            color: #7f1d1d;
+            text-align: justify;
+        }
+
+
+        /* =========================================================
+           WAREHOUSE
+        ========================================================= */
+
         .warehouse-note {
             margin-top: 12px;
             border: 1px dashed #9ca3af;
             padding: 9px;
             min-height: 65px;
+        }
+
+        .warehouse-title {
+            font-size: 10px;
+            font-weight: bold;
         }
 
         .checklist {
@@ -168,6 +281,11 @@
             display: inline-block;
             margin-right: 15px;
         }
+
+
+        /* =========================================================
+           FOOTER
+        ========================================================= */
 
         .footer {
             margin-top: 12px;
@@ -186,23 +304,45 @@
 
 <div class="label">
 
+
     {{-- ===================================================== --}}
     {{-- HEADER --}}
     {{-- ===================================================== --}}
 
     <div class="header">
 
-        <div class="brand">
-            Melody Furniture
-        </div>
+        <table class="header-table">
 
-        <div class="title">
-            Packing Label
-        </div>
+            <tr>
 
-        <div class="order-number">
-            {{ $order->order_number }}
-        </div>
+                {{-- Logo --}}
+                <td class="logo-cell">
+
+                    <img
+                        src="{{ $logoBase64 }}"
+                        alt="Melody Furniture"
+                        class="logo"
+                    >
+
+                </td>
+
+
+                {{-- Document Information --}}
+                <td class="title-cell">
+
+                    <div class="title">
+                        Packing Label
+                    </div>
+
+                    <div class="order-number">
+                        {{ $order->order_number }}
+                    </div>
+
+                </td>
+
+            </tr>
+
+        </table>
 
     </div>
 
@@ -386,6 +526,7 @@
         <div class="total-row">
 
             Total Produk:
+
             <strong>
                 {{ $order->items->count() }} jenis
             </strong>
@@ -397,9 +538,7 @@
             Total Quantity:
 
             <span class="total-value">
-
                 {{ $order->items->sum('quantity') }}
-
             </span>
 
             pcs
@@ -410,14 +549,61 @@
 
 
     {{-- ===================================================== --}}
+    {{-- WARNING + FRAGILE --}}
+    {{-- ===================================================== --}}
+
+    <div class="warning-box">
+
+        <table class="warning-table">
+
+            <tr>
+
+                {{-- Fragile Image --}}
+                <td class="fragile-cell">
+
+                    <img
+                        src="{{ $fragileBase64 }}"
+                        alt="Fragile"
+                        class="fragile-image"
+                    >
+
+                </td>
+
+
+                {{-- Warning Text --}}
+                <td class="warning-content">
+
+                    <div class="warning-title">
+                        ⚠ WARNING
+                    </div>
+
+                    <div class="warning-text">
+
+                        Harap melakukan video unboxing untuk syarat klaim
+                        garansi jika ada kerusakan atau kekurangan pada part
+                        produk. Tanpa video unboxing, klaim garansi tidak
+                        berlaku.
+
+                    </div>
+
+                </td>
+
+            </tr>
+
+        </table>
+
+    </div>
+
+
+    {{-- ===================================================== --}}
     {{-- WAREHOUSE --}}
     {{-- ===================================================== --}}
 
     <div class="warehouse-note">
 
-        <strong>
+        <div class="warehouse-title">
             CATATAN GUDANG
-        </strong>
+        </div>
 
         <div class="checklist">
 

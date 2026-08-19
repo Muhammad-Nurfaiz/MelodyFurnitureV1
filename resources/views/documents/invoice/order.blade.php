@@ -146,9 +146,15 @@
 
                 <td>
 
-                    <div class="company">
-                        Melody Furniture
-                    </div>
+                    <img
+                        src="data:image/png;base64,{{ $logoBase64 }}"
+                        alt="Melody Furniture"
+                        style="
+                            width: 260px;
+                            height: auto;
+                            display: block;
+                        "
+                    >
 
                     <div style="margin-top: 5px; color: #6b7280;">
                         Invoice Pembelian
@@ -475,18 +481,6 @@
 
                     <td>
                         {{ $order->payment->payment_type ?? '-' }}
-                    </td>
-
-                </tr>
-
-                <tr>
-
-                    <td>
-                        Transaction ID
-                    </td>
-
-                    <td>
-                        {{ $order->payment->transaction_id ?? '-' }}
                     </td>
 
                 </tr>
