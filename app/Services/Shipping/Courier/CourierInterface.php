@@ -7,30 +7,30 @@ use App\Models\Order;
 interface CourierInterface
 {
     /**
-     * Membuat shipment.
+     * Membuat shipment pada ekspedisi.
      */
     public function createShipment(
         Order $order
-    ): array;
+    ): CourierShipmentResult;
 
     /**
-     * Update shipment.
+     * Update shipment pada ekspedisi.
      */
     public function updateShipment(
         Order $order
-    ): array;
+    ): CourierShipmentResult;
 
     /**
-     * Cancel shipment.
+     * Membatalkan shipment pada ekspedisi.
      */
     public function cancelShipment(
         Order $order
     ): bool;
 
     /**
-     * Tracking shipment.
+     * Tracking shipment pada ekspedisi.
      */
     public function tracking(
         Order $order
-    ): array;
+    ): CourierShipmentResult;
 }

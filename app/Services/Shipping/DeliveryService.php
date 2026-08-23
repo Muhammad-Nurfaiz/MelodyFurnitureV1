@@ -2,15 +2,15 @@
 
 namespace App\Services\Shipping;
 
+use App\Models\Admin;
 use App\Models\Order;
 use Illuminate\Support\Facades\DB;
-use App\Services\Order\OrderWorkflowService;
+use RuntimeException;
 
 class DeliveryService
 {
     public function __construct(
         protected ShipmentService $shipmentService,
-        protected OrderWorkflowService $workflowService,
     ) {}
 
     /*
@@ -19,49 +19,53 @@ class DeliveryService
     |--------------------------------------------------------------------------
     */
 
+    /**
+     * Mark shipment as picked up by courier.
+     *
+     * Flow:
+     *
+     * Shipment:
+     * waiting_pickup
+     *      ↓
+     * picked_up
+     *
+     * Order:
+     * processing
+     *      ↓
+     * picked_up
+     */
     public function pickup(
         Order $order,
         ?string $createdBy = 'admin'
     ): Order {
 
-        $this->workflowService->validate(
-            $order,
-            'picked_up'
-        );
+        $shipment = $order->shipment;
+
+        if (! $shipment) {
+            throw new RuntimeException(
+                'Order belum memiliki shipment.'
+            );
+        }
 
         return DB::transaction(function () use (
-
-            $order,
+            $shipment,
             $createdBy
-
         ) {
 
-            $shipment = $order->shipment;
+            $admin = $this->resolveAdmin(
+                $createdBy
+            );
 
-            $this->shipmentService
-                ->markPickedUp(
-                    $shipment
-                );
+            $this->shipmentService->markPickedUp(
+                $shipment,
+                $admin
+            );
 
-            $this->workflowService
-                ->changeStatus(
-
-                    $order,
-
-                    'picked_up',
-
-                    'Barang dijemput ekspedisi.',
-
-                    $createdBy
-
-                );
-
-            return $order->fresh([
+            return $shipment->order->fresh([
                 'shipment',
+                'payment',
             ]);
-
         });
-
     }
 
     /*
@@ -70,23 +74,53 @@ class DeliveryService
     |--------------------------------------------------------------------------
     */
 
+    /**
+     * Mark shipment as in transit.
+     *
+     * Flow:
+     *
+     * Shipment:
+     * picked_up
+     *      ↓
+     * in_transit
+     *
+     * Order:
+     * picked_up
+     *      ↓
+     * shipped
+     */
     public function transit(
-        Order $order
+        Order $order,
+        ?string $createdBy = 'system'
     ): Order {
 
-        DB::transaction(function () use ($order) {
+        $shipment = $order->shipment;
 
-            $this->shipmentService
-                ->markInTransit(
-                    $order->shipment
-                );
+        if (! $shipment) {
+            throw new RuntimeException(
+                'Order belum memiliki shipment.'
+            );
+        }
 
+        return DB::transaction(function () use (
+            $shipment,
+            $createdBy
+        ) {
+
+            $admin = $this->resolveAdmin(
+                $createdBy
+            );
+
+            $this->shipmentService->markInTransit(
+                $shipment,
+                $admin
+            );
+
+            return $shipment->order->fresh([
+                'shipment',
+                'payment',
+            ]);
         });
-
-        return $order->fresh([
-            'shipment',
-        ]);
-
     }
 
     /*
@@ -95,46 +129,103 @@ class DeliveryService
     |--------------------------------------------------------------------------
     */
 
+    /**
+     * Mark shipment as delivered.
+     *
+     * Flow:
+     *
+     * Shipment:
+     * in_transit
+     *      ↓
+     * delivered
+     *
+     * Order:
+     * shipped
+     *      ↓
+     * completed
+     */
     public function delivered(
         Order $order,
         ?string $createdBy = 'system'
     ): Order {
 
-        $this->workflowService->validate(
-            $order,
-            'completed'
-        );
+        $shipment = $order->shipment;
+
+        if (! $shipment) {
+            throw new RuntimeException(
+                'Order belum memiliki shipment.'
+            );
+        }
 
         return DB::transaction(function () use (
-
-            $order,
+            $shipment,
             $createdBy
-
         ) {
 
-            $this->shipmentService
-                ->markDelivered(
-                    $order->shipment
-                );
+            $admin = $this->resolveAdmin(
+                $createdBy
+            );
 
-            $this->workflowService
-                ->changeStatus(
+            $this->shipmentService->markDelivered(
+                $shipment,
+                $admin
+            );
 
-                    $order,
-
-                    'completed',
-
-                    'Pesanan telah diterima pelanggan.',
-
-                    $createdBy
-
-                );
-
-            return $order->fresh([
+            return $shipment->order->fresh([
                 'shipment',
+                'payment',
             ]);
-
         });
+    }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Resolve Admin
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Resolve actor menjadi Admin.
+     *
+     * ShipmentService membutuhkan object Admin,
+     * sedangkan DeliveryService menerima ID/string actor.
+     */
+    private function resolveAdmin(
+        ?string $createdBy
+    ): Admin {
+
+        if (blank($createdBy)) {
+            throw new RuntimeException(
+                'Admin tidak ditemukan.'
+            );
+        }
+
+        /*
+        |----------------------------------------------------------------------
+        | System Actor
+        |----------------------------------------------------------------------
+        |
+        | Untuk sementara proses otomatis/system belum menggunakan
+        | DeliveryService karena ShipmentService::mark* membutuhkan Admin.
+        |
+        */
+
+        if ($createdBy === 'system') {
+            throw new RuntimeException(
+                'DeliveryService membutuhkan Admin untuk proses shipment.'
+            );
+        }
+
+        $admin = Admin::find(
+            $createdBy
+        );
+
+        if (! $admin) {
+            throw new RuntimeException(
+                'Admin yang melakukan proses shipment tidak ditemukan.'
+            );
+        }
+
+        return $admin;
     }
 }

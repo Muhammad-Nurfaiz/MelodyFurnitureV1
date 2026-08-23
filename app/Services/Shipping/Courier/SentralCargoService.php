@@ -3,55 +3,67 @@
 namespace App\Services\Shipping\Courier;
 
 use App\Models\Order;
+use App\Services\Shipping\Courier\Clients\SentralCargoClient;
 
 class SentralCargoService implements CourierInterface
 {
+    public function __construct(
+        protected SentralCargoClient $client,
+    ) {}
+
+    /**
+     * Membuat shipment.
+     */
     public function createShipment(
         Order $order
-    ): array {
+    ): CourierShipmentResult {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Dummy
-        |--------------------------------------------------------------------------
-        */
-
-        return [
-
-            'booking_code'
-                => null,
-
-            'tracking_number'
-                => 'SC'.now()->format('YmdHis'),
-
-            'status'
-                => 'ready_to_print',
-
-        ];
-
+        return CourierShipmentResult::failed(
+            'Integrasi create shipment Sentral Cargo belum dikonfigurasi.'
+        );
     }
 
+    /**
+     * Update shipment.
+     */
     public function updateShipment(
         Order $order
-    ): array {
+    ): CourierShipmentResult {
 
-        return [];
-
+        return CourierShipmentResult::failed(
+            'Integrasi update shipment Sentral Cargo belum dikonfigurasi.'
+        );
     }
 
+    /**
+     * Cancel shipment.
+     */
     public function cancelShipment(
         Order $order
     ): bool {
 
-        return true;
+        /*
+        |--------------------------------------------------------------------------
+        | API integration
+        |--------------------------------------------------------------------------
+        |
+        | Endpoint cancel belum diketahui sampai dokumentasi resmi
+        | Sentral Cargo tersedia.
+        |
+        */
 
+        return false;
     }
 
+    /**
+     * Tracking shipment.
+     */
     public function tracking(
         Order $order
-    ): array {
+    ): CourierShipmentResult {
 
-        return [];
-
+        return CourierShipmentResult::failed(
+            'Integrasi tracking Sentral Cargo belum dikonfigurasi.'
+        );
     }
 }

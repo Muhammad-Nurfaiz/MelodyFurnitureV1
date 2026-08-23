@@ -63,10 +63,10 @@ Route::middleware(['auth'])
         Route::patch('/refunds/{refund}/reject',[RefundController::class, 'reject'])->name('refunds.reject');
 
         Route::post('/orders/{order}/shipment', [ShipmentController::class, 'store'])->name('shipments.store');
-        Route::patch('/shipments/{shipment}/pickup', [ShipmentController::class, 'pickup'])->name('shipments.pickup');
-        Route::patch('/shipments/{shipment}/transit', [ShipmentController::class, 'transit'])->name('shipments.transit');
-        Route::patch('/shipments/{shipment}/delivered', [ShipmentController::class, 'delivered'])->name('shipments.delivered');
-        Route::patch('/shipments/{shipment}/cancel', [ShipmentController::class, 'cancel'])->name('shipments.cancel');
+        Route::patch('/orders/{order}/shipment/pickup', [ShipmentController::class, 'pickup'])->name('shipments.pickup');
+        Route::patch('/orders/{order}/shipment/transit', [ShipmentController::class, 'transit'])->name('shipments.transit');
+        Route::patch('/orders/{order}/shipment/delivered', [ShipmentController::class, 'delivered'])->name('shipments.delivered');
+        Route::patch('/orders/{order}/shipment/cancel', [ShipmentController::class, 'cancel'])->name('shipments.cancel');
         
         /*
         |--------------------------------------------------------------------------

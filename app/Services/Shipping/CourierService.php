@@ -3,10 +3,11 @@
 namespace App\Services\Shipping;
 
 use App\Models\Order;
-use RuntimeException;
 use App\Services\Shipping\Courier\CourierInterface;
+use App\Services\Shipping\Courier\CourierShipmentResult;
 use App\Services\Shipping\Courier\JntCargoService;
 use App\Services\Shipping\Courier\SentralCargoService;
+use RuntimeException;
 
 class CourierService
 {
@@ -36,7 +37,6 @@ class CourierService
                 ),
 
         };
-
     }
 
     /**
@@ -44,12 +44,11 @@ class CourierService
      */
     public function createShipment(
         Order $order
-    ): array {
+    ): CourierShipmentResult {
 
         return $this->resolve(
             $order->courier
         )->createShipment($order);
-
     }
 
     /**
@@ -57,12 +56,11 @@ class CourierService
      */
     public function updateShipment(
         Order $order
-    ): array {
+    ): CourierShipmentResult {
 
         return $this->resolve(
             $order->courier
         )->updateShipment($order);
-
     }
 
     /**
@@ -75,19 +73,17 @@ class CourierService
         return $this->resolve(
             $order->courier
         )->cancelShipment($order);
-
     }
 
     /**
-     * Tracking.
+     * Tracking shipment.
      */
     public function tracking(
         Order $order
-    ): array {
+    ): CourierShipmentResult {
 
         return $this->resolve(
             $order->courier
         )->tracking($order);
-
     }
 }

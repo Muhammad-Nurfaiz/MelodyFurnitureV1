@@ -4,63 +4,131 @@ namespace App\Http\Controllers\Admin\Shipment;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Models\Shipment;
-use App\Services\Shipping\ShipmentService;
-use Illuminate\Http\Request;
+use App\Services\Order\OrderFulfillmentService;
+use App\Services\Shipping\DeliveryService;
+use Illuminate\Http\JsonResponse;
 
 class ShipmentController extends Controller
 {
     public function __construct(
-        protected ShipmentService $shipmentService,
+        protected DeliveryService $deliveryService,
+        protected OrderFulfillmentService $fulfillmentService
     ) {}
 
-    public function store(Request $request,Order $order) {
-        $data = $request->validate([
-            'booking_code' => ['nullable','string'],
-            'tracking_number' => ['nullable','string'],
-            'label_url' => ['nullable','string'],
-            'status' => ['nullable','string'],
-            'metadata' => ['nullable','array'],
-        ]);
+    public function store(
+        Order $order
+    ): JsonResponse {
 
-        $shipment = $this->shipmentService->create($order,$data);
+        $order = $this->fulfillmentService->start(
+            $order,
+            auth()->id()
+                ? (string) auth()->id()
+                : 'admin'
+        );
 
         return response()->json([
             'message' => 'Shipment berhasil dibuat.',
-            'data' => $shipment,
+            'data' => $order,
+        ], 201);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Pickup
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Mark order shipment as picked up by courier.
+     */
+    public function pickup(
+        Order $order
+    ): JsonResponse {
+
+        $order = $this->deliveryService->pickup(
+            $order,
+            (string) auth()->id()
+        );
+
+        return response()->json([
+            'message' => 'Shipment berhasil dipickup.',
+            'data' => $order,
         ]);
     }
 
-    public function pickup(Shipment $shipment) {
-        $shipment = $this->shipmentService->markPickedUp($shipment,auth()->user());
+    /*
+    |--------------------------------------------------------------------------
+    | Transit
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Mark order shipment as in transit.
+     */
+    public function transit(
+        Order $order
+    ): JsonResponse {
+
+        $order = $this->deliveryService->transit(
+            $order,
+            (string) auth()->id()
+        );
+
         return response()->json([
-            'message'=>'Shipment berhasil dipickup.',
-            'data'=>$shipment,
+            'message' => 'Shipment sedang dikirim.',
+            'data' => $order,
         ]);
     }
 
-    public function transit(Shipment $shipment) {
-        $shipment = $this->shipmentService->markInTransit($shipment,auth()->user());
+    /*
+    |--------------------------------------------------------------------------
+    | Delivered
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Mark order shipment as delivered.
+     */
+    public function delivered(
+        Order $order
+    ): JsonResponse {
+
+        $order = $this->deliveryService->delivered(
+            $order,
+            (string) auth()->id()
+        );
+
         return response()->json([
-            'message'=>'Shipment sedang dikirim.',
-            'data'=>$shipment,
+            'message' => 'Shipment berhasil diterima pelanggan.',
+            'data' => $order,
         ]);
     }
 
-    public function delivered(Shipment $shipment) {
-        $shipment = $this->shipmentService->markDelivered($shipment,auth()->user());
-        return response()->json([
-            'message'=>'Shipment berhasil dikirim.',
-            'data'=>$shipment,
-        ]);
-    }
-    
-    public function cancel(Shipment $shipment) {
-        $shipment = $this->shipmentService->cancel($shipment,auth()->user());
-        return response()->json([
-            'message'=>'Shipment dibatalkan.',
-            'data'=>$shipment,
-        ]);
-    }
+    /*
+    |--------------------------------------------------------------------------
+    | Cancel
+    |--------------------------------------------------------------------------
+    */
 
+    /**
+     * Cancel shipment.
+     *
+     * Cancellation shipment belum diaktifkan karena
+     * aturan pembatalan dari perusahaan belum dikonfirmasi.
+     */
+    public function cancel(
+        Order $order
+    ): JsonResponse {
+
+        abort_unless(
+            $order->shipment !== null,
+            404,
+            'Shipment tidak ditemukan.'
+        );
+
+        return response()->json([
+            'message' =>
+                'Pembatalan shipment belum tersedia karena aturan pembatalan dari perusahaan belum dikonfirmasi.',
+        ], 409);
+    }
 }

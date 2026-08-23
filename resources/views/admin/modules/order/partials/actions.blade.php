@@ -11,217 +11,180 @@
         $cancellationRequest = $order->cancellationRequest;
     @endphp
 
-    <div class="flex flex-wrap items-center gap-3">
-        {{-- =====================================================
-            PACKING LABEL
-        ====================================================== --}}
+    <div class="flex flex-wrap flex-row justify-between items-center">
+        <div class="flex flex-wrap flex-row items-center gap-3">
+            {{-- =====================================================
+                WORKFLOW ACTION
+            ====================================================== --}}
 
-        @if($order->canDownloadPackingLabel())
+            @if($action['route'])
 
-            <a
-                href="{{ route('admin.orders.packing-label', $order) }}"
-                target="_blank"
-                rel="noopener"
-                class="
-                    inline-flex
-                    items-center
-                    justify-center
-                    gap-2
-                    rounded-lg
-                    bg-white
-                    px-4
-                    py-2
-                    text-sm
-                    font-semibold
-                    text-gray-700
-                    border
-                    border-gray-200
-                    shadow-sm
-                    transition
-                    hover:bg-gray-50
-                    focus:outline-none
-                    focus:ring-2
-                    focus:ring-gray-200
-                "
-            >
+                <x-admin.button
+                    type="button"
+                    :variant="$action['type']"
+                    id="workflow-action"
+                    :data-url="$action['route']"
+                    :data-method="$action['method']"
+                >
+                    {{ $action['label'] }}
+                </x-admin.button>
 
-                <x-heroicon-o-tag class="h-4 w-4"/>
+            @else
 
-                Packing Label
+                <x-admin.badge
+                    :color="$action['type']"
+                >
+                    {{ $action['label'] }}
+                </x-admin.badge>
 
-            </a>
-
-        @endif
-        
-        @if($order->canDownloadInvoice())
-
-            <x-admin.button
-                type="button"
-                variant="secondary"
-                onclick="window.open(
-                    '{{ route('admin.orders.invoice', $order) }}',
-                    '_blank'
-                )">
-
-                <x-heroicon-o-document-text class="h-5 w-5"/>
-
-                Invoice
-
-            </x-admin.button>
-
-            <x-admin.button
-                type="button"
-                variant="secondary"
-                onclick="window.location.href='{{ route(
-                    'admin.orders.invoice.download',
-                    $order
-                ) }}'">
-
-                <x-heroicon-o-arrow-down-tray class="h-5 w-5"/>
-
-                Download Invoice
-
-            </x-admin.button>
-
-        @endif
-        {{-- =====================================================
-            WORKFLOW ACTION
-        ====================================================== --}}
-
-        @if($action['route'])
-
-            <x-admin.button
-                type="button"
-                :variant="$action['type']"
-                id="workflow-action"
-                :data-url="$action['route']"
-                :data-method="$action['method']"
-            >
-                {{ $action['label'] }}
-            </x-admin.button>
-
-        @else
-
-            <x-admin.badge
-                :color="$action['type']"
-            >
-                {{ $action['label'] }}
-            </x-admin.badge>
-
-        @endif
+            @endif
 
 
-        {{-- =====================================================
-            CANCELLATION REQUEST ACTION
-        ====================================================== --}}
+            {{-- =====================================================
+                CANCELLATION REQUEST ACTION
+            ====================================================== --}}
 
-        @if(
-            $order->status === 'req_cancel'
-            && $cancellationRequest
-            && $cancellationRequest->status === 'pending'
-        )
-
-            {{-- Reject --}}
-
-            <button
-                type="button"
-                id="reject-cancellation"
-                class="
-                    inline-flex
-                    items-center
-                    justify-center
-                    rounded-lg
-                    border
-                    border-gray-300
-                    bg-white
-                    px-4
-                    py-2
-                    text-sm
-                    font-semibold
-                    text-gray-700
-                    transition
-                    hover:bg-gray-50
-                    focus:outline-none
-                    focus:ring-2
-                    focus:ring-gray-200
-                "
-            >
-                <x-heroicon-o-x-mark class="mr-2 h-4 w-4"/>
-
-                Tolak Pembatalan
-            </button>
-
-
-            {{-- Approve --}}
-
-            <button
-                type="button"
-                id="approve-cancellation"
-                class="
-                    inline-flex
-                    items-center
-                    justify-center
-                    rounded-lg
-                    bg-red-600
-                    px-4
-                    py-2
-                    text-sm
-                    font-semibold
-                    text-white
-                    transition
-                    hover:bg-red-700
-                    focus:outline-none
-                    focus:ring-2
-                    focus:ring-red-200
-                "
-            >
-                <x-heroicon-o-check class="mr-2 h-4 w-4"/>
-
-                Setujui Pembatalan
-            </button>
-
-        @endif
-
-
-        {{-- =====================================================
-            ADMIN CANCEL
-        ====================================================== --}}
-
-        @if(
-            in_array(
-                $order->status,
-                ['pending', 'paid', 'processing'],
-                true
+            @if(
+                $order->status === 'req_cancel'
+                && $cancellationRequest
+                && $cancellationRequest->status === 'pending'
             )
-        )
 
-            <button
-                type="button"
-                id="admin-cancel-order"
-                class="
-                    inline-flex
-                    items-center
-                    justify-center
-                    rounded-lg
-                    border
-                    border-red-200
-                    bg-white
-                    px-4
-                    py-2
-                    text-sm
-                    font-semibold
-                    text-red-600
-                    transition
-                    hover:bg-red-50
-                    focus:outline-none
-                    focus:ring-2
-                    focus:ring-red-100
-                "
-            >
-                Batalkan Order
-            </button>
+                {{-- Reject --}}
 
-        @endif
+                <button
+                    type="button"
+                    id="reject-cancellation"
+                    class="
+                        inline-flex
+                        items-center
+                        justify-center
+                        rounded-lg
+                        border
+                        border-gray-300
+                        bg-white
+                        px-4
+                        py-2
+                        text-sm
+                        font-semibold
+                        text-gray-700
+                        transition
+                        hover:bg-gray-50
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-gray-200
+                    "
+                >
+                    <x-heroicon-o-x-mark class="mr-2 h-4 w-4"/>
+
+                    Tolak Pembatalan
+                </button>
+
+
+                {{-- Approve --}}
+
+                <button
+                    type="button"
+                    id="approve-cancellation"
+                    class="
+                        inline-flex
+                        items-center
+                        justify-center
+                        rounded-lg
+                        bg-red-600
+                        px-4
+                        py-2
+                        text-sm
+                        font-semibold
+                        text-white
+                        transition
+                        hover:bg-red-700
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-red-200
+                    "
+                >
+                    <x-heroicon-o-check class="mr-2 h-4 w-4"/>
+
+                    Setujui Pembatalan
+                </button>
+
+            @endif
+
+
+            {{-- =====================================================
+                ADMIN CANCEL
+            ====================================================== --}}
+
+            @if(
+                in_array(
+                    $order->status,
+                    ['pending', 'paid', 'processing'],
+                    true
+                )
+            )
+
+                <button
+                    type="button"
+                    id="admin-cancel-order"
+                    class="
+                        inline-flex
+                        items-center
+                        justify-center
+                        rounded-lg
+                        border
+                        border-red-200
+                        bg-white
+                        px-4
+                        py-2
+                        text-sm
+                        font-semibold
+                        text-red-600
+                        transition
+                        hover:bg-red-50
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-red-100
+                    "
+                >
+                    Batalkan Order
+                </button>
+
+            @endif
+        </div>
+        
+        <div class="flex flex-wrap flex-row items-center gap-3">
+            {{-- =====================================================
+                PACKING LABEL
+            ====================================================== --}}
+
+            @if($order->canDownloadPackingLabel())
+
+                <x-admin.button
+                    variant="outline"
+                    icon="tag"
+                    href="{{ route('admin.orders.packing-label', $order) }}"
+                    target="_blank">
+                    Packing Label
+                </x-admin.button>
+
+            @endif
+            
+            @if($order->canDownloadInvoice())
+
+                <x-admin.button
+                    type="button"
+                    variant="outline"
+                    icon="document-text"
+                    onclick="window.open(
+                        '{{ route('admin.orders.invoice', $order) }}',
+                        '_blank'
+                    )">
+                    Invoice
+                </x-admin.button>
+
+            @endif
+        </div>
 
     </div>
 

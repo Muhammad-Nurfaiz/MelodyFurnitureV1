@@ -3,11 +3,12 @@
 namespace App\Services\Shipping;
 
 use App\Models\Admin;
-use Illuminate\Support\Facades\DB;
-use RuntimeException;
 use App\Models\Order;
 use App\Models\Shipment;
 use App\Services\Order\OrderWorkflowService;
+use App\Services\Shipping\Courier\CourierShipmentResult;
+use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class ShipmentService
 {
@@ -21,24 +22,106 @@ class ShipmentService
     |--------------------------------------------------------------------------
     */
 
-    public function create(Order $order,array $data): Shipment {
-        $trackingNumber = $data['tracking_number'] ?? null;
-        $shipment = Shipment::create([
-            'order_id'        => $order->id,
-            'courier'         => $order->courier,
-            'service'         => $order->shipping_method,
-            'booking_code'    => $data['booking_code'] ?? null,
-            'tracking_number' => $data['tracking_number'] ?? null,
-            'label_url'       => $data['label_url'] ?? null,
-            'status'          => $data['status'] ?? 'waiting_pickup',
-            'metadata'        => $data['metadata'] ?? null,
-        ]);
-        if (filled($trackingNumber)) {
-            $order->update([
-                'tracking_number' => $trackingNumber,
+    public function create(
+        Order $order,
+        CourierShipmentResult $result
+    ): Shipment {
+
+        return DB::transaction(function () use (
+            $order,
+            $result
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Prevent Duplicate Shipment
+            |--------------------------------------------------------------------------
+            */
+
+            if ($order->hasShipment()) {
+                throw new RuntimeException(
+                    'Order sudah memiliki shipment.'
+                );
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Order
+            |--------------------------------------------------------------------------
+            */
+
+            if (! $order->isProcessing()) {
+                throw new RuntimeException(
+                    'Shipment hanya dapat dibuat ketika order sedang diproses.'
+                );
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Courier Result
+            |--------------------------------------------------------------------------
+            */
+
+            if (! $result->success) {
+                throw new RuntimeException(
+                    $result->message
+                    ?? 'Gagal membuat shipment pada ekspedisi.'
+                );
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Create Local Shipment
+            |--------------------------------------------------------------------------
+            */
+
+            $shipment = Shipment::create([
+
+                'order_id' => $order->id,
+
+                'courier' => $order->courier,
+
+                'service' => $order->shipping_method,
+
+                'booking_code' => $result->bookingCode,
+
+                'tracking_number' => $result->trackingNumber,
+
+                'label_url' => $result->labelUrl,
+
+                'status' =>
+                    $result->status
+                    ?? 'waiting_pickup',
+
+                'metadata' => $result->metadata,
+
             ]);
-        }
-        return $this->refreshShipment($shipment);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Sync Tracking Number To Order
+            |--------------------------------------------------------------------------
+            */
+
+            if (filled($result->trackingNumber)) {
+
+                $order->update([
+                    'tracking_number'
+                        => $result->trackingNumber,
+                ]);
+
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Return Fresh Shipment
+            |--------------------------------------------------------------------------
+            */
+
+            return $this->refreshShipment(
+                $shipment
+            );
+        });
     }
 
     /*
@@ -47,9 +130,18 @@ class ShipmentService
     |--------------------------------------------------------------------------
     */
 
-    private function updateShipment(Shipment $shipment,array $attributes): Shipment {
-        $shipment->update($attributes);
-        return $this->refreshShipment($shipment);
+    private function updateShipment(
+        Shipment $shipment,
+        array $attributes
+    ): Shipment {
+
+        $shipment->update(
+            $attributes
+        );
+
+        return $this->refreshShipment(
+            $shipment
+        );
     }
 
     /*
@@ -58,12 +150,35 @@ class ShipmentService
     |--------------------------------------------------------------------------
     */
 
-    public function setTrackingNumber(Shipment $shipment,string $trackingNumber): Shipment {
-        return DB::transaction(function () use ($shipment,$trackingNumber) {
-            $shipment = $this->updateShipment($shipment,['tracking_number' => $trackingNumber,]);
-            $shipment->order()->update(['tracking_number' => $trackingNumber,]);
-            return $this->refreshShipment($shipment);
-        });
+    public function setTrackingNumber(
+        Shipment $shipment,
+        string $trackingNumber
+    ): Shipment {
+
+        return DB::transaction(
+            function () use (
+                $shipment,
+                $trackingNumber
+            ) {
+
+                $shipment = $this->updateShipment(
+                    $shipment,
+                    [
+                        'tracking_number'
+                            => $trackingNumber,
+                    ]
+                );
+
+                $shipment->order()->update([
+                    'tracking_number'
+                        => $trackingNumber,
+                ]);
+
+                return $this->refreshShipment(
+                    $shipment
+                );
+            }
+        );
     }
 
     /*
@@ -72,13 +187,44 @@ class ShipmentService
     |--------------------------------------------------------------------------
     */
 
-    public function markPickedUp(Shipment $shipment,Admin $admin): Shipment {
-        $this->validatePickup($shipment);
-        return DB::transaction(function () use ($shipment,$admin) {
-            $shipment = $this->updateShipment($shipment,['status' => 'picked_up','picked_up_at' => now(),]);
-            $this->workflowService->changeStatus($shipment->order,'picked_up','Barang telah diambil kurir.',(string) $admin->id);
-            return $this->refreshShipment($shipment);
-        });
+    public function markPickedUp(
+        Shipment $shipment,
+        Admin $admin
+    ): Shipment {
+
+        $this->validatePickup(
+            $shipment
+        );
+
+        return DB::transaction(
+            function () use (
+                $shipment,
+                $admin
+            ) {
+
+                $shipment = $this->updateShipment(
+                    $shipment,
+                    [
+                        'status'
+                            => 'picked_up',
+
+                        'picked_up_at'
+                            => now(),
+                    ]
+                );
+
+                $this->workflowService->changeStatus(
+                    $shipment->order,
+                    'picked_up',
+                    'Barang telah diambil kurir.',
+                    (string) $admin->id
+                );
+
+                return $this->refreshShipment(
+                    $shipment
+                );
+            }
+        );
     }
 
     /*
@@ -87,13 +233,41 @@ class ShipmentService
     |--------------------------------------------------------------------------
     */
 
-    public function markInTransit(Shipment $shipment,Admin $admin): Shipment {
-        $this->validateTransit($shipment);
-        return DB::transaction(function () use ($shipment,$admin) {
-            $shipment = $this->updateShipment($shipment,['status' => 'in_transit',]);
-            $this->workflowService->changeStatus($shipment->order,'shipped','Barang sedang dikirim.',(string) $admin->id);
-            return $this->refreshShipment($shipment);
-        });
+    public function markInTransit(
+        Shipment $shipment,
+        Admin $admin
+    ): Shipment {
+
+        $this->validateTransit(
+            $shipment
+        );
+
+        return DB::transaction(
+            function () use (
+                $shipment,
+                $admin
+            ) {
+
+                $shipment = $this->updateShipment(
+                    $shipment,
+                    [
+                        'status'
+                            => 'in_transit',
+                    ]
+                );
+
+                $this->workflowService->changeStatus(
+                    $shipment->order,
+                    'shipped',
+                    'Barang sedang dikirim.',
+                    (string) $admin->id
+                );
+
+                return $this->refreshShipment(
+                    $shipment
+                );
+            }
+        );
     }
 
     /*
@@ -102,13 +276,44 @@ class ShipmentService
     |--------------------------------------------------------------------------
     */
 
-    public function markDelivered(Shipment $shipment,Admin $admin): Shipment {
-        $this->validateDelivered($shipment);
-        return DB::transaction(function () use ($shipment,$admin) {
-            $shipment = $this->updateShipment($shipment,['status' => 'delivered','delivered_at' => now(),]);
-            $this->workflowService->changeStatus($shipment->order,'completed','Pesanan telah diterima customer.',(string) $admin->id);
-            return $this->refreshShipment($shipment);
-        });
+    public function markDelivered(
+        Shipment $shipment,
+        Admin $admin
+    ): Shipment {
+
+        $this->validateDelivered(
+            $shipment
+        );
+
+        return DB::transaction(
+            function () use (
+                $shipment,
+                $admin
+            ) {
+
+                $shipment = $this->updateShipment(
+                    $shipment,
+                    [
+                        'status'
+                            => 'delivered',
+
+                        'delivered_at'
+                            => now(),
+                    ]
+                );
+
+                $this->workflowService->changeStatus(
+                    $shipment->order,
+                    'completed',
+                    'Pesanan telah diterima customer.',
+                    (string) $admin->id
+                );
+
+                return $this->refreshShipment(
+                    $shipment
+                );
+            }
+        );
     }
 
     /*
@@ -117,13 +322,41 @@ class ShipmentService
     |--------------------------------------------------------------------------
     */
 
-    public function cancel(Shipment $shipment,Admin $admin): Shipment {
-        return DB::transaction(function () use ($shipment,$admin) {
-            $shipment = $this->updateShipment($shipment,['status' => 'cancelled',]);
-            $this->workflowService->changeStatus($shipment->order,'processing','Pengiriman dibatalkan.',(string) $admin->id);
-            return $this->refreshShipment($shipment);
-        });
+    public function cancel(
+        Shipment $shipment,
+        Admin $admin
+    ): Shipment {
 
+        $this->validateCancellation(
+            $shipment
+        );
+
+        return DB::transaction(
+            function () use (
+                $shipment,
+                $admin
+            ) {
+
+                $shipment = $this->updateShipment(
+                    $shipment,
+                    [
+                        'status'
+                            => 'cancelled',
+                    ]
+                );
+
+                $this->workflowService->changeStatus(
+                    $shipment->order,
+                    'processing',
+                    'Pengiriman dibatalkan.',
+                    (string) $admin->id
+                );
+
+                return $this->refreshShipment(
+                    $shipment
+                );
+            }
+        );
     }
 
     /*
@@ -132,8 +365,19 @@ class ShipmentService
     |--------------------------------------------------------------------------
     */
 
-    public function findByTracking(string $trackingNumber): ?Shipment {
-        return Shipment::with('order','order.payment',)->where('tracking_number',$trackingNumber)->first();
+    public function findByTracking(
+        string $trackingNumber
+    ): ?Shipment {
+
+        return Shipment::with([
+            'order',
+            'order.payment',
+        ])
+            ->where(
+                'tracking_number',
+                $trackingNumber
+            )
+            ->first();
     }
 
     /*
@@ -142,30 +386,90 @@ class ShipmentService
     |--------------------------------------------------------------------------
     */
 
-    public function findByBookingCode(string $bookingCode): ?Shipment {
-        return Shipment::where('booking_code',$bookingCode)->first();
+    public function findByBookingCode(
+        string $bookingCode
+    ): ?Shipment {
+
+        return Shipment::where(
+            'booking_code',
+            $bookingCode
+        )->first();
     }
 
-    private function validatePickup(Shipment $shipment): void {
-        if (!$shipment->isWaitingPickup()) {
-            throw new RuntimeException('Shipment tidak dapat dipick up.');
+    /*
+    |--------------------------------------------------------------------------
+    | Validation
+    |--------------------------------------------------------------------------
+    */
+
+    private function validatePickup(
+        Shipment $shipment
+    ): void {
+
+        if (! $shipment->isWaitingPickup()) {
+
+            throw new RuntimeException(
+                'Shipment tidak dapat dipick up.'
+            );
         }
     }
 
-    private function validateTransit(Shipment $shipment): void {
-        if (!$shipment->isPickedUp()) {
-            throw new RuntimeException('Shipment belum diambil kurir.');
+    private function validateTransit(
+        Shipment $shipment
+    ): void {
+
+        if (! $shipment->isPickedUp()) {
+
+            throw new RuntimeException(
+                'Shipment belum diambil kurir.'
+            );
         }
     }
 
-    private function validateDelivered(Shipment $shipment): void {
-        if (!$shipment->isInTransit()) {
-            throw new RuntimeException('Shipment belum dalam perjalanan.');
+    private function validateDelivered(
+        Shipment $shipment
+    ): void {
+
+        if (! $shipment->isInTransit()) {
+
+            throw new RuntimeException(
+                'Shipment belum dalam perjalanan.'
+            );
         }
     }
 
-    private function refreshShipment(Shipment $shipment): Shipment {
-        return $shipment->fresh(['order','order.payment',]);
+    private function validateCancellation(
+        Shipment $shipment
+    ): void {
+
+        if ($shipment->isDelivered()) {
+
+            throw new RuntimeException(
+                'Shipment yang sudah delivered tidak dapat dibatalkan.'
+            );
+        }
+
+        if ($shipment->isCancelled()) {
+
+            throw new RuntimeException(
+                'Shipment sudah dibatalkan.'
+            );
+        }
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Refresh Shipment
+    |--------------------------------------------------------------------------
+    */
+
+    private function refreshShipment(
+        Shipment $shipment
+    ): Shipment {
+
+        return $shipment->fresh([
+            'order',
+            'order.payment',
+        ]);
+    }
 }
