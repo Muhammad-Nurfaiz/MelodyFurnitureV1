@@ -34,7 +34,7 @@ class MidtransWebhookRequest extends FormRequest
 
             'transaction_status' => [
                 'required',
-                'in:pending,capture,settlement,deny,cancel,expire,refund',
+                'in:pending,capture,settlement,deny,cancel,expire,refund,partial_refund',
             ],
 
             'order_id' => [
@@ -139,6 +139,6 @@ class MidtransWebhookRequest extends FormRequest
      */
     public function payload(): array
     {
-        return $this->all();
+        return $this->validated();
     }
 }

@@ -31,20 +31,14 @@ class CustomerCancellationService
 
         $this->cancellationService
             ->requestByCustomer(
-
                 order: $order,
-
                 reason: $reason,
-
-                note: $note,
-
             );
 
         return $this->queryService
             ->findByTrackingToken(
                 $trackingToken
             );
-
     }
 
     /*
@@ -63,14 +57,11 @@ class CustomerCancellationService
             );
 
         if (! $order) {
-
             throw new ModelNotFoundException(
                 'Order tidak ditemukan.'
             );
-
         }
 
         return $order;
-
     }
 }

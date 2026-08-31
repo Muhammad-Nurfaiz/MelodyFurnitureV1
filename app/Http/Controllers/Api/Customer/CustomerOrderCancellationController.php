@@ -7,7 +7,7 @@ use App\Models\Order;
 use App\Services\Order\OrderCancellationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Throwable;
+use RuntimeException;
 
 class CustomerOrderCancellationController extends Controller
 {
@@ -23,85 +23,52 @@ class CustomerOrderCancellationController extends Controller
         string $trackingToken
     ): JsonResponse {
 
-        try {
+        $validated = $request->validate([
+            'reason' => [
+                'required',
+                'string',
+                'min:5',
+                'max:500',
+            ],
+        ]);
 
-            /*
-            |--------------------------------------------------------------------------
-            | Validate Request
-            |--------------------------------------------------------------------------
-            */
+        $order = Order::query()
+            ->where('tracking_token', $trackingToken)
+            ->first();
 
-            $validated = $request->validate([
-                'reason' => [
-                    'required',
-                    'string',
-                    'min:5',
-                    'max:500',
-                ],
-            ]);
-
-            /*
-            |--------------------------------------------------------------------------
-            | Find Order
-            |--------------------------------------------------------------------------
-            */
-
-            $order = Order::query()
-                ->where('tracking_token', $trackingToken)
-                ->first();
-
-            if (! $order) {
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Order tidak ditemukan.',
-                ], 404);
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | Request Cancellation
-            |--------------------------------------------------------------------------
-            */
-
-            $cancellationRequest =
-                $this->cancellationService->requestByCustomer(
-                    order: $order,
-                    reason: $validated['reason'],
-                );
-
-            /*
-            |--------------------------------------------------------------------------
-            | Response
-            |--------------------------------------------------------------------------
-            */
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Permintaan pembatalan berhasil dikirim.',
-                'data' => [
-                    'order' => [
-                        'id' => $cancellationRequest->order->id,
-                        'order_number' => $cancellationRequest->order->order_number,
-                        'status' => $cancellationRequest->order->status,
-                    ],
-
-                    'cancellation_request' => [
-                        'id' => $cancellationRequest->id,
-                        'reason' => $cancellationRequest->reason,
-                        'previous_status' => $cancellationRequest->previous_status,
-                        'status' => $cancellationRequest->status,
-                        'created_at' => $cancellationRequest->created_at,
-                    ],
-                ],
-            ], 201);
-
-        } catch (Throwable $e) {
-
+        if (! $order) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+                'message' => 'Order tidak ditemukan.',
+                'errors' => null,
+            ], 404);
         }
+
+        $cancellationRequest =
+            $this->cancellationService->requestByCustomer(
+                order: $order,
+                reason: $validated['reason'],
+                trackingToken: $trackingToken,
+            );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Permintaan pembatalan berhasil dikirim.',
+            'data' => [
+                'order' => [
+                    'id' => $cancellationRequest->order->id,
+                    'order_number' => $cancellationRequest->order->order_number,
+                    'status' => $cancellationRequest->order->status,
+                ],
+
+                'cancellation_request' => [
+                    'id' => $cancellationRequest->id,
+                    'reason' => $cancellationRequest->reason,
+                    'previous_status' => $cancellationRequest->previous_status,
+                    'status' => $cancellationRequest->status,
+                    'created_at' => $cancellationRequest->created_at,
+                ],
+            ],
+        ], 201);
     }
 }

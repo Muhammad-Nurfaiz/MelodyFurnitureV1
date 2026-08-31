@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\Customer\CustomerOrderCancellationController;
 use App\Http\Controllers\Api\ShippingController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\Customer\CustomerInvoiceController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\CatalogController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,13 +48,21 @@ Route::middleware('customer.session')
 Route::middleware('customer.session')
     ->prefix('orders')
     ->group(function () {
-        Route::get('/{order}/invoice',[CustomerInvoiceController::class, 'download']);
-    });
-
-Route::get('/items/{item}',[CartController::class,'destroy']);
+        Route::get('/{order}/invoice',[CustomerInvoiceController::class, 'download']);});
+/*
+|--------------------------------------------------------------------------
+| Legacy Tracking Endpoint
+|--------------------------------------------------------------------------
+|
+| Deprecated.
+| Do not use for customer frontend.
+| Use /tracking/{trackingToken} instead.
+|
+*/
 Route::get('/orders/track/{trackingToken}',[OrderTrackingController::class, 'show']);
+
 Route::get('/payments/resume/{trackingToken}',[ResumePaymentController::class, 'show']);
-Route::get('/payment/result',[PaymentResultController::class, 'show']);
+Route::get('/payment/result/{trackingToken}',[PaymentResultController::class, 'show']);
 Route::post('/payment/notification', MidtransWebhookController::class);
 Route::middleware('customer.session') ->post('/shipping/estimate', [ShippingController::class, 'estimate']);
 Route::get('/shipping/couriers',[ShippingController::class,'couriers']);
@@ -76,3 +86,45 @@ Route::prefix('locations')
             [LocationController::class, 'regencies']
         );
     });
+
+/*
+|--------------------------------------------------------------------------
+| Products
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('products')
+    ->group(function () {
+
+        Route::get(
+            '/',
+            [ProductController::class, 'index']
+        );
+        
+        Route::get(
+            '/{slug}',
+            [ProductController::class, 'show']
+        );
+
+        Route::get(
+            '/{slug}/recommendations',
+            [ProductController::class, 'recommendations']
+        );
+
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Catalog Filters
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/categories',
+    [CatalogController::class, 'categories']
+);
+
+Route::get(
+    '/series',
+    [CatalogController::class, 'series']
+);

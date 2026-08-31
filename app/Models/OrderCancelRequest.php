@@ -15,29 +15,21 @@ class OrderCancelRequest extends Model
     public $incrementing = false;
 
     protected $fillable = [
-
         'order_id',
-
         'customer_id',
-
         'reason',
-
         'previous_status',
-
         'status',
-
         'approved_by',
-
-        'admin_notes',
-
         'approved_at',
-
+        'rejected_by',
+        'rejected_at',
+        'admin_notes',
     ];
 
     protected $casts = [
-
         'approved_at' => 'datetime',
-
+        'rejected_at' => 'datetime',
     ];
 
     /*
@@ -65,6 +57,14 @@ class OrderCancelRequest extends Model
         return $this->belongsTo(
             Admin::class,
             'approved_by'
+        );
+    }
+
+    public function rejector(): BelongsTo
+    {
+        return $this->belongsTo(
+            Admin::class,
+            'rejected_by'
         );
     }
 

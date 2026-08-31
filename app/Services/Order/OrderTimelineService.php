@@ -135,4 +135,20 @@ class OrderTimelineService
         );
 
     }
+
+    public function refund(
+        Order $order,
+        ?string $description = null,
+        string $actor = 'system',
+        ?string $adminId = null,
+    ): OrderStatusHistory {
+
+        return $this->record(
+            $order,
+            'refund',
+            $description,
+            $actor,
+            $adminId
+        );
+    }
 }

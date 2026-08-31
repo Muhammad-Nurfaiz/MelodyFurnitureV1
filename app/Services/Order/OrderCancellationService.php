@@ -6,6 +6,7 @@ use App\Models\Admin;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderCancelRequest;
+use App\Models\Refund;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -33,10 +34,11 @@ class OrderCancellationService
 
     public function requestByCustomer(
         Order $order,
-        string $reason
+        string $reason,
+        string $trackingToken
     ): OrderCancelRequest {
 
-        $request = DB::transaction(function () use ($order, $reason) {
+        $request = DB::transaction(function () use ($order, $reason, $trackingToken) {
 
             /*
             |--------------------------------------------------------------------------
@@ -49,7 +51,7 @@ class OrderCancellationService
                 ->lockForUpdate()
                 ->first();
 
-            if (! $order) {
+            if ($order->tracking_token !== $trackingToken) {
                 throw new RuntimeException(
                     'Order tidak ditemukan.'
                 );
@@ -247,7 +249,7 @@ class OrderCancellationService
             |--------------------------------------------------------------------------
             */
 
-            $this->createRefundRequest($order);
+            $refund = $this->createRefundRequest($order);
 
             /*
             |--------------------------------------------------------------------------
@@ -272,6 +274,18 @@ class OrderCancellationService
                 status: 'cancelled',
                 description: 'Permintaan pembatalan disetujui oleh admin.',
                 adminId: $admin->id,
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Refund Timeline
+            |--------------------------------------------------------------------------
+            */
+
+            $this->workflowService->recordRefund(
+                order: $order,
+                description:
+                    "Refund sebesar Rp {$refund->amount} telah dibuat dan menunggu proses.",
             );
 
             DB::afterCommit(function () use ($request) {
@@ -306,6 +320,7 @@ class OrderCancellationService
                 'cancellationRequest',
             ]);
         });
+        return $order;
     }
 
     private function approveCancellationRequest(
@@ -451,8 +466,9 @@ class OrderCancellationService
 
         $request->update([
             'status' => 'rejected',
-            'approved_by' => $admin->id,
+            'rejected_by' => $admin->id,
             'admin_notes' => $notes,
+            'rejected_at' => now(),
         ]);
     }
 
@@ -824,7 +840,7 @@ class OrderCancellationService
 
     private function createRefundRequest(
         Order $order
-    ): void {
+    ): Refund {
 
         if (! $order->payment) {
             throw new RuntimeException(
@@ -849,12 +865,14 @@ class OrderCancellationService
         DB::afterCommit(function () use ($refund) {
 
             try {
+
                 $this->adminNotificationService
                     ->notifyPendingRefund(
                         $refund->fresh([
                             'order',
                         ])
                     );
+
             } catch (\Throwable $e) {
 
                 Log::error(
@@ -868,6 +886,8 @@ class OrderCancellationService
                 );
             }
         });
+
+        return $refund;
     }
 
     /*

@@ -25,7 +25,9 @@ class ResolveGuestCustomer
         if (!$guestToken) {
             abort(
                 response()->json([
+                    'success' => false,
                     'message' => 'Guest session tidak ditemukan.',
+                    'errors' => null,
                 ], 401)
             );
         }
@@ -36,7 +38,9 @@ class ResolveGuestCustomer
         if (!$customer) {
             abort(
                 response()->json([
+                    'success' => false,
                     'message' => 'Guest session tidak valid.',
+                    'errors' => null,
                 ], 401)
             );
         }

@@ -3,6 +3,7 @@
 namespace App\Services\Order;
 
 use App\Events\OrderStatusChanged;
+use App\Models\OrderStatusHistory;
 use App\Models\Order;
 use RuntimeException;
 
@@ -291,6 +292,20 @@ class OrderWorkflowService
                     true
                 ),
         ];
+    }
+
+    public function recordRefund(
+        Order $order,
+        ?string $description = null,
+        ?string $adminId = null,
+    ): OrderStatusHistory {
+
+        return $this->timelineService->refund(
+            order: $order,
+            description: $description,
+            actor: $adminId ? 'admin' : 'system',
+            adminId: $adminId,
+        );
     }
 
     /*

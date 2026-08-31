@@ -13,11 +13,11 @@ class PaymentResultService
     |--------------------------------------------------------------------------
     */
 
-    public function result(string $orderId): array
+    public function result(string $trackingToken): array
     {
         $order = Order::query()
             ->with('payment')
-            ->where('midtrans_order_id', $orderId)
+            ->where('tracking_token', $trackingToken)
             ->first();
 
         if (! $order) {
@@ -27,7 +27,6 @@ class PaymentResultService
         $payment = $order->payment;
 
         return [
-
             /*
             |--------------------------------------------------------------------------
             | Order
@@ -48,9 +47,11 @@ class PaymentResultService
 
             'payment_status' => $order->payment_status,
 
-            'transaction_status' => $payment?->transaction_status,
+            'transaction_status' =>
+                $payment?->transaction_status,
 
-            'payment_type' => $payment?->payment_type,
+            'payment_type' =>
+                $payment?->payment_type,
 
             /*
             |--------------------------------------------------------------------------
@@ -58,7 +59,8 @@ class PaymentResultService
             |--------------------------------------------------------------------------
             */
 
-            'redirect_tracking' => "/tracking/{$order->tracking_token}",
+            'redirect_tracking' =>
+                "/tracking/{$order->tracking_token}",
 
             /*
             |--------------------------------------------------------------------------
@@ -67,7 +69,6 @@ class PaymentResultService
             */
 
             'message' => $this->message($order),
-
         ];
     }
 

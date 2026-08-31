@@ -20,7 +20,7 @@ class CustomerSessionService
             'name' => $data['name'] ?? null,
             'phone' => $data['phone'] ?? null,
             'email' => $data['email'] ?? null,
-            'guest_token' => Str::uuid(),
+            'guest_token' => (string) Str::uuid(),
         ]);
 
         Cart::firstOrCreate([

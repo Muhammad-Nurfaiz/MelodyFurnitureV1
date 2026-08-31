@@ -19,18 +19,12 @@ class PaymentResultController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function show(Request $request): JsonResponse
-    {
-        $request->validate([
-            'order_id' => [
-                'required',
-                'string',
-            ],
-        ]);
+    public function show(
+        string $trackingToken
+    ): JsonResponse {
 
-        $result = $this->paymentResultService->result(
-            $request->string('order_id')->toString()
-        );
+        $result = $this->paymentResultService
+            ->result($trackingToken);
 
         return response()->json([
             'success' => true,

@@ -72,7 +72,6 @@ class CustomerOrderService
     public function requestCancellation(
         string $trackingToken,
         string $reason,
-        ?string $note = null,
     ): Order {
 
         return $this->cancellationService

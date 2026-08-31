@@ -72,6 +72,14 @@ class OrderTrackingResource extends JsonResource
                 'address' => $this->shipping_address,
             ],
 
+            'shipment' => [
+                'status' => $this->shipment?->status,
+                'tracking_number' => $this->shipment?->tracking_number,
+                'label_url' => $this->shipment?->label_url,
+                'picked_up_at' => $this->shipment?->picked_up_at,
+                'delivered_at' => $this->shipment?->delivered_at,
+            ],
+
             /*
             |--------------------------------------------------------------------------
             | Summary
@@ -119,19 +127,6 @@ class OrderTrackingResource extends JsonResource
                     'created_at' => $history->created_at,
                 ];
             }),
-
-            /*
-            |--------------------------------------------------------------------------
-            | Customer Actions
-            |--------------------------------------------------------------------------
-            */
-
-            'actions' => [
-                'can_pay' => $this->canContinuePayment(),
-                'can_request_cancel' => $this->canRequestCancel(),
-                'can_track_shipping' => $this->canTrackShipment(),
-                'can_download_invoice' => $this->canDownloadInvoice(),
-            ],
         ];
     }
 }
