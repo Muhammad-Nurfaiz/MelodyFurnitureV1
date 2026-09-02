@@ -19,15 +19,41 @@
 
             @if($action['route'])
 
-                <x-admin.button
-                    type="button"
-                    :variant="$action['type']"
-                    id="workflow-action"
-                    :data-url="$action['route']"
-                    :data-method="$action['method']"
-                >
-                    {{ $action['label'] }}
-                </x-admin.button>
+                @if(
+                    $order->status === 'processing'
+                    && $order->shipment
+                    && ! $order->shipment->tracking_number
+                )
+
+                    {{-- =====================================================
+                        INPUT TRACKING NUMBER
+                    ====================================================== --}}
+
+                    <x-admin.button
+                        type="button"
+                        :variant="$action['type']"
+                        id="open-tracking-number-modal"
+                    >
+                        {{ $action['label'] }}
+                    </x-admin.button>
+
+                @else
+
+                    {{-- =====================================================
+                        DEFAULT WORKFLOW ACTION
+                    ====================================================== --}}
+
+                    <x-admin.button
+                        type="button"
+                        :variant="$action['type']"
+                        id="workflow-action"
+                        :data-url="$action['route']"
+                        :data-method="$action['method']"
+                    >
+                        {{ $action['label'] }}
+                    </x-admin.button>
+
+                @endif
 
             @else
 
@@ -191,6 +217,644 @@
 </x-admin.card-body>
 
 </x-admin.card>
+
+{{-- ================================================================
+    TRACKING NUMBER MODAL
+================================================================ --}}
+
+@if(
+    $order->status === 'processing'
+    && $order->shipment
+    && ! $order->shipment->tracking_number
+)
+
+<div
+    id="tracking-number-modal"
+    class="fixed inset-0 z-50 hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="tracking-number-modal-title"
+>
+
+    {{-- Overlay --}}
+    <div
+        id="tracking-number-overlay"
+        class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm"
+    ></div>
+
+
+    {{-- Wrapper --}}
+    <div
+        class="
+            relative
+            flex
+            min-h-full
+            items-center
+            justify-center
+            p-4
+        "
+    >
+
+        {{-- Modal --}}
+        <div
+            class="
+                relative
+                w-full
+                max-w-lg
+                overflow-hidden
+                rounded-2xl
+                bg-white
+                shadow-2xl
+            "
+        >
+
+            {{-- Header --}}
+            <div
+                class="
+                    flex
+                    items-start
+                    justify-between
+                    border-b
+                    border-gray-200
+                    px-6
+                    py-5
+                "
+            >
+
+                <div>
+
+                    <h2
+                        id="tracking-number-modal-title"
+                        class="text-lg font-bold text-gray-900"
+                    >
+                        Input Nomor Resi
+                    </h2>
+
+                    <p class="mt-1 text-sm text-gray-500">
+                        {{ $order->order_number }}
+                    </p>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    id="tracking-number-close"
+                    class="
+                        rounded-lg
+                        p-2
+                        text-gray-400
+                        transition
+                        hover:bg-gray-100
+                        hover:text-gray-600
+                    "
+                    aria-label="Tutup"
+                >
+                    <x-heroicon-o-x-mark class="h-5 w-5"/>
+                </button>
+
+            </div>
+
+
+            {{-- Body --}}
+            <div class="space-y-5 px-6 py-6">
+
+                {{-- Information --}}
+                <div
+                    class="
+                        rounded-xl
+                        border
+                        border-blue-200
+                        bg-blue-50
+                        p-4
+                    "
+                >
+
+                    <div class="flex gap-3">
+
+                        <x-heroicon-o-information-circle
+                            class="mt-0.5 h-5 w-5 shrink-0 text-blue-600"
+                        />
+
+                        <div>
+
+                            <p class="text-sm font-semibold text-blue-900">
+                                Nomor Resi Pengiriman
+                            </p>
+
+                            <p class="mt-1 text-sm leading-6 text-blue-800">
+                                Masukkan nomor resi yang diberikan oleh kurir
+                                untuk pesanan ini.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                {{-- Tracking Number --}}
+                <div>
+
+                    <label
+                        for="tracking-number-input"
+                        class="mb-2 block text-sm font-semibold text-gray-700"
+                    >
+                        Nomor Resi
+                        <span class="text-red-500">*</span>
+                    </label>
+
+                    <input
+                        type="text"
+                        id="tracking-number-input"
+                        maxlength="100"
+                        autocomplete="off"
+                        placeholder="Contoh: JNT123456789"
+                        class="
+                            block
+                            w-full
+                            rounded-xl
+                            border
+                            border-gray-300
+                            bg-white
+                            px-4
+                            py-3
+                            text-sm
+                            text-gray-900
+                            placeholder:text-gray-400
+                            transition
+                            focus:border-gray-500
+                            focus:outline-none
+                            focus:ring-2
+                            focus:ring-gray-200
+                        "
+                    />
+
+                    <p
+                        id="tracking-number-error"
+                        class="mt-1 hidden text-xs font-medium text-red-600"
+                    ></p>
+
+                </div>
+
+            </div>
+
+
+            {{-- Footer --}}
+            <div
+                class="
+                    flex
+                    items-center
+                    justify-end
+                    gap-3
+                    border-t
+                    border-gray-200
+                    bg-gray-50
+                    px-6
+                    py-4
+                "
+            >
+
+                <button
+                    type="button"
+                    id="tracking-number-cancel"
+                    class="
+                        rounded-lg
+                        border
+                        border-gray-300
+                        bg-white
+                        px-4
+                        py-2
+                        text-sm
+                        font-semibold
+                        text-gray-700
+                        transition
+                        hover:bg-gray-100
+                    "
+                >
+                    Batal
+                </button>
+
+
+                <button
+                    type="button"
+                    id="tracking-number-confirm"
+                    class="
+                        inline-flex
+                        items-center
+                        justify-center
+                        rounded-lg
+                        bg-gray-900
+                        px-4
+                        py-2
+                        text-sm
+                        font-semibold
+                        text-white
+                        transition
+                        hover:bg-gray-800
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-gray-200
+                        disabled:cursor-not-allowed
+                        disabled:opacity-50
+                    "
+                >
+                    Simpan Resi
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@endif
+
+@if(
+    $order->status === 'processing'
+    && $order->shipment
+    && ! $order->shipment->tracking_number
+)
+
+@push('scripts')
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    /*
+    |--------------------------------------------------------------------------
+    | TRACKING NUMBER MODAL
+    |--------------------------------------------------------------------------
+    */
+
+    const openButton =
+        document.getElementById('open-tracking-number-modal');
+
+    const modal =
+        document.getElementById('tracking-number-modal');
+
+    const overlay =
+        document.getElementById('tracking-number-overlay');
+
+    const closeButton =
+        document.getElementById('tracking-number-close');
+
+    const cancelButton =
+        document.getElementById('tracking-number-cancel');
+
+    const confirmButton =
+        document.getElementById('tracking-number-confirm');
+
+    const input =
+        document.getElementById('tracking-number-input');
+
+    const errorMessage =
+        document.getElementById('tracking-number-error');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Guard
+    |--------------------------------------------------------------------------
+    */
+
+    if (!openButton || !modal) {
+        return;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Open
+    |--------------------------------------------------------------------------
+    */
+
+    const openModal = () => {
+
+        modal.classList.remove('hidden');
+
+        document.body.classList.add(
+            'overflow-hidden'
+        );
+
+        requestAnimationFrame(() => {
+            input?.focus();
+        });
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Close
+    |--------------------------------------------------------------------------
+    */
+
+    const closeModal = () => {
+
+        modal.classList.add('hidden');
+
+        document.body.classList.remove(
+            'overflow-hidden'
+        );
+
+        if (input) {
+            input.value = '';
+        }
+
+        if (errorMessage) {
+
+            errorMessage.textContent = '';
+
+            errorMessage.classList.add(
+                'hidden'
+            );
+        }
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Events
+    |--------------------------------------------------------------------------
+    */
+
+    openButton.addEventListener(
+        'click',
+        openModal
+    );
+
+    closeButton?.addEventListener(
+        'click',
+        closeModal
+    );
+
+    cancelButton?.addEventListener(
+        'click',
+        closeModal
+    );
+
+    overlay?.addEventListener(
+        'click',
+        closeModal
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Escape
+    |--------------------------------------------------------------------------
+    */
+
+    document.addEventListener(
+        'keydown',
+        (event) => {
+
+            if (
+                event.key === 'Escape'
+                && !modal.classList.contains('hidden')
+            ) {
+                closeModal();
+            }
+
+        }
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Confirm
+    |--------------------------------------------------------------------------
+    */
+
+    confirmButton?.addEventListener(
+        'click',
+        async () => {
+
+            const trackingNumber =
+                input?.value.trim() ?? '';
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Validation
+            |--------------------------------------------------------------------------
+            */
+
+            if (!trackingNumber) {
+
+                errorMessage.textContent =
+                    'Nomor resi wajib diisi.';
+
+                errorMessage.classList.remove(
+                    'hidden'
+                );
+
+                input?.focus();
+
+                return;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Clear Error
+            |--------------------------------------------------------------------------
+            */
+
+            errorMessage.textContent = '';
+
+            errorMessage.classList.add(
+                'hidden'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Loading
+            |--------------------------------------------------------------------------
+            */
+
+            const originalText =
+                confirmButton.innerHTML;
+
+            confirmButton.disabled = true;
+
+            confirmButton.innerHTML = `
+                <svg
+                    class="mr-2 h-4 w-4 animate-spin"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                >
+                    <circle
+                        class="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        stroke-width="4"
+                    ></circle>
+
+                    <path
+                        class="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 01-4 4H4z"
+                    ></path>
+                </svg>
+
+                Menyimpan...
+            `;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Request
+            |--------------------------------------------------------------------------
+            */
+
+            try {
+
+                const csrfToken =
+                    document
+                        .querySelector(
+                            'meta[name="csrf-token"]'
+                        )
+                        ?.getAttribute('content');
+
+
+                if (!csrfToken) {
+                    throw new Error(
+                        'CSRF token tidak ditemukan.'
+                    );
+                }
+
+
+                const formData =
+                    new FormData();
+
+                formData.append(
+                    '_method',
+                    'PATCH'
+                );
+
+                formData.append(
+                    'tracking_number',
+                    trackingNumber
+                );
+
+
+                const response =
+                    await fetch(
+                        @json(
+                            route(
+                                'admin.shipments.tracking-number',
+                                $order
+                            )
+                        ),
+                        {
+                            method: 'POST',
+
+                            headers: {
+                                'Accept':
+                                    'application/json',
+
+                                'X-CSRF-TOKEN':
+                                    csrfToken,
+
+                                'X-Requested-With':
+                                    'XMLHttpRequest',
+                            },
+
+                            body: formData,
+                        }
+                    );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Response
+                |--------------------------------------------------------------------------
+                */
+
+                const contentType =
+                    response.headers.get(
+                        'content-type'
+                    ) || '';
+
+                let data = null;
+
+
+                if (
+                    contentType.includes(
+                        'application/json'
+                    )
+                ) {
+                    data =
+                        await response.json();
+                }
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        data?.message
+                        ?? 'Gagal menyimpan nomor resi.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Redirect
+                |--------------------------------------------------------------------------
+                */
+
+                window.location.href =
+                    data?.redirect
+                    ?? @json(
+                        route(
+                            'admin.orders.show',
+                            $order
+                        )
+                    );
+
+            } catch (error) {
+
+                console.error(
+                    'Tracking number error:',
+                    error
+                );
+
+
+                confirmButton.disabled =
+                    false;
+
+                confirmButton.innerHTML =
+                    originalText;
+
+
+                errorMessage.textContent =
+                    error.message
+                    ?? 'Terjadi kesalahan saat menyimpan nomor resi.';
+
+                errorMessage.classList.remove(
+                    'hidden'
+                );
+
+            }
+
+        }
+    );
+
+});
+</script>
+
+@endpush
+
+@endif
 
 {{-- ================================================================
 CUSTOMER CANCELLATION REQUEST

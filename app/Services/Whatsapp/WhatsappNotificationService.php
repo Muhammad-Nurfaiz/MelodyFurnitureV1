@@ -81,6 +81,7 @@ class WhatsappNotificationService
             'sent_at' => null,
         ]);
 
-        SendWhatsappMessage::dispatch($queue->id);
+        SendWhatsappMessage::dispatch($queue->id)
+            ->delay(now()->addSeconds(20));
     }
 }

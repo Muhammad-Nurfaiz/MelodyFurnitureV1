@@ -472,4 +472,111 @@ class ShipmentService
             'order.payment',
         ]);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create Manual Shipment
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Create shipment secara manual oleh admin.
+     *
+     * Flow:
+     *
+     * Order:
+     * processing
+     *     ↓
+     *
+     * Shipment:
+     * waiting_pickup
+     *
+     * Tracking number belum wajib pada tahap ini.
+     * Admin dapat menginput resi pada tahap berikutnya.
+     */
+    public function createManual(
+        Order $order,
+        Admin $admin,
+    ): Shipment {
+
+        return DB::transaction(function () use (
+            $order,
+            $admin
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Lock Order
+            |--------------------------------------------------------------------------
+            */
+
+            $order = Order::query()
+                ->whereKey($order->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $order) {
+                throw new RuntimeException(
+                    'Order tidak ditemukan.'
+                );
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Order Status
+            |--------------------------------------------------------------------------
+            */
+
+            if ($order->status !== 'processing') {
+                throw new RuntimeException(
+                    'Shipment hanya dapat dibuat untuk order yang berstatus processing.'
+                );
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Prevent Duplicate Shipment
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                Shipment::query()
+                    ->where('order_id', $order->id)
+                    ->exists()
+            ) {
+                throw new RuntimeException(
+                    'Order sudah memiliki shipment.'
+                );
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Create Shipment
+            |--------------------------------------------------------------------------
+            */
+
+            $shipment = Shipment::create([
+                'order_id'        => $order->id,
+                'courier'         => $order->courier,
+                'service'         => $order->shipping_method,
+                'booking_code'    => null,
+                'tracking_number' => null,
+                'label_url'       => null,
+                'status'          => 'waiting_pickup',
+                'metadata'        => [
+                    'source' => 'manual',
+                    'created_by' => $admin->id,
+                    'created_at' => now()->toISOString(),
+                ],
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Return Fresh Shipment
+            |--------------------------------------------------------------------------
+            */
+
+            return $this->refreshShipment($shipment);
+        });
+    }
 }

@@ -7,29 +7,66 @@ use App\Models\Order;
 use App\Services\Order\OrderFulfillmentService;
 use App\Services\Shipping\DeliveryService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use App\Services\Shipping\ShipmentService;
 
 class ShipmentController extends Controller
 {
     public function __construct(
+        protected ShipmentService $shipmentService,
         protected DeliveryService $deliveryService,
-        protected OrderFulfillmentService $fulfillmentService
     ) {}
 
     public function store(
         Order $order
     ): JsonResponse {
 
-        $order = $this->fulfillmentService->start(
-            $order,
-            auth()->id()
-                ? (string) auth()->id()
-                : 'admin'
+        $shipment = $this->shipmentService->createManual(
+            order: $order,
+            admin: auth()->user(),
         );
 
         return response()->json([
-            'message' => 'Shipment berhasil dibuat.',
-            'data' => $order,
+            'success' => true,
+            'message' => 'Shipment manual berhasil dibuat.',
+            'data' => [
+                'shipment' => $shipment,
+            ],
         ], 201);
+    }
+
+    public function trackingNumber(
+        Request $request,
+        Order $order
+    ): JsonResponse {
+
+        $validated = $request->validate([
+            'tracking_number' => [
+                'required',
+                'string',
+                'min:5',
+                'max:100',
+            ],
+        ]);
+
+        abort_unless(
+            $order->shipment !== null,
+            404,
+            'Shipment tidak ditemukan.'
+        );
+
+        $shipment = $this->shipmentService->setTrackingNumber(
+            shipment: $order->shipment,
+            trackingNumber: $validated['tracking_number'],
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Nomor resi berhasil disimpan.',
+            'data' => [
+                'shipment' => $shipment,
+            ],
+        ]);
     }
 
     /*

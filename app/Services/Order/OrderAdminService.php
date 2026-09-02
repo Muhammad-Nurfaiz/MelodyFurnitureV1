@@ -104,21 +104,39 @@ class OrderAdminService
             'processing' => [
                 'type' => 'primary',
                 'button_variant' => 'primary',
-                'label' => $order->shipment
-                    ? 'Pickup Kurir'
-                    : 'Buat Pengiriman',
-                'route' => $order->shipment
+
+                'label' => ! $order->shipment
+                    ? 'Buat Pengiriman'
+                    : (
+                        ! $order->shipment->tracking_number
+                            ? 'Input Nomor Resi'
+                            : 'Pickup Kurir'
+                    ),
+
+                'route' => ! $order->shipment
                     ? route(
-                        'admin.shipments.pickup',
-                        $order->shipment
-                    )
-                    : route(
                         'admin.shipments.store',
                         $order
+                    )
+                    : (
+                        ! $order->shipment->tracking_number
+                            ? route(
+                                'admin.shipments.tracking-number',
+                                $order
+                            )
+                            : route(
+                                'admin.shipments.pickup',
+                                $order
+                            )
                     ),
-                'method' => $order->shipment
-                    ? 'PATCH'
-                    : 'POST',
+
+                'method' => ! $order->shipment
+                    ? 'POST'
+                    : (
+                        ! $order->shipment->tracking_number
+                            ? 'PATCH'
+                            : 'PATCH'
+                    ),
             ],
 
             'picked_up' => [
