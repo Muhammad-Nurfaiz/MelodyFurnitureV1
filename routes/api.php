@@ -16,6 +16,8 @@ use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\Customer\CustomerInvoiceController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CatalogController;
+use App\Http\Controllers\Api\HomeContentController;
+use App\Http\Controllers\Api\JntCargoWebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -113,12 +115,16 @@ Route::prefix('products')
 
     });
 
+Route::prefix('home')->group(function () {
+        Route::get('/heroes',[HomeContentController::class, 'heroes']);
+        Route::get('/promos',[HomeContentController::class, 'promos']);
+        Route::get('/social-media',[HomeContentController::class, 'socialMedia']);
+    });
 /*
 |--------------------------------------------------------------------------
 | Catalog Filters
 |--------------------------------------------------------------------------
 */
-
 Route::get(
     '/categories',
     [CatalogController::class, 'categories']
@@ -127,4 +133,14 @@ Route::get(
 Route::get(
     '/series',
     [CatalogController::class, 'series']
+);
+
+Route::post(
+    '/webhooks/jnt-cargo/status',
+    JntCargoWebhookController::class
+);
+
+Route::post(
+    '/webhooks/jnt-cargo/order-status',
+    [JntCargoWebhookController::class, 'orderStatus']
 );

@@ -78,7 +78,7 @@ class ProductService
             });
     }
 
-    protected function updateProduct(Product $product,array $data): void {
+    protected function updateProduct(Product $product, array $data): void {
         $originalPrice = (float) $data['original_price'];
 
         $discountPrice = filled($data['discount_price'])
@@ -98,53 +98,27 @@ class ProductService
         }
 
         $product->update([
-
             'category_id' => $data['category_id'],
-
             'series_id' => $data['series_id'] ?? null,
-
             'name' => $data['name'],
-
             'sku' => strtoupper(trim($data['sku'])),
-
             'slug' => $this->generateUniqueSlug(
                 $data['name'],
                 $product
             ),
-
             'description' => $data['description'],
-
             'product_detail' => $data['product_detail'] ?? null,
-
             'original_price' => $originalPrice,
-
             'discount_price' => $discountPrice,
-
             'discount_percentage' => $discountPercentage,
 
-            'is_sale' => $discountPercentage > 0,
+            // PERBAIKAN DI SINI: Gunakan input dari request, fallback ke false jika kosong
+            'is_sale' => (bool) ($data['is_sale'] ?? false),
 
             'ready_stock' => $data['ready_stock'],
-
-            /*
-            |--------------------------------------------------------------------------
-            | Locked Stock
-            |--------------------------------------------------------------------------
-            |
-            | Tidak disentuh oleh Product form.
-            | Nantinya akan dikelola oleh Order Service.
-            |
-            */
-
-            'video_tutorial_url' =>
-                $data['video_tutorial_url'] ?? null,
-
-            'average_rating' =>
-                $data['average_rating'] ?? 0,
-
-            'total_sold' =>
-                $data['total_sold'] ?? 0,
-
+            'video_tutorial_url' => $data['video_tutorial_url'] ?? null,
+            'average_rating' => $data['average_rating'] ?? 0,
+            'total_sold' => $data['total_sold'] ?? 0,
         ]);
     }
 
@@ -180,11 +154,9 @@ class ProductService
             $discountPrice &&
             $discountPrice < $originalPrice
         ) {
-
             $discountPercentage = round(
                 (($originalPrice - $discountPrice) / $originalPrice) * 100
             );
-
         }
 
         return Product::create([
@@ -194,11 +166,14 @@ class ProductService
             'sku' => strtoupper(trim($data['sku'])),
             'slug' => $this->generateUniqueSlug($data['name']),
             'description' => $data['description'],
-            'product_detail' =>$data['product_detail'] ?? null,
+            'product_detail' => $data['product_detail'] ?? null,
             'original_price' => $originalPrice,
             'discount_price' => $discountPrice,
             'discount_percentage' => $discountPercentage,
-            'is_sale' => $discountPercentage > 0,
+
+            // PERBAIKAN DI SINI JUGA:
+            'is_sale' => (bool) ($data['is_sale'] ?? false),
+
             'ready_stock' => $data['ready_stock'],
             'locked_stock' => 0,
             'origin_city' => 'Malang',

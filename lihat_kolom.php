@@ -1,6 +1,6 @@
 <?php
 $database_file = 'melody_db';
-$nama_tabel = 'orders';
+$nama_tabel = 'shipments';
 
 try {
     $pdo = new PDO("sqlite:" . $database_file);

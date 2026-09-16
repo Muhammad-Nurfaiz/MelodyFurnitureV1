@@ -94,6 +94,11 @@ class UpdateProductRequest extends FormRequest
                 'boolean',
             ],
 
+            'is_sale' => [
+                'nullable',
+                'boolean',
+            ],
+
             /*
             |--------------------------------------------------------------------------
             | Price
@@ -204,6 +209,7 @@ class UpdateProductRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
+            // Memastikan input '1', 'true', true, atau 'on' jadi true, selain itu false
             'is_sale' => $this->boolean('is_sale'),
             'assembly_required' => $this->boolean('assembly_required'),
         ]);

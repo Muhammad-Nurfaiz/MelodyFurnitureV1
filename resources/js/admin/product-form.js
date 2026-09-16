@@ -19,10 +19,8 @@ window.productForm = () => ({
     isSale: false,
 
     calculateDiscount() {
-
         const original = parseFloat(this.originalPrice);
         const discount = parseFloat(this.discountPrice);
-
         if (
             isNaN(original) ||
             isNaN(discount) ||
@@ -30,18 +28,12 @@ window.productForm = () => ({
             discount <= 0 ||
             discount >= original
         ) {
-
             this.discountPercentage = '';
-            this.isSale = false;
             return;
         }
-
         this.discountPercentage = Math.round(
             ((original - discount) / original) * 100
         );
-
-        this.isSale = true;
-
     },
 
     /*
@@ -109,9 +101,21 @@ window.productForm = () => ({
 
     init() {
 
+        // Sinkronisasi nilai dari DOM saat komponen dimuat
+        if (this.$refs.original_price) {
+            this.originalPrice = this.$refs.original_price.value || '';
+        }
+        if (this.$refs.discount_price) {
+            this.discountPrice = this.$refs.discount_price.value || '';
+        }
+        const isSaleInput = this.$refs.is_sale;
+        if (isSaleInput) {
+            this.isSale = isSaleInput.checked;
+        }
         this.calculateDiscount();
 
     },
+
     validateStep() {
 
         switch (this.step) {
@@ -167,10 +171,8 @@ window.productForm = () => ({
                     alert('Harga wajib diisi');
                     return false;
                 }
-                if (!this.$refs.discount_price.value.trim()) {
-                    alert('Harga Diskon wajib diisi');
-                    return false;
-                }
+                
+                // Harga diskon dibuat opsional jika produk tidak dalam diskon
                 if (!this.$refs.ready_stock.value.trim()) {
                     alert('Stok wajib diisi');
                     return false;

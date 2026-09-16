@@ -318,6 +318,8 @@
                         <x-admin.form.input
                             name="original_price"
                             x-ref="original_price"
+                            x-model="originalPrice"
+                            @input="calculateDiscount()"
                             type="number"
                             min="0"
                             step="0.01"
@@ -336,6 +338,8 @@
                         <x-admin.form.input
                             name="discount_price"
                             x-ref="discount_price"
+                            x-model="discountPrice"
+                            @input="calculateDiscount()"
                             type="number"
                             min="0"
                             step="0.01"
@@ -358,6 +362,7 @@
                         <x-admin.form.input
                             name="discount_percentage"
                             x-ref="discount_percentage"
+                            x-model="discountPercentage"
                             type="number"
                             min="0"
                             max="100"
@@ -367,6 +372,7 @@
                                 $product?->discount_percentage
                             )"
                             placeholder="Contoh: 10"
+                            readonly
                         />
 
                         <p class="mt-1 text-xs text-gray-500">
@@ -379,11 +385,13 @@
                         label="Status Sale"
                     >
                         <label class="flex cursor-pointer items-center gap-3">
-
+                            <input type="hidden" name="is_sale" value="0">
                             <input
                                 type="checkbox"
                                 name="is_sale"
                                 value="1"
+                                x-ref="is_sale"
+                                x-model="isSale"
                                 @checked(
                                     old(
                                         'is_sale',

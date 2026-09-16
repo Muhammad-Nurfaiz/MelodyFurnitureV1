@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Shipment extends Model
 {
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+    
     protected $fillable = [
 
         'order_id',
@@ -28,6 +32,8 @@ class Shipment extends Model
         'picked_up_at',
 
         'delivered_at',
+
+        'last_tracking_sync_at',
 
     ];
 

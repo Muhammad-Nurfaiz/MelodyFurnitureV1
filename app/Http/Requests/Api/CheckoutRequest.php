@@ -104,6 +104,11 @@ class CheckoutRequest extends FormRequest
                 'max:500',
             ],
 
+            'shipping_address.area' => [
+                'nullable',
+                'string',
+            ],
+
             'shipping_address.city' => [
                 'nullable',
                 'string',

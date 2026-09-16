@@ -139,6 +139,9 @@ class CheckoutController extends Controller
 
             'address' =>
                 $payload['shipping_address']['address'],
+            
+            'area' =>
+                $payload['shipping_address']['area'],
 
             'postal_code' =>
                 $payload['shipping_address']['postal_code'],

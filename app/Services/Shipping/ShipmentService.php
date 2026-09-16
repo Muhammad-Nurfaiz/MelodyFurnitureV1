@@ -579,4 +579,273 @@ class ShipmentService
             return $this->refreshShipment($shipment);
         });
     }
+
+    public function syncTracking(
+        Shipment $shipment,
+        CourierShipmentResult $result
+    ): Shipment {
+        if (! $result->success) {
+            throw new RuntimeException(
+                $result->message
+                ?? 'Gagal melakukan sinkronisasi tracking shipment.'
+            );
+        }
+
+        $syncedAt = now();
+
+        $metadata = $shipment->metadata ?? [];
+
+        $metadata['tracking'] = $result->metadata;
+        $metadata['tracking_synced_at'] = $syncedAt->toISOString();
+
+        $shipment->update([
+            'tracking_number' => $result->trackingNumber
+                ?? $shipment->tracking_number,
+            'metadata' => $metadata,
+            'last_tracking_sync_at' => $syncedAt,
+        ]);
+
+        return $shipment->fresh();
+    }
+
+    public function syncCourierStatus(
+        Shipment $shipment,
+        ?string $mappedStatus
+    ): Shipment {
+
+        if (blank($mappedStatus)) {
+            return $shipment->fresh();
+        }
+
+        $statusOrder = [
+            'waiting_pickup' => 1,
+            'picked_up'      => 2,
+            'in_transit'     => 3,
+            'delivered'      => 4,
+        ];
+
+        $currentStatus = $shipment->status;
+
+        $currentRank = $statusOrder[$currentStatus] ?? 0;
+        $newRank = $statusOrder[$mappedStatus] ?? 0;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Unknown Status
+        |--------------------------------------------------------------------------
+        */
+
+        if ($newRank === 0) {
+            return $shipment->fresh();
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Jangan pernah menurunkan status shipment
+        |--------------------------------------------------------------------------
+        */
+
+        if ($newRank <= $currentRank) {
+            return $shipment->fresh();
+        }
+
+        return DB::transaction(function () use (
+            $shipment,
+            $mappedStatus
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Lock Shipment
+            |--------------------------------------------------------------------------
+            */
+            $shipment = Shipment::query()
+                ->whereKey($shipment->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Lock Order
+            |--------------------------------------------------------------------------
+            */
+
+            $order = Order::query()
+                ->whereKey($shipment->order_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Re-check Status
+            |--------------------------------------------------------------------------
+            */
+
+            $statusOrder = [
+                'waiting_pickup' => 1,
+                'picked_up'      => 2,
+                'in_transit'     => 3,
+                'delivered'      => 4,
+            ];
+
+            $currentRank =
+                $statusOrder[$shipment->status] ?? 0;
+
+            $newRank =
+                $statusOrder[$mappedStatus] ?? 0;
+
+            /*
+            |--------------------------------------------------------------------------
+            | Status Tidak Valid / Sudah Lebih Maju
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $newRank === 0 ||
+                $newRank <= $currentRank
+            ) {
+                return $this->refreshShipment(
+                    $shipment
+                );
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Picked Up
+            |--------------------------------------------------------------------------
+            */
+
+            if ($mappedStatus === 'picked_up') {
+
+                $shipment->update([
+                    'status' => 'picked_up',
+                    'picked_up_at' =>
+                        $shipment->picked_up_at
+                        ?? now(),
+                ]);
+
+                if ($order->status === 'processing') {
+
+                    $this->workflowService->changeStatus(
+                        $order,
+                        'picked_up',
+                        'Barang telah diambil kurir.',
+                        null
+                    );
+                }
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | In Transit
+            |--------------------------------------------------------------------------
+            */
+
+            elseif ($mappedStatus === 'in_transit') {
+
+                /*
+                * Jika order masih processing,
+                * berarti pickup sebelumnya belum tercatat
+                * secara lokal.
+                *
+                * Karena courier sudah memberikan status
+                * in_transit, kita sinkronkan milestone
+                * pickup terlebih dahulu.
+                */
+
+                if ($order->status === 'processing') {
+
+                    $this->workflowService->changeStatus(
+                        $order,
+                        'picked_up',
+                        'Barang telah diambil kurir.',
+                        null
+                    );
+                }
+
+                /*
+                * Setelah picked_up, lanjut shipped.
+                */
+
+                if ($order->status === 'picked_up') {
+
+                    $this->workflowService->changeStatus(
+                        $order,
+                        'shipped',
+                        'Barang sedang dikirim.',
+                        null
+                    );
+                }
+
+                $shipment->update([
+                    'status' => 'in_transit',
+                    'picked_up_at' =>
+                        $shipment->picked_up_at
+                        ?? now(),
+                ]);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Delivered
+            |--------------------------------------------------------------------------
+            */
+
+            elseif ($mappedStatus === 'delivered') {
+
+                /*
+                * Courier sudah menyatakan barang delivered.
+                *
+                * Jika milestone sebelumnya belum tercatat
+                * secara lokal, kita lengkapi secara berurutan.
+                */
+
+                if ($order->status === 'processing') {
+
+                    $this->workflowService->changeStatus(
+                        $order,
+                        'picked_up',
+                        'Barang telah diambil kurir.',
+                        null
+                    );
+                }
+
+                if ($order->status === 'picked_up') {
+
+                    $this->workflowService->changeStatus(
+                        $order,
+                        'shipped',
+                        'Barang sedang dikirim.',
+                        null
+                    );
+                }
+
+                if ($order->status === 'shipped') {
+
+                    $this->workflowService->changeStatus(
+                        $order,
+                        'completed',
+                        'Pesanan telah diterima customer.',
+                        null
+                    );
+                }
+
+                $shipment->update([
+                    'status' => 'delivered',
+
+                    'picked_up_at' =>
+                        $shipment->picked_up_at
+                        ?? now(),
+
+                    'delivered_at' =>
+                        $shipment->delivered_at
+                        ?? now(),
+                ]);
+            }
+
+            return $this->refreshShipment(
+                $shipment
+            );
+        });
+    }
 }

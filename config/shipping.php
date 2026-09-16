@@ -14,26 +14,40 @@ return [
 
             'name' => 'J&T Cargo',
 
-            'base_url' => env(
-                'JNT_CARGO_BASE_URL'
+            'environment' => env(
+                'JNT_CARGO_ENV',
+                'sandbox'
             ),
 
-            'api_key' => env(
-                'JNT_CARGO_API_KEY'
+            'base_urls' => [
+
+                'sandbox' => env(
+                    'JNT_CARGO_SANDBOX_BASE_URL',
+                    'https://demoopenapi.jtcargo.co.id/webopenplatformapi/api'
+                ),
+
+                'production' => env(
+                    'JNT_CARGO_PRODUCTION_BASE_URL',
+                    'https://openapi.jtcargo.co.id/webopenplatformapi/api'
+                ),
+
+            ],
+
+            'api_account' => env(
+                'JNT_CARGO_API_ACCOUNT'
             ),
 
-            'api_secret' => env(
-                'JNT_CARGO_API_SECRET'
+            'private_key' => env(
+                'JNT_CARGO_PRIVATE_KEY'
             ),
 
-            /*
-            |------------------------------------------------------------------
-            | Webhook
-            |------------------------------------------------------------------
-            |
-            | URL yang nantinya diberikan kepada pihak J&T Cargo.
-            |
-            */
+            'customer_code' => env(
+                'JNT_CARGO_CUSTOMER_CODE'
+            ),
+
+            'customer_password' => env(
+                'JNT_CARGO_CUSTOMER_PASSWORD'
+            ),
 
             'webhook_url' => env(
                 'JNT_CARGO_WEBHOOK_URL'
@@ -43,6 +57,49 @@ return [
                 'JNT_CARGO_TIMEOUT',
                 30
             ),
+
+             /*
+            |--------------------------------------------------------------------------
+            | Static Sender
+            |--------------------------------------------------------------------------
+            |
+            | Data pengirim/gudang Melody Furniture.
+            | Tidak berasal dari Order maupun Customer.
+            |
+            */
+            'sender' => [
+                'name' => env(
+                    'JNT_CARGO_SENDER_NAME',
+                ),
+
+                'mobile' => env(
+                    'JNT_CARGO_SENDER_MOBILE'
+                ),
+
+                'country_code' => env(
+                    'JNT_CARGO_SENDER_COUNTRY_CODE',
+                ),
+
+                'province' => env(
+                    'JNT_CARGO_SENDER_PROVINCE'
+                ),
+
+                'area' => env(
+                    'JNT_CARGO_SENDER_AREA'
+                ),
+
+                'city' => env(
+                    'JNT_CARGO_SENDER_CITY'
+                ),
+
+                'address' => env(
+                    'JNT_CARGO_SENDER_ADDRESS'
+                ),
+
+                'postcode' => env(
+                    'JNT_CARGO_SENDER_POSTCODE'
+                ),
+            ],
 
         ],
 
