@@ -57,7 +57,11 @@ class ProductDetailResource extends JsonResource
 
             'average_rating' => (float) $this->average_rating,
 
+            'total_stock' => (int) $this->ready_stock,
+
             'total_sold' => (int) $this->total_sold,
+
+            'video_tutorial_url' => $this->video_tutorial_url ?? null,
 
             'origin_city' => $this->origin_city,
 

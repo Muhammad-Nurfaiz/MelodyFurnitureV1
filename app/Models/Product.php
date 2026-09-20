@@ -104,17 +104,27 @@ class Product extends Model
         });
     }
 
-    public function scopeCategory($query, $categoryId)
+    public function scopeCategory($query, $category)
     {
-        return $query->when($categoryId, function ($q) use ($categoryId) {
-            $q->where('category_id', $categoryId);
+        return $query->when($category, function ($q) use ($category) {
+            $q->where(function ($query) use ($category) {
+                $query->where('category_id', $category)
+                    ->orWhereHas('category', function ($categoryQuery) use ($category) {
+                        $categoryQuery->where('slug', $category);
+                    });
+            });
         });
     }
 
-    public function scopeSeries($query, $seriesId)
+    public function scopeSeries($query, $series)
     {
-        return $query->when($seriesId, function ($q) use ($seriesId) {
-            $q->where('series_id', $seriesId);
+        return $query->when($series, function ($q) use ($series) {
+            $q->where(function ($query) use ($series) {
+                $query->where('series_id', $series)
+                    ->orWhereHas('series', function ($seriesQuery) use ($series) {
+                        $seriesQuery->where('slug', $series);
+                    });
+            });
         });
     }
 
@@ -134,7 +144,7 @@ class Product extends Model
 
     public function getPriceAttribute(): float
     {
-        if ($this->is_sale && !is_null($this->discount_price)) {
+        if (!is_null($this->discount_price)) {
             return (float) $this->discount_price;
         }
         return (float) $this->original_price;

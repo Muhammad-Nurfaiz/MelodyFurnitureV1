@@ -58,7 +58,9 @@ class OrderResource extends JsonResource
 
             'courier' => $this->courier,
             'shipping_method' => $this->shipping_method,
-            'shipping_address' => $this->shipping_address,
+            'shipping_address' => collect($this->shipping_address)
+                ->except('regency_id')
+                ->toArray(),
 
             /*
             |--------------------------------------------------------------------------

@@ -52,12 +52,34 @@ class AdminSettingsService
             $setting->update([
                 'store_name'        => $data['store_name'],
                 'store_description' => $data['store_description'] ?? null,
+            ]);
 
-                'instagram_url'     => $data['instagram_url'] ?? null,
-                'facebook_url'      => $data['facebook_url'] ?? null,
-                'tiktok_url'        => $data['tiktok_url'] ?? null,
-                'youtube_url'       => $data['youtube_url'] ?? null,
-                'whatsapp_url'      => $data['whatsapp_url'] ?? null,
+            return $setting->fresh();
+        });
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Update Social Media
+    |--------------------------------------------------------------------------
+    */
+
+    public function updateSocialMedia(
+        Setting $setting,
+        array $data,
+    ): Setting {
+
+        return DB::transaction(function () use (
+            $setting,
+            $data
+        ) {
+
+            $setting->update([
+                'instagram_url' => $data['instagram_url'] ?? null,
+                'facebook_url'  => $data['facebook_url'] ?? null,
+                'tiktok_url'    => $data['tiktok_url'] ?? null,
+                'youtube_url'   => $data['youtube_url'] ?? null,
+                'whatsapp_url'  => $data['whatsapp_url'] ?? null,
             ]);
 
             return $setting->fresh();

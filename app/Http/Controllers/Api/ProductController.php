@@ -123,7 +123,7 @@ class ProductController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
-        $price = $product->is_sale && !is_null($product->discount_price)
+        $price = !is_null($product->discount_price)
             ? (float) $product->discount_price
             : (float) $product->original_price;
 
@@ -174,8 +174,7 @@ class ProductController extends Controller
                 'ABS(
                     (
                         CASE
-                            WHEN is_sale = 1
-                                AND discount_price IS NOT NULL
+                            WHEN discount_price IS NOT NULL
                             THEN discount_price
                             ELSE original_price
                         END

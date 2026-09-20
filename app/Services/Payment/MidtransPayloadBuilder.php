@@ -6,8 +6,6 @@ use App\Models\Order;
 
 class MidtransPayloadBuilder
 {
-    private const PAYMENT_RESULT = '/payment/result';
-
     /**
      * Build Snap Payload
      */
@@ -15,9 +13,10 @@ class MidtransPayloadBuilder
     {
         $paymentResultUrl =
             config('app.frontend_url')
-            . self::PAYMENT_RESULT
-            . '?order_id='
-            . urlencode($order->midtrans_order_id);
+            . '/payment'
+            . '?tracking_token='
+            . urlencode($order->tracking_token)
+            . '&from_midtrans=1';
 
         return [
             'transaction_details' => [
@@ -31,8 +30,14 @@ class MidtransPayloadBuilder
                 'phone' => $order->customer_phone,
             ],
 
-            'enabled_payments' => config(
-                'payment.midtrans.enabled_payments'
+            ...(
+                config('payment.midtrans.enabled_payments') !== null
+                    ? [
+                        'enabled_payments' => config(
+                            'payment.midtrans.enabled_payments'
+                        ),
+                    ]
+                    : []
             ),
 
             'item_details' => $this->buildItems($order),

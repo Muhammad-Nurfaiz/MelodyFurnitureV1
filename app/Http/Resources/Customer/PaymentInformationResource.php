@@ -40,11 +40,11 @@ class PaymentInformationResource extends JsonResource
             |--------------------------------------------------------------------------
             */
 
-            'payment_method' => $payment?->payment_method,
+            'payment_method' => $payment?->payment_type,
 
             'snap_token' => $payment?->snap_token,
 
-            'redirect_url' => $payment?->redirect_url,
+            'redirect_url' => $payment?->raw_response['redirect_url'] ?? null,
 
             'transaction_id' => $payment?->transaction_id,
 

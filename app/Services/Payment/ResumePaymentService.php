@@ -85,6 +85,7 @@ class ResumePaymentService
             'snap_token' => $payment->snap_token,
             'expired_at' => $payment->expired_at,
             'payment_status' => $payment->transaction_status,
+            'total_payment' => $order->total_payment,
         ];
     }
 }

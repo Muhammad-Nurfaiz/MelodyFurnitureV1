@@ -23,9 +23,11 @@ class CustomerSessionMiddleware
         Closure $next
     ): Response {
 
-        $guestToken = $request->cookie(
-            $this->cookieName()
-        );
+        // 🚀 BACA DARI HEADER, BODY, ATAU COOKIE
+        $guestToken = $request->header('X-Guest-Session-Id')
+            ?? $request->header('X-Guest-Token')
+            ?? $request->input('guest_session_id')
+            ?? $request->cookie($this->cookieName());
 
         if (!$guestToken) {
             abort(
@@ -71,12 +73,11 @@ class CustomerSessionMiddleware
 
         /*
         |--------------------------------------------------------------------------
-        | Refresh Cookie
+        | Refresh Cookie (Opsional)
         |--------------------------------------------------------------------------
         */
 
         cookie()->queue(
-
             cookie(
                 $this->cookieName(),
                 $customer->guest_token,
@@ -88,7 +89,6 @@ class CustomerSessionMiddleware
                 false,
                 'lax'
             )
-
         );
 
         return $response;

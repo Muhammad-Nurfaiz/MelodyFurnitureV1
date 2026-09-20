@@ -4,7 +4,7 @@ namespace App\Http\Requests\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CheckoutRequest extends FormRequest
+class DirectCheckoutRequest extends FormRequest
 {
     /**
      * Authorize
@@ -20,6 +20,30 @@ class CheckoutRequest extends FormRequest
     public function rules(): array
     {
         return [
+
+            /*
+            |--------------------------------------------------------------------------
+            | Items
+            |--------------------------------------------------------------------------
+            */
+
+            'items' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+
+            'items.*.product_id' => [
+                'required',
+                'uuid',
+                'exists:products,id',
+            ],
+
+            'items.*.quantity' => [
+                'required',
+                'integer',
+                'min:1',
+            ],
 
             /*
             |--------------------------------------------------------------------------
@@ -59,7 +83,7 @@ class CheckoutRequest extends FormRequest
 
             /*
             |--------------------------------------------------------------------------
-            | Shipping
+            | Courier
             |--------------------------------------------------------------------------
             */
 
@@ -104,36 +128,16 @@ class CheckoutRequest extends FormRequest
                 'max:500',
             ],
 
-            'shipping_address.area' => ['required', 'string'],
+            'shipping_address.area' => [
+                'required',
+                'string',
+            ],
 
             'shipping_address.postal_code' => [
                 'required',
                 'string',
                 'max:10',
             ],
-
-            /*
-            |--------------------------------------------------------------------------
-            | Selected Cart Items (opsional)
-            |--------------------------------------------------------------------------
-            |
-            | Jika dikirim, hanya item yang ID-nya ada di array ini
-            | yang akan diproses. Item lain di cart tidak tersentuh.
-            |
-            | Jika tidak dikirim, semua item di cart akan diproses.
-            |
-            */
-
-            'selected_item_ids' => [
-                'nullable',
-                'array',
-            ],
-
-            'selected_item_ids.*' => [
-                'uuid',
-                'exists:cart_items,id',
-            ],
-
         ];
     }
 
@@ -143,37 +147,59 @@ class CheckoutRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'items.required' =>
+                'Produk wajib diisi.',
 
-            'name.required' => 'Nama wajib diisi.',
-            'name.max' => 'Nama maksimal 100 karakter.',
+            'items.min' =>
+                'Minimal 1 produk.',
 
-            'email.email' => 'Format email tidak valid.',
-            'email.max' => 'Email maksimal 100 karakter.',
+            'items.*.product_id.required' =>
+                'ID produk wajib diisi.',
 
-            'phone.required' => 'Nomor telepon wajib diisi.',
-            'phone.max' => 'Nomor telepon maksimal 30 karakter.',
+            'items.*.product_id.exists' =>
+                'Produk tidak ditemukan.',
 
-            'courier.required' => 'Kurir wajib dipilih.',
+            'items.*.quantity.required' =>
+                'Jumlah produk wajib diisi.',
 
-            'shipping_address.required' => 'Alamat pengiriman wajib diisi.',
+            'items.*.quantity.min' =>
+                'Jumlah minimal 1.',
 
-            'shipping_address.recipient_name.required'
-                => 'Nama penerima wajib diisi.',
+            'name.required' =>
+                'Nama wajib diisi.',
 
-            'shipping_address.phone.required'
-                => 'Nomor telepon penerima wajib diisi.',
+            'email.email' =>
+                'Format email tidak valid.',
 
-            'shipping_address.address.required'
-                => 'Alamat wajib diisi.',
+            'phone.required' =>
+                'Nomor telepon wajib diisi.',
 
-            'shipping_address.regency_id.required'
-                => 'Kabupaten/Kota wajib dipilih.',
+            'courier.required' =>
+                'Kurir wajib dipilih.',
 
-            'shipping_address.regency_id.exists'
-                => 'Kabupaten/Kota yang dipilih tidak valid.',
+            'shipping_address.required' =>
+                'Alamat pengiriman wajib diisi.',
 
-            'shipping_address.postal_code.required'
-                => 'Kode pos wajib diisi.',
+            'shipping_address.recipient_name.required' =>
+                'Nama penerima wajib diisi.',
+
+            'shipping_address.phone.required' =>
+                'Nomor telepon penerima wajib diisi.',
+
+            'shipping_address.regency_id.required' =>
+                'Kabupaten/Kota wajib dipilih.',
+
+            'shipping_address.regency_id.exists' =>
+                'Kabupaten/Kota tidak valid.',
+
+            'shipping_address.address.required' =>
+                'Alamat wajib diisi.',
+
+            'shipping_address.area.required' =>
+                'Kecamatan wajib diisi.',
+
+            'shipping_address.postal_code.required' =>
+                'Kode pos wajib diisi.',
         ];
     }
 

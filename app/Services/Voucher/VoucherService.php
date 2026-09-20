@@ -102,48 +102,27 @@ class VoucherService
     |--------------------------------------------------------------------------
     */
 
-    public function calculateDiscount(
-        ?Voucher $voucher,
-        float $subtotal
-    ): float {
-
+    public function calculateDiscount(?Voucher $voucher, float $subtotal): float
+    {
         if (! $voucher) {
             return 0;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Fixed
-        |--------------------------------------------------------------------------
-        */
+        // Customer wajib tetap membayar minimal 10% dari subtotal produk.
+        $maximumDiscount = $subtotal * 0.90;
 
         if ($voucher->discount_type === 'fixed') {
-
             return min(
                 (float) $voucher->discount_value,
-                $subtotal
+                $maximumDiscount
             );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Percentage
-        |--------------------------------------------------------------------------
-        */
-
-        $discount = (
-            $subtotal * (float) $voucher->discount_value
-        ) / 100;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Maximum Discount
-        |--------------------------------------------------------------------------
-        */
+        $discount = ($subtotal * (float) $voucher->discount_value) / 100;
 
         if (
-            $voucher->max_discount_amount !== null &&
-            $voucher->max_discount_amount > 0
+            $voucher->max_discount_amount !== null
+            && $voucher->max_discount_amount > 0
         ) {
             $discount = min(
                 $discount,
@@ -151,13 +130,7 @@ class VoucherService
             );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Never Exceed Subtotal
-        |--------------------------------------------------------------------------
-        */
-
-        return min($discount, $subtotal);
+        return min($discount, $maximumDiscount);
     }
 
 

@@ -81,7 +81,7 @@ class ShippingRateImportService
             );
         }
 
-        $rows = $this->readSpreadsheet($filePath);
+        $rows = $this->readSpreadsheet($filePath, 4);
 
         if (empty($rows)) {
             throw new RuntimeException(
@@ -200,13 +200,13 @@ class ShippingRateImportService
 
         $worksheet = $spreadsheet->getActiveSheet();
 
-        return $worksheet
-            ->toArray(
-                null,
-                true,
-                true,
-                false
-            );
+        return $worksheet->rangeToArray(
+            "A{$startRow}:{$worksheet->getHighestColumn()}{$worksheet->getHighestRow()}",
+            null,
+            true,
+            true,
+            false
+        );
     }
 
     /**

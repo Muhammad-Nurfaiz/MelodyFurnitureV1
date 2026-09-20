@@ -15,13 +15,10 @@ return new class extends Migration
             $table->string('phone', 15)->unique()->nullable();
             $table->string('email', 100)->nullable();
             $table->string('name', 100)->nullable();
-
             $table->text('address_detail')->nullable();
             $table->string('destination_code', 50)->nullable();
-
             $table->string('guest_token')->nullable();
             $table->string('otp_code', 10)->nullable();
-
             $table->timestamps();
         });
     }

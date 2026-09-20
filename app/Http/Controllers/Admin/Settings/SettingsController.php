@@ -65,36 +65,6 @@ class SettingsController extends AdminController
                 'nullable',
                 'string',
             ],
-
-            'instagram_url' => [
-                'nullable',
-                'url',
-                'max:255',
-            ],
-
-            'facebook_url' => [
-                'nullable',
-                'url',
-                'max:255',
-            ],
-
-            'tiktok_url' => [
-                'nullable',
-                'url',
-                'max:255',
-            ],
-
-            'youtube_url' => [
-                'nullable',
-                'url',
-                'max:255',
-            ],
-
-            'whatsapp_url' => [
-                'nullable',
-                'url',
-                'max:255',
-            ],
         ]);
 
         $settings = $this->settingsService->getSettings();
@@ -107,6 +77,29 @@ class SettingsController extends AdminController
         return $this->success(
             'admin.settings.index',
             'Informasi toko berhasil diperbarui.'
+        );
+    }
+
+    public function updateSocialMedia(Request $request)
+    {
+        $validated = $request->validate([
+            'instagram_url' => ['nullable', 'url', 'max:255'],
+            'facebook_url'  => ['nullable', 'url', 'max:255'],
+            'tiktok_url'    => ['nullable', 'url', 'max:255'],
+            'youtube_url'   => ['nullable', 'url', 'max:255'],
+            'whatsapp_url'  => ['nullable', 'url', 'max:255'],
+        ]);
+
+        $settings = $this->settingsService->getSettings();
+
+        $this->settingsService->updateSocialMedia(
+            setting: $settings,
+            data: $validated,
+        );
+
+        return $this->success(
+            'admin.settings.index',
+            'Social Media berhasil diperbarui.'
         );
     }
 

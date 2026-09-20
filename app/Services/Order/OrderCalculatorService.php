@@ -3,6 +3,7 @@
 namespace App\Services\Order;
 
 use App\Models\Voucher;
+use App\Models\ShippingCourier;
 use Illuminate\Support\Collection;
 use RuntimeException;
 use App\Services\Shipping\ShippingService;
@@ -59,7 +60,6 @@ class OrderCalculatorService
             */
 
             $price =
-                $product->is_sale &&
                 $product->discount_price
                     ? $product->discount_price
                     : $product->original_price;
@@ -223,4 +223,104 @@ class OrderCalculatorService
             'service' => $service,
         ];
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Calculate Shipping — All Active Couriers
+    |--------------------------------------------------------------------------
+    |
+    | Menghitung ongkir untuk semua kurir aktif sekaligus
+    | berdasarkan berat total produk di keranjang dan regency tujuan.
+    |
+    | Kurir yang tidak memiliki tarif untuk regency tersebut
+    | akan ditandai available: false (tidak di-throw exception).
+    |
+    */
+
+    public function calculateShippingAllCouriers(
+        Collection $products,
+        string $regencyId,
+    ): array {
+
+        $totalWeight = 0;
+
+        foreach ($products as $item) {
+
+            $product       = $item->product;
+            $specification = $product->specification;
+
+            if (!$specification) {
+                throw new RuntimeException(
+                    "Produk {$product->name} belum memiliki spesifikasi."
+                );
+            }
+
+            $totalWeight +=
+                $specification->packing_weight *
+                $item->quantity;
+        }
+
+        $service = self::DEFAULT_SERVICE;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Active Couriers
+        |--------------------------------------------------------------------------
+        */
+
+        $couriers = ShippingCourier::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'code', 'name']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Calculate Per Courier
+        |--------------------------------------------------------------------------
+        */
+
+        $results = [];
+
+        foreach ($couriers as $courier) {
+
+            try {
+
+                $shipping = $this->shippingService->estimate(
+                    weight:    $totalWeight,
+                    regencyId: $regencyId,
+                    courier:   $courier->code,
+                    service:   $service,
+                );
+
+                $results[] = [
+                    'courier_id'   => $courier->id,
+                    'courier_code' => $courier->code,
+                    'courier_name' => $courier->name,
+                    'service'      => $service,
+                    'weight'       => $shipping['weight'],
+                    'fee'          => $shipping['fee'],
+                    'available'    => true,
+                ];
+
+            } catch (\Throwable) {
+
+                $results[] = [
+                    'courier_id'   => $courier->id,
+                    'courier_code' => $courier->code,
+                    'courier_name' => $courier->name,
+                    'service'      => $service,
+                    'weight'       => null,
+                    'fee'          => null,
+                    'available'    => false,
+                ];
+            }
+        }
+
+        return [
+            'regency_id'  => $regencyId,
+            'total_weight'=> $totalWeight,
+            'couriers'    => $results,
+        ];
+    }
 }
+

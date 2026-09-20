@@ -19,6 +19,8 @@ class PaymentResource extends JsonResource
             'bank' => $this->bank,
             'va_number' => $this->va_number,
             'snap_token' => $this->snap_token,
+            'payment_url' => $this->raw_response['redirect_url'] ?? null,
+            'redirect_url' => $this->raw_response['redirect_url'] ?? null,
             'expired_at' => optional($this->expired_at) ?->toISOString(),
             'paid_at' => optional($this->paid_at) ?->toISOString(),
         ];

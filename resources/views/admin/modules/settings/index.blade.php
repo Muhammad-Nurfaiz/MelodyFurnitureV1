@@ -257,109 +257,83 @@
 
 <form
     method="POST"
-    action="{{ route('admin.settings.store.update') }}"
+    action="{{ route('admin.settings.social-media.update') }}"
 >
     @csrf
     @method('PATCH')
 
     <x-admin.card>
-
         <x-admin.card-header
             title="Social Media"
             description="Atur link media sosial resmi Melody Furniture."
         />
 
         <x-admin.card-body>
-
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 
                 {{-- Instagram --}}
-                <x-admin.form.group
-                    label="Instagram"
-                >
-
+                <x-admin.form.group label="Instagram">
                     <x-admin.form.input
                         type="url"
                         name="instagram_url"
                         value="{{ old('instagram_url', $settings?->instagram_url) }}"
                         placeholder="https://instagram.com/..."
                     />
-
+                    <x-admin.form.validation-error alpine="errors.instagram_url" />
                 </x-admin.form.group>
 
-
                 {{-- Facebook --}}
-                <x-admin.form.group
-                    label="Facebook"
-                >
-
+                <x-admin.form.group label="Facebook">
                     <x-admin.form.input
                         type="url"
                         name="facebook_url"
                         value="{{ old('facebook_url', $settings?->facebook_url) }}"
                         placeholder="https://facebook.com/..."
                     />
-
+                    <x-admin.form.validation-error alpine="errors.facebook_url" />
                 </x-admin.form.group>
 
-
                 {{-- TikTok --}}
-                <x-admin.form.group
-                    label="TikTok"
-                >
-
+                <x-admin.form.group label="TikTok">
                     <x-admin.form.input
                         type="url"
                         name="tiktok_url"
                         value="{{ old('tiktok_url', $settings?->tiktok_url) }}"
                         placeholder="https://tiktok.com/@..."
                     />
-
+                    <x-admin.form.validation-error alpine="errors.tiktok_url" />
                 </x-admin.form.group>
 
-
                 {{-- YouTube --}}
-                <x-admin.form.group
-                    label="YouTube"
-                >
-
+                <x-admin.form.group label="YouTube">
                     <x-admin.form.input
                         type="url"
                         name="youtube_url"
                         value="{{ old('youtube_url', $settings?->youtube_url) }}"
                         placeholder="https://youtube.com/..."
                     />
-
+                    <x-admin.form.validation-error alpine="errors.youtube_url" />
                 </x-admin.form.group>
 
-
                 {{-- WhatsApp --}}
-                <x-admin.form.group
-                    label="WhatsApp"
-                >
-
+                <x-admin.form.group label="WhatsApp">
                     <x-admin.form.input
                         type="url"
                         name="whatsapp_url"
                         value="{{ old('whatsapp_url', $settings?->whatsapp_url) }}"
                         placeholder="https://wa.me/..."
                     />
-
+                    <x-admin.form.validation-error alpine="errors.whatsapp_url" />
                 </x-admin.form.group>
 
             </div>
-
         </x-admin.card-body>
 
-
         <x-admin.card-footer>
-
             <x-admin.button type="submit">
                 Simpan Social Media
             </x-admin.button>
-
         </x-admin.card-footer>
-
     </x-admin.card>
 </form>
 

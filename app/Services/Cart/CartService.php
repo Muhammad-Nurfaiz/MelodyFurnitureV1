@@ -104,6 +104,23 @@ class CartService
 
     /*
     |--------------------------------------------------------------------------
+    | Remove Items By Ids
+    |--------------------------------------------------------------------------
+    |
+    | Menghapus hanya item tertentu dari cart berdasarkan array ID.
+    | Digunakan setelah checkout parsial (selected_item_ids) agar
+    | item yang tidak dipilih tetap tersimpan.
+    |
+    */
+
+    public function removeItemsByIds(Cart $cart, array $itemIds): void {
+        $cart->items()
+            ->whereIn('id', $itemIds)
+            ->delete();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Checkout Items
     |--------------------------------------------------------------------------
     */
@@ -114,6 +131,43 @@ class CartService
             throw new RuntimeException('Cart kosong.');
         }
         return $cart->items->load([
+            'product.thumbnail',
+            'product.specification',
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Checkout Selected Items
+    |--------------------------------------------------------------------------
+    |
+    | Memproses hanya item yang dipilih user dari keranjang.
+    | Item yang tidak dipilih tetap tersimpan di cart.
+    |
+    */
+
+    public function checkoutSelectedItems(
+        Customer $customer,
+        array $selectedItemIds
+    ): Collection {
+
+        $cart = $this->get($customer);
+
+        if ($cart->items->isEmpty()) {
+            throw new RuntimeException('Cart kosong.');
+        }
+
+        $selectedItems = $cart->items->filter(
+            fn ($item) => in_array($item->id, $selectedItemIds)
+        );
+
+        if ($selectedItems->isEmpty()) {
+            throw new RuntimeException(
+                'Item yang dipilih tidak ditemukan di keranjang.'
+            );
+        }
+
+        return $selectedItems->load([
             'product.thumbnail',
             'product.specification',
         ]);

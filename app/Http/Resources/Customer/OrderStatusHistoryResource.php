@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Customer;
 
 use Illuminate\Http\Request;
+use App\Http\Resources\RefundResource;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class OrderStatusHistoryResource extends JsonResource
@@ -51,35 +52,18 @@ class OrderStatusHistoryResource extends JsonResource
 
     protected function title(): string
     {
-
         return match ($this->status) {
-
-            'pending'
-                => 'Pesanan dibuat',
-
-            'paid'
-                => 'Pembayaran diterima',
-
-            'processing'
-                => 'Pesanan diproses',
-
-            'picked_up'
-                => 'Pesanan dijemput ekspedisi',
-
-            'completed'
-                => 'Pesanan selesai',
-
-            'req_cancel'
-                => 'Pengajuan pembatalan',
-
-            'cancelled'
-                => 'Pesanan dibatalkan',
-
-            default
-                => ucfirst($this->status),
-
+            'pending' => 'Pesanan dibuat',
+            'paid' => 'Pembayaran diterima',
+            'processing' => 'Pesanan diproses',
+            'picked_up' => 'Pesanan dijemput ekspedisi',
+            'shipped' => 'Pesanan dalam perjalanan',
+            'completed' => 'Pesanan selesai',
+            'req_cancel' => 'Pengajuan pembatalan',
+            'cancelled' => 'Pesanan dibatalkan',
+            'refund' => 'Refund dibuat',
+            default => ucfirst($this->status),
         };
-
     }
 
     /*
@@ -90,34 +74,17 @@ class OrderStatusHistoryResource extends JsonResource
 
     protected function defaultDescription(): string
     {
-
         return match ($this->status) {
-
-            'pending'
-                => 'Pesanan berhasil dibuat.',
-
-            'paid'
-                => 'Pembayaran berhasil diterima.',
-
-            'processing'
-                => 'Pesanan sedang disiapkan oleh Melody Furniture.',
-
-            'picked_up'
-                => 'Pesanan telah dijemput oleh ekspedisi.',
-
-            'completed'
-                => 'Pesanan telah diterima pelanggan.',
-
-            'req_cancel'
-                => 'Pelanggan mengajukan pembatalan pesanan.',
-
-            'cancelled'
-                => 'Pesanan telah dibatalkan.',
-
-            default
-                => '',
-
+            'pending' => 'Pesanan berhasil dibuat.',
+            'paid' => 'Pembayaran berhasil diterima.',
+            'processing' => 'Pesanan sedang disiapkan oleh Melody Furniture.',
+            'picked_up' => 'Pesanan telah dijemput oleh ekspedisi.',
+            'shipped' => 'Pesanan sedang dalam perjalanan.',
+            'completed' => 'Pesanan telah diterima pelanggan.',
+            'req_cancel' => 'Pelanggan mengajukan pembatalan pesanan.',
+            'cancelled' => 'Pesanan telah dibatalkan.',
+            'refund' => 'Refund telah dibuat dan menunggu proses.',
+            default => '',
         };
-
     }
 }

@@ -3,70 +3,58 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\CheckoutRequest;
+use App\Http\Requests\Api\DirectCheckoutRequest;
 use App\Http\Resources\OrderResource;
-use App\Services\Order\OrderService;
-use App\Services\Cart\CartService;
-use App\Services\Voucher\VoucherService;
+use App\Services\Cart\DirectCheckoutService;
 use App\Services\Customer\CustomerService;
+use App\Services\Order\OrderService;
+use App\Services\Voucher\VoucherService;
 use Illuminate\Http\JsonResponse;
 use MadeByClowd\Nusantara\Models\Regency;
-use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
-class CheckoutController extends Controller
+class DirectCheckoutController extends Controller
 {
     public function __construct(
-        protected OrderService $orderService,
-        protected CartService $cartService,
-        protected VoucherService $voucherService,
-        protected CustomerService $customerService,
+        protected DirectCheckoutService $directCheckoutService,
+        protected OrderService          $orderService,
+        protected VoucherService        $voucherService,
+        protected CustomerService       $customerService,
     ) {}
 
     /**
-     * Checkout
+     * Direct Checkout
+     *
+     * Checkout langsung dari halaman detail produk tanpa melalui cart.
+     * Produk dikirim sebagai array items[] di body request.
+     * Cart yang ada tidak tersentuh — tidak ada item yang dihapus dari cart.
      */
-    public function store(CheckoutRequest $request): JsonResponse
+    public function store(DirectCheckoutRequest $request): JsonResponse
     {
         $payload = $request->payload();
 
         /*
         |--------------------------------------------------------------------------
-        | Cart Customer
+        | Resolve Products from Payload
         |--------------------------------------------------------------------------
         |
-        | Customer dari guest token hanya digunakan sebagai pemilik cart.
-        | Data customer checkout TIDAK boleh mengubah record ini.
+        | Ubah array [{product_id, quantity}] menjadi Collection
+        | yang bisa diproses oleh OrderService.
         |
         */
 
-        $cartCustomer = $request->attributes->get('customer');
-
-        /*
-        |--------------------------------------------------------------------------
-        | Cart
-        |--------------------------------------------------------------------------
-        |
-        | Jika selected_item_ids dikirim → hanya proses item terpilih.
-        | Jika tidak dikirim            → proses semua item di cart.
-        |
-        */
-
-        $selectedItemIds = $payload['selected_item_ids'] ?? null;
-
-        $products = (!empty($selectedItemIds))
-            ? $this->cartService->checkoutSelectedItems($cartCustomer, $selectedItemIds)
-            : $this->cartService->checkoutItems($cartCustomer);
+        $products = $this->directCheckoutService->resolveItems(
+            $payload['items']
+        );
 
         /*
         |--------------------------------------------------------------------------
         | Checkout Customer
         |--------------------------------------------------------------------------
         |
-        | Customer sebenarnya ditentukan berdasarkan nomor telepon.
-        |
-        | - Phone sudah ada  → gunakan customer existing.
-        | - Phone belum ada  → buat customer baru.
+        | Customer ditentukan berdasarkan nomor telepon.
+        | - Sudah ada → pakai customer existing.
+        | - Belum ada → buat customer baru.
         |
         */
 
@@ -79,6 +67,20 @@ class CheckoutController extends Controller
 
         /*
         |--------------------------------------------------------------------------
+        | Cart Customer (Guest)
+        |--------------------------------------------------------------------------
+        |
+        | Direct checkout tidak punya cart.
+        | Gunakan customer yang sama sebagai cartCustomer.
+        | OrderService tidak akan menghapus cart karena selectedItemIds = null
+        | dan direct checkout melewati clearCart.
+        |
+        */
+
+        $cartCustomer = $request->attributes->get('customer');
+
+        /*
+        |--------------------------------------------------------------------------
         | Voucher
         |--------------------------------------------------------------------------
         */
@@ -86,33 +88,20 @@ class CheckoutController extends Controller
         $voucher = null;
 
         if (!empty($payload['voucher_code'])) {
-            $voucher = $this->voucherService
-                ->findByCode($payload['voucher_code']);
-
-            if (!$voucher) {
-                throw ValidationException::withMessages([
-                    'voucher' => 'Voucher tidak ditemukan.',
-                ]);
-            }
+            $voucher = $this->voucherService->findByCode(
+                $payload['voucher_code']
+            );
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Order
-        |--------------------------------------------------------------------------
-        */
-
-        /*
-        |--------------------------------------------------------------------------
-        | Resolve Shipping Regency
+        | Resolve Regency
         |--------------------------------------------------------------------------
         */
 
         $regency = Regency::query()
             ->with('province')
-            ->find(
-                $payload['shipping_address']['regency_id']
-            );
+            ->find($payload['shipping_address']['regency_id']);
 
         if (!$regency) {
             throw new RuntimeException(
@@ -125,9 +114,8 @@ class CheckoutController extends Controller
         | Normalize Shipping Address
         |--------------------------------------------------------------------------
         |
-        | city dan province tidak dipercaya dari frontend.
-        | Nilainya selalu diambil dari database Nusantara
-        | berdasarkan regency_id.
+        | city dan province selalu diambil dari database Nusantara,
+        | bukan dari frontend.
         |
         */
 
@@ -149,7 +137,7 @@ class CheckoutController extends Controller
 
             'address' =>
                 $payload['shipping_address']['address'],
-            
+
             'area' =>
                 $payload['shipping_address']['area'],
 
@@ -169,19 +157,29 @@ class CheckoutController extends Controller
             'address' => $shippingAddress,
         ];
 
-        $order = $this->orderService
-            ->checkout(
-                customer:        $customer,
-                cartCustomer:    $cartCustomer,
-                products:        $products,
-                voucher:         $voucher,
-                shipping:        $shipping,
-                selectedItemIds: $selectedItemIds,
-            );
+        /*
+        |--------------------------------------------------------------------------
+        | Checkout
+        |--------------------------------------------------------------------------
+        |
+        | selectedItemIds = null → cart tidak akan dikosongkan.
+        | Direct checkout tidak memiliki cart yang perlu dibersihkan.
+        |
+        */
+
+        $order = $this->orderService->checkout(
+            customer:        $customer,
+            cartCustomer:    $cartCustomer,
+            products:        $products,
+            voucher:         $voucher,
+            shipping:        $shipping,
+            selectedItemIds: null,
+            clearCart: false,
+        );
 
         return response()->json([
             'message' => 'Checkout berhasil.',
-            'data' => new OrderResource($order),
+            'data'    => new OrderResource($order),
         ], 201);
     }
 }

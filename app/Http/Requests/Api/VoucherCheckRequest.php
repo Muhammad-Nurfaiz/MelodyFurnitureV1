@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Api\Cart;
+namespace App\Http\Requests\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class AddCartItemRequest extends FormRequest
+class VoucherCheckRequest extends FormRequest
 {
     /**
      * Authorize
@@ -23,25 +23,30 @@ class AddCartItemRequest extends FormRequest
 
             /*
             |--------------------------------------------------------------------------
-            | Product
+            | Voucher Code
             |--------------------------------------------------------------------------
             */
 
-            'product_id' => [
+            'code' => [
                 'required',
-                'exists:products,id',
+                'string',
+                'max:100',
             ],
 
             /*
             |--------------------------------------------------------------------------
-            | Quantity
+            | Subtotal
             |--------------------------------------------------------------------------
+            |
+            | Dibutuhkan untuk menghitung estimasi potongan harga
+            | dan validasi minimum pembelian voucher.
+            |
             */
 
-            'quantity' => [
+            'subtotal' => [
                 'required',
-                'integer',
-                'min:1',
+                'numeric',
+                'min:0',
             ],
 
         ];
@@ -53,30 +58,11 @@ class AddCartItemRequest extends FormRequest
     public function messages(): array
     {
         return [
-
-            'product_id.required'
-                => 'Produk wajib dipilih.',
-
-            'product_id.exists'
-                => 'Produk tidak ditemukan.',
-
-            'quantity.required'
-                => 'Jumlah produk wajib diisi.',
-
-            'quantity.integer'
-                => 'Jumlah produk harus berupa angka.',
-
-            'quantity.min'
-                => 'Jumlah minimal adalah 1.',
-
+            'code.required'     => 'Kode voucher wajib diisi.',
+            'code.max'          => 'Kode voucher maksimal 100 karakter.',
+            'subtotal.required' => 'Subtotal wajib diisi.',
+            'subtotal.numeric'  => 'Subtotal harus berupa angka.',
+            'subtotal.min'      => 'Subtotal tidak boleh negatif.',
         ];
-    }
-
-    /**
-     * Safe Payload
-     */
-    public function payload(): array
-    {
-        return $this->validated();
     }
 }

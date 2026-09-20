@@ -77,6 +77,7 @@ Route::middleware(['auth'])
         Route::get('/settings',[SettingsController::class, 'index'])->name('settings.index');
         Route::patch('/settings/store',[SettingsController::class, 'updateStore'])->name('settings.store.update');
         Route::patch('settings/branding',[SettingsController::class, 'updateBranding'])->name('settings.branding.update');
+        Route::patch('/social-media', [SettingsController::class, 'updateSocialMedia'])->name('settings.social-media.update');
         Route::post('/settings/hero',[SettingsController::class, 'storeHero'])->name('settings.hero.store');
         Route::patch('/settings/hero/{heroSlide}',[SettingsController::class, 'updateHero'])->name('settings.hero.update');
         Route::delete('/settings/hero/{heroSlide}',[SettingsController::class, 'destroyHero'])->name('settings.hero.destroy');

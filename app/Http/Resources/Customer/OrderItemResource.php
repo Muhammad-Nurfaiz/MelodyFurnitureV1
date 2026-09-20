@@ -25,7 +25,7 @@ class OrderItemResource extends JsonResource
             'id' => $this->product_id,
             'name' => $this->product_name,
             'slug' => $this->product_slug,
-            'thumbnail' => $this->product_thumbnail,
+            'image' => $this->product_image,
 
             /*
             |--------------------------------------------------------------------------

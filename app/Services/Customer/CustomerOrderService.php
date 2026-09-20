@@ -81,8 +81,6 @@ class CustomerOrderService
 
                 reason: $reason,
 
-                note: $note,
-
             );
 
     }

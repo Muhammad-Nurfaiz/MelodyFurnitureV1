@@ -12,6 +12,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -59,32 +60,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 'errors' => $e->errors(),
             ], 422);
 
-        });
-
-        $exceptions->render(function (
-            \RuntimeException $e,
-            Request $request
-        ) {
-
-            if (! $request->is('api/*')) {
-                return null;
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | Preserve Explicit HTTP Responses
-            |--------------------------------------------------------------------------
-            */
-
-            if ($e instanceof HttpResponseException) {
-                return $e->getResponse();
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-                'errors' => null,
-            ], 422);
         });
 
         /*
@@ -154,6 +129,63 @@ return Application::configure(basePath: dirname(__DIR__))
                 'errors' => null,
             ], 404);
 
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Not Found Exception
+        |--------------------------------------------------------------------------
+        */
+
+        $exceptions->render(function (
+            NotFoundHttpException $e,
+            Request $request
+        ) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Resource not found.',
+                'errors' => null,
+            ], 404);
+        });
+
+        $exceptions->render(function (
+            \RuntimeException $e,
+            Request $request
+        ) {
+
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Preserve Explicit HTTP Responses
+            |--------------------------------------------------------------------------
+            */
+
+            if ($e instanceof HttpResponseException) {
+                return $e->getResponse();
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Let ModelNotFoundException be handled by its dedicated 404 handler
+            |--------------------------------------------------------------------------
+            */
+
+            if ($e instanceof ModelNotFoundException) {
+                return null;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => null,
+            ], 422);
         });
 
         /*

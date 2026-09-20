@@ -145,7 +145,7 @@ class OrderAdminService
                 'label' => 'Tandai Dikirim',
                 'route' => route(
                     'admin.shipments.transit',
-                    $order->shipment
+                    $order
                 ),
                 'method' => 'PATCH',
             ],
@@ -156,7 +156,7 @@ class OrderAdminService
                 'label' => 'Selesaikan Pesanan',
                 'route' => route(
                     'admin.shipments.delivered',
-                    $order->shipment
+                    $order
                 ),
                 'method' => 'PATCH',
             ],

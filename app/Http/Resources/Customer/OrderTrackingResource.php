@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Http\Resources\Customer\CancellationRequestResource;
 use App\Http\Resources\Customer\OrderStatusHistoryResource;
+use App\Http\Resources\RefundResource;
 use App\Http\Resources\Customer\OrderItemResource;
 
 class OrderTrackingResource extends JsonResource
@@ -18,7 +19,7 @@ class OrderTrackingResource extends JsonResource
     ): array {
 
         return [
-
+            'id' => $this->id,
             /*
             |--------------------------------------------------------------------------
             | Order
@@ -113,6 +114,8 @@ class OrderTrackingResource extends JsonResource
                     $this->whenLoaded('cancellationRequest')
                 ),
 
+                'refund' =>
+                    new RefundResource($this->whenLoaded('refund')),
             /*
             |--------------------------------------------------------------------------
             | Timeline

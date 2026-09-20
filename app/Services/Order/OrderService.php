@@ -64,14 +64,18 @@ class OrderService
         Customer $cartCustomer,
         Collection $products,
         ?Voucher $voucher,
-        array $shipping
+        array $shipping,
+        ?array $selectedItemIds = null,
+        bool $clearCart = true,
     ): Order {
         return DB::transaction(function () use (
             $customer,
             $cartCustomer,
             $products,
             $voucher,
-            $shipping
+            $shipping,
+            $selectedItemIds,
+            $clearCart,
         ) {
 
             /*
@@ -234,14 +238,27 @@ class OrderService
             |--------------------------------------------------------------------------
             | Clear Cart
             |--------------------------------------------------------------------------
+            |
+            | Jika selectedItemIds ada → hapus hanya item yang diproses.
+            | Jika null               → kosongkan seluruh cart (perilaku default).
+            |
             */
 
-            $cartCustomer->loadMissing('cart');
+            if ($clearCart) {
+                $cartCustomer->loadMissing('cart');
 
-            if ($cartCustomer->cart) {
-                $this->cartService->clearCart(
-                    $cartCustomer->cart
-                );
+                if ($cartCustomer->cart) {
+                    if (!empty($selectedItemIds)) {
+                        $this->cartService->removeItemsByIds(
+                            $cartCustomer->cart,
+                            $selectedItemIds
+                        );
+                    } else {
+                        $this->cartService->clearCart(
+                            $cartCustomer->cart
+                        );
+                    }
+                }
             }
 
             /*
@@ -317,7 +334,6 @@ class OrderService
             $product = $item->product;
 
             $price =
-                $product->is_sale &&
                 $product->discount_price
                     ? $product->discount_price
                     : $product->original_price;
