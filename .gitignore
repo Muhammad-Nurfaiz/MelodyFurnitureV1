@@ -22,3 +22,12 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Local development database
+melody_db
+melody_db.db
+*.sqlite
+*.sqlite3
+
+# Local development tools
+ngrok.exe
