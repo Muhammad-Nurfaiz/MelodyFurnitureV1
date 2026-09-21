@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('shipments', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('order_id')
-                ->constrained()
+            $table->foreignUuid('order_id')
+                ->constrained('orders')
                 ->cascadeOnDelete();
 
             $table->string('courier');

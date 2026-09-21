@@ -23,8 +23,7 @@ return new class extends Migration
 
             $table->foreignUuid('order_id')
                 ->constrained('orders')
-                ->cascadeOnDelete()
-                ->index();
+                ->cascadeOnDelete();
 
             /*
             |--------------------------------------------------------------------------
@@ -52,8 +51,7 @@ return new class extends Migration
             $table->foreignUuid('admin_id')
                 ->nullable()
                 ->constrained('admins')
-                ->nullOnDelete()
-                ->index();
+                ->nullOnDelete();
 
             $table->string('actor')->default('system')->index();
 

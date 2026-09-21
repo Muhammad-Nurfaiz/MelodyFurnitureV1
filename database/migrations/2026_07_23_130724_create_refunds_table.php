@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::create('refunds', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('order_id')
-                ->constrained()
+            $table->foreignUuid('order_id')
+                ->constrained('orders')
                 ->cascadeOnDelete();
 
-            $table->foreignId('payment_id')
-                ->constrained()
+            $table->foreignUuid('payment_id')
+                ->constrained('payments')
                 ->cascadeOnDelete();
 
             /*
@@ -62,7 +62,7 @@ return new class extends Migration
             |--------------------------------------------------------------------------
             */
 
-            $table->foreignId('processed_by')
+            $table->foreignUuid('processed_by')
                 ->nullable()
                 ->constrained('admins')
                 ->nullOnDelete();

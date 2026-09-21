@@ -12,26 +12,29 @@ return new class extends Migration
     {
         /*
         |--------------------------------------------------------------------------
-        | Get Existing Data
+        | MySQL
+        |--------------------------------------------------------------------------
+        */
+
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("
+                ALTER TABLE refunds
+                MODIFY id CHAR(36) NOT NULL
+            ");
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | SQLite
         |--------------------------------------------------------------------------
         */
 
         $refunds = DB::table('refunds')
             ->get();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Disable Foreign Keys
-        |--------------------------------------------------------------------------
-        */
-
         DB::statement('PRAGMA foreign_keys = OFF');
-
-        /*
-        |--------------------------------------------------------------------------
-        | Create New Table
-        |--------------------------------------------------------------------------
-        */
 
         Schema::create('refunds_new', function (Blueprint $table) {
 
@@ -141,57 +144,26 @@ return new class extends Migration
         */
 
         foreach ($refunds as $refund) {
-
             DB::table('refunds_new')->insert([
-
-                /*
-                |------------------------------------------------------------------
-                | New UUID
-                |------------------------------------------------------------------
-                */
-
                 'id' => (string) Str::uuid(),
 
-                /*
-                |------------------------------------------------------------------
-                | Existing UUID Relations
-                |------------------------------------------------------------------
-                */
-
                 'order_id' => $refund->order_id,
-
                 'payment_id' => $refund->payment_id,
-
                 'processed_by' => $refund->processed_by,
 
-                /*
-                |------------------------------------------------------------------
-                | Existing Refund Data
-                |------------------------------------------------------------------
-                */
-
                 'refund_number' => $refund->refund_number,
-
                 'amount' => $refund->amount,
-
                 'bank_name' => $refund->bank_name,
-
                 'account_name' => $refund->account_name,
-
                 'account_number' => $refund->account_number,
-
                 'status' => $refund->status,
-
                 'notes' => $refund->notes,
 
                 'requested_at' => $refund->requested_at,
-
                 'processed_at' => $refund->processed_at,
-
                 'completed_at' => $refund->completed_at,
 
                 'created_at' => $refund->created_at,
-
                 'updated_at' => $refund->updated_at,
             ]);
         }
@@ -208,12 +180,6 @@ return new class extends Migration
             'refunds_new',
             'refunds'
         );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Enable Foreign Keys
-        |--------------------------------------------------------------------------
-        */
 
         DB::statement('PRAGMA foreign_keys = ON');
     }
