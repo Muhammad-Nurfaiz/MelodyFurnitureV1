@@ -130,6 +130,7 @@
 
                     <p>
                         {{ $address['address'] ?? '-' }}
+                        {{ $address['area'] ?? '-' }}
                     </p>
 
                     <p>

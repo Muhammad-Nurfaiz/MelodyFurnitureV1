@@ -256,9 +256,9 @@
 
         <div style="margin-top: 4px;">
 
+            {{ $address['area'] ?? '-' }},
             {{ $address['city'] ?? '-' }},
             {{ $address['province'] ?? '-' }}
-
             {{ $address['postal_code'] ?? '' }}
 
         </div>

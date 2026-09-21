@@ -372,6 +372,7 @@
         <div class="address">
 
             {{ $address['address'] ?? '-' }}
+            {{ $address['area'] ?? '-' }}
 
             <br>
 
