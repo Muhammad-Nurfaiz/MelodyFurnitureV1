@@ -12,7 +12,12 @@
 @endphp
 
 <div
-    x-data="productForm()"
+    x-data="productForm(@js([
+        'originalPrice' => old('original_price', $product?->original_price),
+        'discountPrice' => old('discount_price', $product?->discount_price),
+        'discountPercentage' => old('discount_percentage', $product?->discount_percentage),
+        'isSale' => old('is_sale', $product?->is_sale),
+    ]))"
     class="space-y-8">
 
     @if ($errors->any())

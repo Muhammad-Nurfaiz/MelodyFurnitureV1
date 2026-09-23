@@ -177,7 +177,7 @@ class ShippingRateController extends Controller
         }
 
         return redirect()
-            ->route('admin.shipping-rates.index')
+            ->back()
             ->with(
                 'success',
                 'Tarif shipping berhasil diperbarui.'

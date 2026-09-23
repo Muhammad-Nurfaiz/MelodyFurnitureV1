@@ -44,7 +44,7 @@ class TemporaryMediaService
 
                 'size'       => $file->getSize(),
 
-                'expires_at' => now()->addMinutes(3),
+                'expires_at' => now()->addHours(12),
 
             ]);
         });

@@ -1,4 +1,4 @@
-window.productForm = () => ({
+window.productForm = (initial = {}) => ({
 
     /*
     |--------------------------------------------------------------------------
@@ -10,13 +10,13 @@ window.productForm = () => ({
 
     maxStep: 4,
 
-    originalPrice: '',
+    originalPrice: initial.originalPrice ?? '',
 
-    discountPrice: '',
+    discountPrice: initial.discountPrice ?? '',
 
-    discountPercentage: '',
-    
-    isSale: false,
+    discountPercentage: initial.discountPercentage ?? '',
+
+    isSale: Boolean(Number(initial.isSale ?? 0)),
 
     calculateDiscount() {
         const original = parseFloat(this.originalPrice);
@@ -100,20 +100,7 @@ window.productForm = () => ({
     },
 
     init() {
-
-        // Sinkronisasi nilai dari DOM saat komponen dimuat
-        if (this.$refs.original_price) {
-            this.originalPrice = this.$refs.original_price.value || '';
-        }
-        if (this.$refs.discount_price) {
-            this.discountPrice = this.$refs.discount_price.value || '';
-        }
-        const isSaleInput = this.$refs.is_sale;
-        if (isSaleInput) {
-            this.isSale = isSaleInput.checked;
-        }
         this.calculateDiscount();
-
     },
 
     validateStep() {
