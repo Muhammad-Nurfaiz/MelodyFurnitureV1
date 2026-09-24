@@ -49,6 +49,17 @@ class MidtransWebhookService
 
         $orderId = $notification['order_id'] ?? null;
 
+        if (
+            is_string($orderId) &&
+            str_starts_with($orderId, 'payment_notif_test_')
+        ) {
+            Log::info('Midtrans test notification verified successfully', [
+                'order_id' => $orderId,
+            ]);
+
+            return;
+        }
+
         if (empty($orderId)) {
             throw new RuntimeException('Midtrans notification tidak memiliki order_id.');
         }
