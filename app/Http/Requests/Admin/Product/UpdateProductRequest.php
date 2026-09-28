@@ -137,7 +137,8 @@ class UpdateProductRequest extends FormRequest
             ],
 
             'variants' => [
-                'required_if:variants_enabled,true',
+                'exclude_unless:variants_enabled,true',
+                'required',
                 'array',
                 'min:1',
             ],
