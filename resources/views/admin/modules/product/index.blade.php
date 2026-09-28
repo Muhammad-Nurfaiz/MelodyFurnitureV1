@@ -104,13 +104,16 @@
                                 <x-admin.avatar
                                     :src="$product->thumbnail?->url"
                                     :alt="$product->name"
-                                    size="lg"/>
-                                <div class="min-w-0 flex-1">
+                                    size="lg"
+                                />
+                        
+                                <div class="min-w-0 flex-1 overflow-hidden">
                                     <div class="font-semibold text-gray-900 truncate">
-                                        {{ $product->name }}
+                                        {{ Str::limit($product->name, 40) }}
                                     </div>
+                        
                                     <div class="text-xs text-gray-500 mt-1 truncate">
-                                        {{ Str::limit($product->slug,40) }}
+                                        {{ Str::limit($product->slug, 40) }}
                                     </div>
                                 </div>
                             </div>

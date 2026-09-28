@@ -7,6 +7,7 @@ use App\Models\HeroSlide;
 use App\Models\PromoBanner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use App\Models\Setting;
 
 class HomeContentController extends Controller

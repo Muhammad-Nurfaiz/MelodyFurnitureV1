@@ -1,8 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,14 +10,24 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('cart_items', function (Blueprint $table) {
-            $table->dropUnique('cart_items_cart_id_product_id_unique');
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-            $table->unique(
-                ['cart_id', 'product_id', 'product_variant_id'],
-                'cart_items_cart_product_variant_unique'
-            );
-        });
+        try {
+            DB::statement('ALTER TABLE cart_items DROP INDEX cart_items_cart_id_product_id_unique');
+        } catch (\Exception $e) {
+            // Lanjutkan jika indeks sudah terhapus sebelumnya
+        }
+
+        try {
+            DB::statement('
+                ALTER TABLE cart_items 
+                ADD UNIQUE KEY cart_items_cart_product_variant_unique (cart_id, product_id, product_variant_id)
+            ');
+        } catch (\Exception $e) {
+            // Lanjutkan jika unique key sudah ada
+        }
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
     }
 
     /**
@@ -26,13 +35,19 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('cart_items', function (Blueprint $table) {
-            $table->dropUnique('cart_items_cart_product_variant_unique');
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-            $table->unique(
-                ['cart_id', 'product_id'],
-                'cart_items_cart_id_product_id_unique'
-            );
-        });
+        try {
+            DB::statement('ALTER TABLE cart_items DROP INDEX cart_items_cart_product_variant_unique');
+        } catch (\Exception $e) {}
+
+        try {
+            DB::statement('
+                ALTER TABLE cart_items 
+                ADD UNIQUE KEY cart_items_cart_id_product_id_unique (cart_id, product_id)
+            ');
+        } catch (\Exception $e) {}
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
     }
 };
