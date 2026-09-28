@@ -105,6 +105,8 @@ class OrderTrackingResource extends JsonResource
                     'id' => $item->product_id,
                     'name' => $item->product_name,
                     'slug' => $item->product_slug,
+                    'product_variant_id' => $item->product_variant_id,
+                    'product_variant_name' => $item->product_variant_name,
                     'image' => $item->product_image,
                     'quantity' => $item->quantity,
                     'unit_price' => $item->unit_price,

@@ -92,6 +92,7 @@ class ProductController extends Controller
                 'specification',
                 'media' => fn ($query) =>
                     $query->orderBy('sort_order'),
+                'variants',
             ])
             ->where('slug', $slug)
             ->firstOrFail();

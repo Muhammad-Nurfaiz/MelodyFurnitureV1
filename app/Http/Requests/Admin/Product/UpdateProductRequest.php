@@ -124,7 +124,38 @@ class UpdateProductRequest extends FormRequest
             |--------------------------------------------------------------------------
             */
 
+            'variants_enabled' => [
+                'required',
+                'boolean',
+            ],
+
             'ready_stock' => [
+                'required_if:variants_enabled,false',
+                'nullable',
+                'integer',
+                'min:0',
+            ],
+
+            'variants' => [
+                'required_if:variants_enabled,true',
+                'array',
+                'min:1',
+            ],
+
+            'variants.*.id' => [
+                'nullable',
+                'uuid',
+                'exists:product_variants,id',
+            ],
+
+            'variants.*.name' => [
+                'required',
+                'string',
+                'max:100',
+                'distinct',
+            ],
+
+            'variants.*.ready_stock' => [
                 'required',
                 'integer',
                 'min:0',
@@ -208,10 +239,19 @@ class UpdateProductRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $variants = collect($this->input('variants', []))
+            ->filter(function ($variant) {
+                return filled($variant['name'] ?? '')
+                    || filled($variant['ready_stock'] ?? '');
+            })
+            ->values()
+            ->all();
+
         $this->merge([
-            // Memastikan input '1', 'true', true, atau 'on' jadi true, selain itu false
             'is_sale' => $this->boolean('is_sale'),
             'assembly_required' => $this->boolean('assembly_required'),
+            'variants_enabled' => $this->boolean('variants_enabled'),
+            'variants' => $variants,
         ]);
     }
 

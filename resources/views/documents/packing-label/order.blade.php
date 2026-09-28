@@ -12,7 +12,7 @@
     <style>
 
         @page {
-            margin: 12px;
+            margin: 8px;
         }
 
         * {
@@ -38,8 +38,8 @@
 
         .header {
             border-bottom: 2px solid #111827;
-            padding-bottom: 10px;
-            margin-bottom: 12px;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
         }
 
         .header-table {
@@ -86,7 +86,7 @@
         ========================================================= */
 
         .section {
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         .section-title {
@@ -171,6 +171,13 @@
             font-weight: bold;
         }
 
+        .variant {
+            margin-top: 2px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #374151;
+        }
+
         .sku {
             margin-top: 2px;
             font-size: 9px;
@@ -208,7 +215,7 @@
         ========================================================= */
 
         .warning-box {
-            margin-top: 12px;
+            margin-top: 8px;
             border: 2px solid #dc2626;
             background: #fef2f2;
             border-radius: 6px;
@@ -262,7 +269,7 @@
         ========================================================= */
 
         .warehouse-note {
-            margin-top: 12px;
+            margin-top: 8px;
             border: 1px dashed #9ca3af;
             padding: 9px;
             min-height: 65px;
@@ -288,8 +295,8 @@
         ========================================================= */
 
         .footer {
-            margin-top: 12px;
-            padding-top: 8px;
+            margin-top: 6px;
+            padding-top: 5px;
             border-top: 1px solid #d1d5db;
             text-align: center;
             font-size: 8px;
@@ -371,7 +378,7 @@
 
         <div class="address">
 
-            {{ $address['address'] ?? '-' }}
+            {{ $address['address'] ?? '-' }},
             {{ $address['area'] ?? '-' }}
 
             <br>
@@ -492,6 +499,14 @@
                             <strong>
                                 {{ $item->product_name }}
                             </strong>
+
+                            @if($item->product_variant_name)
+
+                                <div class="variant">
+                                    Varian: {{ $item->product_variant_name }}
+                                </div>
+
+                            @endif
 
                             @if($item->product_sku)
 

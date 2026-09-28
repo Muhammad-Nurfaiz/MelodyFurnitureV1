@@ -127,11 +127,18 @@ class OrderCalculatorService
         |--------------------------------------------------------------------------
         */
 
-        $shippingFee = $this->shippingService->calculate(
+        $originalShippingFee = $this->shippingService->calculate(
             weight: $totalWeight,
             regencyId: $regencyId,
             courier: $courier,
             service: $service,
+        );
+
+        $subsidy = $shippingWeight * 3000;
+
+        $shippingFee = max(
+            0,
+            $originalShippingFee - $subsidy
         );
 
         /*
@@ -154,6 +161,8 @@ class OrderCalculatorService
             'shipping_weight' => $shippingWeight,
 
             'voucher_discount' => $voucherDiscount,
+
+            'original_shipping_fee' => $originalShippingFee,
 
             'shipping_fee' => $shippingFee,
 
@@ -286,20 +295,27 @@ class OrderCalculatorService
             try {
 
                 $shipping = $this->shippingService->estimate(
-                    weight:    $totalWeight,
+                    weight: $totalWeight,
                     regencyId: $regencyId,
-                    courier:   $courier->code,
-                    service:   $service,
+                    courier: $courier->code,
+                    service: $service,
                 );
 
+                $originalFee = (float) $shipping['fee'];
+
+                $subsidy = $shipping['weight'] * 3000;
+
+                $fee = max(0, (float) $shipping['fee'] - $subsidy);
+
                 $results[] = [
-                    'courier_id'   => $courier->id,
+                    'courier_id' => $courier->id,
                     'courier_code' => $courier->code,
                     'courier_name' => $courier->name,
-                    'service'      => $service,
-                    'weight'       => $shipping['weight'],
-                    'fee'          => $shipping['fee'],
-                    'available'    => true,
+                    'service' => $service,
+                    'weight' => $shipping['weight'],
+                    'original_fee' => $originalFee,
+                    'fee' => $fee,
+                    'available' => true,
                 ];
 
             } catch (\Throwable) {

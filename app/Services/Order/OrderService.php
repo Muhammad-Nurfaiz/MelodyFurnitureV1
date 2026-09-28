@@ -146,7 +146,7 @@ class OrderService
                 'total_product_price' => $summary['subtotal'],
                 'voucher_discount_amount' => $summary['voucher_discount'],
 
-                'original_shipping_fee' => $summary['shipping_fee'],
+                'original_shipping_fee' => $summary['original_shipping_fee'],
                 'shipping_fee' => $summary['shipping_fee'],
 
                 'total_payment' => $summary['total_payment'],
@@ -341,6 +341,11 @@ class OrderService
             OrderItem::create([
                 'order_id' => $order->id,
                 'product_id' => $product->id,
+                'product_variant_id' => data_get($item, 'product_variant_id'),
+                'product_variant_name' => data_get(
+                    $item,
+                    'productVariant.name'
+                ),
 
                 'product_name' => $product->name,
                 'product_slug' => $product->slug,
@@ -448,9 +453,15 @@ class OrderService
             |--------------------------------------------------------------------------
             */
 
-            $this->inventoryService->increaseStock(
-                $this->inventoryItems($order)
-            );
+            if ($order->payment_status === 'pending') {
+                $this->inventoryService->releaseLockedStock(
+                    $this->inventoryItems($order)
+                );
+            } else {
+                $this->inventoryService->increaseStock(
+                    $this->inventoryItems($order)
+                );
+            }
 
             /*
             |--------------------------------------------------------------------------
@@ -567,9 +578,15 @@ class OrderService
             |--------------------------------------------------------------------------
             */
 
-            $this->inventoryService->increaseStock(
-                $this->inventoryItems($order)
-            );
+            if ($order->payment_status === 'pending') {
+                $this->inventoryService->releaseLockedStock(
+                    $this->inventoryItems($order)
+                );
+            } else {
+                $this->inventoryService->increaseStock(
+                    $this->inventoryItems($order)
+                );
+            }
 
             /*
             |--------------------------------------------------------------------------
@@ -665,6 +682,20 @@ class OrderService
             $order->update([
                 'payment_status' => 'paid',
             ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Confirm Inventory Sale
+            |--------------------------------------------------------------------------
+            */
+
+            $order->loadMissing([
+                'items.product',
+            ]);
+
+            $this->inventoryService->confirmSale(
+                $order->items
+            );
 
             /*
             |--------------------------------------------------------------------------

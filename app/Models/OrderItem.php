@@ -24,6 +24,8 @@ class OrderItem extends Model
         'order_id',
 
         'product_id',
+        'product_variant_id',
+        'product_variant_name',
 
         /*
         |--------------------------------------------------------------------------
@@ -32,11 +34,8 @@ class OrderItem extends Model
         */
 
         'product_name',
-
         'product_slug',
-
         'product_image',
-
         'product_sku',
 
         /*
@@ -46,9 +45,7 @@ class OrderItem extends Model
         */
 
         'quantity',
-
         'unit_price',
-
         'subtotal',
 
     ];

@@ -39,6 +39,12 @@ class DirectCheckoutRequest extends FormRequest
                 'exists:products,id',
             ],
 
+            'items.*.product_variant_id' => [
+                'nullable',
+                'uuid',
+                'exists:product_variants,id',
+            ],
+
             'items.*.quantity' => [
                 'required',
                 'integer',

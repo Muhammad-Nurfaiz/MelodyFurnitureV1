@@ -3,6 +3,7 @@
 namespace App\Services\Cart;
 
 use App\Models\Product;
+use App\Models\CartItem;
 use Illuminate\Support\Collection;
 use RuntimeException;
 
@@ -35,6 +36,7 @@ class DirectCheckoutService
                 ->with([
                     'thumbnail',
                     'specification',
+                    'variants',
                 ])
                 ->find($item['product_id']);
 
@@ -52,20 +54,62 @@ class DirectCheckoutService
 
             /*
             |--------------------------------------------------------------------------
+            | Resolve Variant
+            |--------------------------------------------------------------------------
+            */
+
+            $productVariant = null;
+
+            if (!empty($item['product_variant_id'])) {
+                $productVariant = $product->variants
+                    ->firstWhere('id', $item['product_variant_id']);
+
+                if (!$productVariant) {
+                    throw new RuntimeException(
+                        "Varian produk {$product->name} tidak ditemukan."
+                    );
+                }
+
+                if (!$productVariant->is_active) {
+                    throw new RuntimeException(
+                        "Varian {$productVariant->name} pada produk {$product->name} tidak aktif."
+                    );
+                }
+            }
+
+            /*
+            |--------------------------------------------------------------------------
             | Stock Check
             |--------------------------------------------------------------------------
             */
 
-            if ($product->ready_stock < 1) {
+            $availableStock = $productVariant
+                ? (int) $productVariant->ready_stock
+                : (int) $product->ready_stock;
+
+            if ($availableStock < 1) {
+                if ($productVariant) {
+                    throw new RuntimeException(
+                        "Stok varian {$productVariant->name} pada produk {$product->name} sedang habis."
+                    );
+                }
+
                 throw new RuntimeException(
                     "Produk {$product->name} sedang habis."
                 );
             }
 
-            if ($item['quantity'] > $product->ready_stock) {
+            if ($item['quantity'] > $availableStock) {
+                if ($productVariant) {
+                    throw new RuntimeException(
+                        "Stok varian {$productVariant->name} pada produk {$product->name} tidak mencukupi. " .
+                        "Tersedia: {$availableStock}."
+                    );
+                }
+
                 throw new RuntimeException(
                     "Stok produk {$product->name} tidak mencukupi. " .
-                    "Tersedia: {$product->ready_stock}."
+                    "Tersedia: {$availableStock}."
                 );
             }
 
@@ -74,19 +118,28 @@ class DirectCheckoutService
             | Build Item Object
             |--------------------------------------------------------------------------
             |
-            | Dibuat sebagai object anonim agar strukturnya sama
-            | persis dengan CartItem yang di-load dari database.
+            | Struktur dibuat agar kompatibel dengan OrderService.
             |
             */
 
-            $resolved->push((object) [
-                'product'  => $product,
+            $cartItem = new CartItem([
+                'product_variant_id' => $productVariant?->id,
                 'quantity' => (int) $item['quantity'],
             ]);
+
+            $cartItem->setRelation('product', $product);
+
+            if ($productVariant) {
+                $cartItem->setRelation('productVariant', $productVariant);
+            }
+
+            $resolved->push($cartItem);
         }
 
         if ($resolved->isEmpty()) {
-            throw new RuntimeException('Tidak ada produk yang dapat diproses.');
+            throw new RuntimeException(
+                'Tidak ada produk yang dapat diproses.'
+            );
         }
 
         return $resolved;

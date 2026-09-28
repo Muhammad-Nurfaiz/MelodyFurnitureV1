@@ -31,6 +31,7 @@ class ProductController extends Controller
                 'category',
                 'series',
                 'thumbnail',
+                'variants',
             ])
             ->search($request->search)
             ->category($request->category)
@@ -41,7 +42,16 @@ class ProductController extends Controller
             )
             ->when(
                 $request->boolean('ready_stock'),
-                fn ($query) => $query->where('ready_stock', '>', 0)
+                function ($query) {
+                    $query->where(function ($q) {
+                        $q->where('ready_stock', '>', 0)
+                            ->orWhereHas('variants', function ($variantQuery) {
+                                $variantQuery
+                                    ->where('is_active', true)
+                                    ->where('ready_stock', '>', 0);
+                            });
+                    });
+                }
             )
             ->latest()
             ->paginate(10)
@@ -49,8 +59,20 @@ class ProductController extends Controller
 
         $stats = [
             'total' => Product::count(),
+
             'sale' => Product::sale()->count(),
-            'stock' => Product::where('ready_stock', '>', 0)->count(),
+
+            'stock' => Product::query()
+                ->where(function ($query) {
+                    $query->where('ready_stock', '>', 0)
+                        ->orWhereHas('variants', function ($variantQuery) {
+                            $variantQuery
+                                ->where('is_active', true)
+                                ->where('ready_stock', '>', 0);
+                        });
+                })
+                ->count(),
+
             'categories' => Category::count(),
         ];
 

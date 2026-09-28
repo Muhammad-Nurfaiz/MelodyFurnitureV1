@@ -29,12 +29,22 @@ class WhatsappMessageTemplateService
 
     protected function paid(Order $order): string
     {
+        $trackingUrl = rtrim(
+            config('services.frontend.url'),
+            '/'
+        ) . '/track?tracking_token=' . urlencode($order->tracking_token);
+
         return implode("\n", [
             "Halo {$order->customer_name},",
             "",
-            "Pembayaran untuk pesanan *{$order->order_number}* telah berhasil kami terima.",
+            "Pembayaran pesanan *{$order->order_number}* telah berhasil kami terima.",
             "",
-            "Terima kasih telah melakukan pembayaran.",
+            "Pesanan Anda selanjutnya akan kami proses.",
+            "",
+            "Lihat detail dan status pesanan Anda:",
+            $trackingUrl,
+            "",
+            "Terima kasih telah berbelanja di Melody Furniture.",
             "",
             "Melody Furniture",
         ]);

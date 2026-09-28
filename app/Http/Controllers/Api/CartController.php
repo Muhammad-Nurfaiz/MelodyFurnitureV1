@@ -9,6 +9,7 @@ use App\Http\Requests\Api\Cart\UpdateCartItemRequest;
 use App\Http\Resources\CartResource;
 use App\Models\Product;
 use App\Services\Cart\CartService;
+use App\Models\ProductVariant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -47,9 +48,14 @@ class CartController extends Controller
             $request->product_id
         );
 
+        $variant = $request->product_variant_id
+            ? ProductVariant::findOrFail($request->product_variant_id)
+            : null;
+
         $cart = $this->cartService->addItem(
             customer: $request->attributes->get('customer'),
             product: $product,
+            variant: $variant,
             quantity: $request->quantity,
         );
 

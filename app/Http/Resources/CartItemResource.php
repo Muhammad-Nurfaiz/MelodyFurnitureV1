@@ -15,6 +15,10 @@ class CartItemResource extends JsonResource
         $price = $this->product->discount_price
             ?? $this->product->original_price;
 
+        $stock = $this->product_variant_id
+            ? $this->productVariant->ready_stock
+            : $this->product->ready_stock;
+
         return [
 
             'id' => $this->id,
@@ -30,6 +34,19 @@ class CartItemResource extends JsonResource
             'unit_price' => $price,
 
             'subtotal' => $price * $this->quantity,
+
+            /*
+            |--------------------------------------------------------------------------
+            | Variant
+            |--------------------------------------------------------------------------
+            */
+
+            'product_variant' => $this->productVariant
+                ? [
+                    'id' => $this->productVariant->id,
+                    'name' => $this->productVariant->name,
+                ]
+                : null,
 
             /*
             |--------------------------------------------------------------------------
@@ -49,7 +66,7 @@ class CartItemResource extends JsonResource
                     $this->product->thumbnail
                 )->url,
 
-                'stock' => $this->product->ready_stock,
+                'stock' => $stock,
 
                 'is_sale' => $this->product->is_sale,
 

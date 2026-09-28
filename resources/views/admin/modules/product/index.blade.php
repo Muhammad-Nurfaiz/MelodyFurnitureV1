@@ -86,7 +86,7 @@
                         Status
                     </x-admin.table.th>
                     <x-admin.table.th>
-                        Terjual
+                        Stock
                     </x-admin.table.th>
                     <x-admin.table.th class="text-right w-32">
                         Aksi
@@ -99,17 +99,17 @@
                         {{-- ===================================== --}}
                         {{-- PRODUCT --}}
                         {{-- ===================================== --}}
-                        <x-admin.table.td>
-                            <div class="flex items-center gap-4">
+                        <x-admin.table.td class="w-[360px] max-w-[360px]">
+                            <div class="flex items-center gap-4 min-w-0">
                                 <x-admin.avatar
                                     :src="$product->thumbnail?->url"
                                     :alt="$product->name"
                                     size="lg"/>
-                                <div>
-                                    <div class="font-semibold text-gray-900">
+                                <div class="min-w-0 flex-1">
+                                    <div class="font-semibold text-gray-900 truncate">
                                         {{ $product->name }}
                                     </div>
-                                    <div class="text-xs text-gray-500 mt-1">
+                                    <div class="text-xs text-gray-500 mt-1 truncate">
                                         {{ Str::limit($product->slug,40) }}
                                     </div>
                                 </div>
@@ -157,7 +157,11 @@
                                         Normal
                                     </x-admin.badge>
                                 @endif
-                                @if($product->ready_stock)
+                                @if(
+                                    $product->variants->isNotEmpty()
+                                        ? $product->variants->where('is_active', true)->sum('ready_stock') > 0
+                                        : $product->ready_stock > 0
+                                )
                                     <x-admin.badge
                                         variant="success">
                                         Ready
@@ -174,7 +178,9 @@
                         {{-- SOLD --}}
                         {{-- ===================================== --}}
                         <x-admin.table.td class="text-right font-medium">
-                            {{ number_format($product->total_sold) }}
+                            {{ $product->variants->isNotEmpty()
+                                ? $product->variants->where('is_active', true)->sum('ready_stock')
+                                : $product->ready_stock }}
                         </x-admin.table.td>
                         {{-- ===================================== --}}
                         {{-- ACTION --}}

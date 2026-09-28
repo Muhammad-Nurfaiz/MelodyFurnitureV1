@@ -250,7 +250,7 @@
 
         <div style="margin-top: 4px;">
 
-            {{ $address['address'] ?? '-' }}
+            {{ $address['address'] ?? '-' }},
 
         </div>
 
@@ -258,7 +258,7 @@
 
             {{ $address['area'] ?? '-' }},
             {{ $address['city'] ?? '-' }},
-            {{ $address['province'] ?? '-' }}
+            {{ $address['province'] ?? '-' }},
             {{ $address['postal_code'] ?? '' }}
 
         </div>
@@ -312,10 +312,10 @@
                                 {{ $item->product_name }}
                             </strong>
 
-                            @if($item->product_sku)
+                            @if($item->product_variant_name)
 
-                                <div style="margin-top: 3px; color: #6b7280;">
-                                    SKU: {{ $item->product_sku }}
+                                <div style="margin-top: 3px; color: #4b5563;">
+                                    Varian: {{ $item->product_variant_name }}
                                 </div>
 
                             @endif

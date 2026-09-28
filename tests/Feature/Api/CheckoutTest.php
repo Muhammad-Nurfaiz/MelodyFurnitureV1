@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\ProductSpecification;
 use App\Models\ShippingCourier;
 use App\Models\ShippingRate;
@@ -362,6 +363,410 @@ class CheckoutTest extends TestCase
             'id' => $product->id,
             'ready_stock' => 99,
         ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Cart
+        |--------------------------------------------------------------------------
+        */
+
+        $this->assertDatabaseMissing('cart_items', [
+            'id' => $cartItem->id,
+        ]);
+
+        $this->assertDatabaseCount(
+            'cart_items',
+            0
+        );
+    }
+    
+    public function test_customer_can_checkout_with_product_variant(): void
+    {
+        /*
+        |--------------------------------------------------------------------------
+        | Province & Regency
+        |--------------------------------------------------------------------------
+        */
+
+        DB::table('provinces')->insert([
+            'id' => '11',
+            'name' => 'Aceh',
+            'capital' => 'Banda Aceh',
+            'latitude' => null,
+            'longitude' => null,
+            'elevation' => 0,
+            'timezone' => 7,
+            'area' => null,
+            'population' => null,
+        ]);
+
+        DB::table('regencies')->insert([
+            'id' => '1102',
+            'province_id' => '11',
+            'name' => 'Kabupaten Aceh Tenggara',
+            'capital' => 'Kutacane',
+            'latitude' => null,
+            'longitude' => null,
+            'elevation' => 0,
+            'timezone' => 7,
+            'area' => null,
+            'population' => null,
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Shipping Courier & Rate
+        |--------------------------------------------------------------------------
+        */
+
+        $courier = ShippingCourier::create([
+            'code' => 'jnt_cargo',
+            'name' => 'J&T Cargo',
+            'is_active' => true,
+        ]);
+
+        ShippingRate::create([
+            'courier_id' => $courier->id,
+            'regency_id' => '1102',
+            'rate_type' => 'per_kg',
+            'price_per_kg' => 11840,
+            'first_price' => null,
+            'additional_price_per_kg' => null,
+            'is_active' => true,
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Product
+        |--------------------------------------------------------------------------
+        */
+
+        $category = Category::create([
+            'name' => 'Variant Checkout Category',
+            'slug' => 'variant-checkout-category',
+        ]);
+
+        $product = Product::create([
+            'category_id' => $category->id,
+            'series_id' => null,
+            'name' => 'Variant Checkout Product',
+            'slug' => 'variant-checkout-product',
+            'description' => 'Product khusus untuk test checkout variant.',
+            'product_detail' => null,
+            'original_price' => 1515000,
+            'discount_price' => 1203000,
+            'discount_percentage' => null,
+            'is_sale' => false,
+
+            // Produk dengan variant tidak menggunakan ready_stock parent.
+            'ready_stock' => 0,
+            'locked_stock' => 0,
+
+            'video_tutorial_url' => null,
+            'origin_city' => 'Malang',
+            'average_rating' => 0,
+            'total_sold' => 0,
+        ]);
+
+        ProductSpecification::create([
+            'product_id' => $product->id,
+            'dimensions' => '159 x 39.6 x 48 cm',
+            'weight' => 32.50,
+            'packing_weight' => 34.50,
+            'load_capacity' => '100 kg',
+            'assembly_required' => false,
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Product Variants
+        |--------------------------------------------------------------------------
+        */
+
+        $naturalVariant = ProductVariant::create([
+            'product_id' => $product->id,
+            'name' => 'Natural',
+            'ready_stock' => 10,
+            'locked_stock' => 0,
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+
+        ProductVariant::create([
+            'product_id' => $product->id,
+            'name' => 'Walnut',
+            'ready_stock' => 7,
+            'locked_stock' => 0,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Guest Customer & Cart
+        |--------------------------------------------------------------------------
+        */
+
+        $guestToken = 'test-guest-token-checkout-variant';
+
+        $cartCustomer = Customer::create([
+            'name' => null,
+            'phone' => null,
+            'email' => null,
+            'address_detail' => null,
+            'guest_token' => $guestToken,
+        ]);
+
+        $cart = Cart::create([
+            'customer_id' => $cartCustomer->id,
+        ]);
+
+        $cartItem = CartItem::create([
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+            'product_variant_id' => $naturalVariant->id,
+            'quantity' => 2,
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Mock Midtrans
+        |--------------------------------------------------------------------------
+        */
+
+        $this->mock(MidtransService::class, function ($mock) {
+            $mock
+                ->shouldReceive('createTransaction')
+                ->once()
+                ->andReturnUsing(function (Order $order) {
+                    return [
+                        'transaction_id' => null,
+                        'order_id' => $order->midtrans_order_id,
+                        'snap_token' => 'TEST-SNAP-TOKEN-VARIANT',
+                        'redirect_url' =>
+                            'https://app.sandbox.midtrans.com/snap/v2/vtweb/TEST-SNAP-TOKEN-VARIANT',
+                        'expiry_time' => $order->payment_expired_at,
+                        'payload' => [],
+                    ];
+                });
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Checkout
+        |--------------------------------------------------------------------------
+        */
+
+        $response = $this->call(
+            'POST',
+            '/api/checkout',
+            [],
+            [
+                config('customer.guest_cookie_name') => $guestToken,
+            ],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+            ],
+            json_encode([
+                'name' => 'Variant Test Customer',
+                'phone' => '081234567890',
+                'courier' => 'jnt_cargo',
+                'shipping_address' => [
+                    'recipient_name' => 'Variant Test Customer',
+                    'phone' => '081234567890',
+                    'regency_id' => '1102',
+                    'address' => 'Jl. Variant Test No. 1',
+                    'area' => 'Kutacane',
+                    'postal_code' => '24676',
+                ],
+            ], JSON_THROW_ON_ERROR),
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | HTTP Response
+        |--------------------------------------------------------------------------
+        */
+
+        $response->assertCreated();
+
+        $response->assertJsonPath(
+            'message',
+            'Checkout berhasil.'
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Order
+        |--------------------------------------------------------------------------
+        */
+
+        $order = Order::query()
+            ->with([
+                'items',
+                'payment',
+            ])
+            ->latest('created_at')
+            ->first();
+
+        $this->assertNotNull($order);
+
+        $this->assertSame(
+            'Variant Test Customer',
+            $order->customer_name
+        );
+
+        $this->assertSame(
+            'pending',
+            $order->status
+        );
+
+        $this->assertSame(
+            'pending',
+            $order->payment_status
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Price Calculation
+        |--------------------------------------------------------------------------
+        |
+        | Variant tidak memiliki harga sendiri.
+        | Harga tetap menggunakan harga produk:
+        |
+        | Rp1.203.000 x 2 = Rp2.406.000
+        |
+        | Weight:
+        | 34.5 kg x 2 = 69 kg
+        |
+        | Shipping:
+        | 69 x Rp11.840 = Rp816.960
+        |
+        | Total:
+        | Rp2.406.000 + Rp816.960 = Rp3.222.960
+        |
+        */
+
+        $this->assertEquals(
+            2406000,
+            (float) $order->total_product_price
+        );
+
+        $this->assertEquals(
+            69.00,
+            (float) $order->total_weight
+        );
+
+        $this->assertEquals(
+            816960,
+            (float) $order->shipping_fee
+        );
+
+        $this->assertEquals(
+            3222960,
+            (float) $order->total_payment
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Order Item
+        |--------------------------------------------------------------------------
+        */
+
+        $this->assertCount(
+            1,
+            $order->items
+        );
+
+        $orderItem = $order->items->first();
+
+        $this->assertSame(
+            $product->id,
+            $orderItem->product_id
+        );
+
+        $this->assertSame(
+            $naturalVariant->id,
+            $orderItem->product_variant_id
+        );
+
+        $this->assertSame(
+            'Natural',
+            $orderItem->product_variant_name
+        );
+
+        $this->assertSame(
+            2,
+            $orderItem->quantity
+        );
+
+        // Harga tetap berasal dari Product, bukan ProductVariant.
+        $this->assertEquals(
+            1203000,
+            (float) $orderItem->unit_price
+        );
+
+        $this->assertEquals(
+            2406000,
+            (float) $orderItem->subtotal
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Variant Stock
+        |--------------------------------------------------------------------------
+        */
+
+        $this->assertDatabaseHas('product_variants', [
+            'id' => $naturalVariant->id,
+            'ready_stock' => 8,
+            'locked_stock' => 2,
+        ]);
+
+        // Variant lain tidak ikut berubah.
+        $this->assertDatabaseHas('product_variants', [
+            'id' => $naturalVariant->id,
+            'ready_stock' => 8,
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Parent Product Stock
+        |--------------------------------------------------------------------------
+        */
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'ready_stock' => 0,
+            'locked_stock' => 0,
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Payment
+        |--------------------------------------------------------------------------
+        */
+
+        $this->assertNotNull(
+            $order->payment
+        );
+
+        $this->assertSame(
+            'TEST-SNAP-TOKEN-VARIANT',
+            $order->payment->snap_token
+        );
+
+        $this->assertSame(
+            'pending',
+            $order->payment->transaction_status
+        );
+
+        $this->assertEquals(
+            3222960,
+            (float) $order->payment->gross_amount
+        );
 
         /*
         |--------------------------------------------------------------------------
@@ -1095,6 +1500,183 @@ class CheckoutTest extends TestCase
             'id' => $cartItem->id,
             'cart_id' => $cart->id,
             'product_id' => $product->id,
+            'quantity' => 3,
+        ]);
+    }
+
+    public function test_checkout_fails_when_variant_stock_is_insufficient(): void
+    {
+        DB::table('provinces')->insert([
+            'id' => '11',
+            'name' => 'Aceh',
+            'capital' => 'Banda Aceh',
+            'latitude' => null,
+            'longitude' => null,
+            'elevation' => 0,
+            'timezone' => 7,
+            'area' => null,
+            'population' => null,
+        ]);
+
+        DB::table('regencies')->insert([
+            'id' => '1102',
+            'province_id' => '11',
+            'name' => 'Kabupaten Aceh Tenggara',
+            'capital' => 'Kutacane',
+            'latitude' => null,
+            'longitude' => null,
+            'elevation' => 0,
+            'timezone' => 7,
+            'area' => null,
+            'population' => null,
+        ]);
+
+        $courier = ShippingCourier::create([
+            'code' => 'jnt_cargo',
+            'name' => 'J&T Cargo',
+            'is_active' => true,
+        ]);
+
+        ShippingRate::create([
+            'courier_id' => $courier->id,
+            'regency_id' => '1102',
+            'rate_type' => 'per_kg',
+            'price_per_kg' => 11840,
+            'first_price' => null,
+            'additional_price_per_kg' => null,
+            'is_active' => true,
+        ]);
+
+        $category = Category::create([
+            'name' => 'Insufficient Variant Stock Category',
+            'slug' => 'insufficient-variant-stock-category',
+        ]);
+
+        $product = Product::create([
+            'category_id' => $category->id,
+            'series_id' => null,
+            'name' => 'Insufficient Variant Stock Product',
+            'slug' => 'insufficient-variant-stock-product',
+            'description' => 'Produk untuk test stok variant tidak mencukupi.',
+            'product_detail' => null,
+            'original_price' => 1000000,
+            'discount_price' => 800000,
+            'discount_percentage' => null,
+            'is_sale' => false,
+
+            // Produk dengan variant tidak menggunakan ready_stock parent.
+            'ready_stock' => 0,
+            'locked_stock' => 0,
+
+            'video_tutorial_url' => null,
+            'origin_city' => 'Malang',
+            'average_rating' => 0,
+            'total_sold' => 0,
+        ]);
+
+        ProductSpecification::create([
+            'product_id' => $product->id,
+            'dimensions' => '100 x 50 x 50 cm',
+            'weight' => 10,
+            'packing_weight' => 12,
+            'load_capacity' => '50 kg',
+            'assembly_required' => false,
+        ]);
+
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'name' => 'Natural',
+            'ready_stock' => 2,
+            'locked_stock' => 0,
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+
+        $guestToken = 'test-guest-token-insufficient-variant-stock';
+
+        $cartCustomer = Customer::create([
+            'name' => null,
+            'phone' => null,
+            'email' => null,
+            'address_detail' => null,
+            'guest_token' => $guestToken,
+        ]);
+
+        $cart = Cart::create([
+            'customer_id' => $cartCustomer->id,
+        ]);
+
+        $cartItem = CartItem::create([
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+            'product_variant_id' => $variant->id,
+            'quantity' => 3,
+        ]);
+
+        $response = $this->call(
+            'POST',
+            '/api/checkout',
+            [],
+            [
+                config('customer.guest_cookie_name') => $guestToken,
+            ],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+            ],
+            json_encode([
+                'name' => 'Insufficient Variant Stock Customer',
+                'phone' => '081234567894',
+                'courier' => 'jnt_cargo',
+                'shipping_address' => [
+                    'recipient_name' => 'Insufficient Variant Stock Customer',
+                    'phone' => '081234567894',
+                    'regency_id' => '1102',
+                    'address' => 'Jl. Variant Stock Test No. 1',
+                    'area' => 'Kutacane',
+                    'postal_code' => '24676',
+                ],
+            ], JSON_THROW_ON_ERROR),
+        );
+
+        $response->assertStatus(422);
+
+        $response->assertJson([
+            'success' => false,
+            'message' => 'Validation failed.',
+        ]);
+
+        $response->assertJsonPath(
+            'errors.stock.0',
+            'Stok varian Natural tidak mencukupi.'
+        );
+
+        // Tidak boleh ada order yang tercipta.
+        $this->assertDatabaseCount('orders', 0);
+
+        $this->assertDatabaseCount('order_items', 0);
+
+        // Stok variant tetap 2/0.
+        $this->assertDatabaseHas('product_variants', [
+            'id' => $variant->id,
+            'ready_stock' => 2,
+            'locked_stock' => 0,
+        ]);
+
+        // Parent product tetap 0/0.
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'ready_stock' => 0,
+            'locked_stock' => 0,
+        ]);
+
+        // Cart tetap ada karena checkout gagal.
+        $this->assertDatabaseHas('cart_items', [
+            'id' => $cartItem->id,
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+            'product_variant_id' => $variant->id,
             'quantity' => 3,
         ]);
     }

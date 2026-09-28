@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Services\Product\ProductMediaService;
 use App\Services\Media\TemporaryMediaService;
+use Illuminate\Validation\ValidationException;
 
 class ProductService
 {
@@ -18,6 +19,10 @@ class ProductService
         return DB::transaction(function () use ($data) {
 
             $product = $this->createProduct($data);
+
+            if ($data['variants_enabled']) {
+                $this->syncVariants($product, $data['variants']);
+            }
 
             $this->createSpecification($product, $data);
 
@@ -39,6 +44,7 @@ class ProductService
                 'thumbnail',
                 'media',
                 'specification',
+                'variants',
             ]);
         });
     }
@@ -48,34 +54,41 @@ class ProductService
      */
     public function update(Product $product, array $data): Product
     {
-            return DB::transaction(function () use ($product, $data) {
+        return DB::transaction(function () use ($product, $data) {
 
-                $this->updateProduct($product, $data);
+            $this->syncVariantsOnUpdate(
+                $product,
+                $data['variants_enabled'],
+                $data['variants'] ?? []
+            );
 
-                $this->updateSpecification($product, $data);
+            $this->updateProduct($product, $data);
 
-                if (!empty($data['deleted_media'])) {
-                    $this->mediaService->deleteMedia(
-                        $product,
-                        $data['deleted_media']
-                    );
-                }
+            $this->updateSpecification($product, $data);
 
-                $this->mediaService->attachTemporaryMedia(
+            if (!empty($data['deleted_media'])) {
+                $this->mediaService->deleteMedia(
                     $product,
-                    $data['temporary_media'] ?? [],
-                    $data['media_order'] ?? [],
-                    $data['main_media'] ?? null,
+                    $data['deleted_media']
                 );
+            }
 
-                return $product->fresh([
-                    'category',
-                    'series',
-                    'thumbnail',
-                    'media',
-                    'specification',
-                ]);
-            });
+            $this->mediaService->attachTemporaryMedia(
+                $product,
+                $data['temporary_media'] ?? [],
+                $data['media_order'] ?? [],
+                $data['main_media'] ?? null,
+            );
+
+            return $product->fresh([
+                'category',
+                'series',
+                'thumbnail',
+                'media',
+                'specification',
+                'variants',
+            ]);
+        });
     }
 
     protected function updateProduct(Product $product, array $data): void {
@@ -115,7 +128,9 @@ class ProductService
             // PERBAIKAN DI SINI: Gunakan input dari request, fallback ke false jika kosong
             'is_sale' => (bool) ($data['is_sale'] ?? false),
 
-            'ready_stock' => $data['ready_stock'],
+            'ready_stock' => $data['variants_enabled']
+                ? 0
+                : $data['ready_stock'],
             'video_tutorial_url' => $data['video_tutorial_url'] ?? null,
             'average_rating' => $data['average_rating'] ?? 0,
             'total_sold' => $data['total_sold'] ?? 0,
@@ -256,5 +271,107 @@ class ProductService
             $product->delete();
 
         });
+    }
+
+    private function syncVariants(Product $product, array $variants): void
+    {
+        foreach ($variants as $index => $variant) {
+            $product->variants()->create([
+                'name' => trim($variant['name']),
+                'ready_stock' => $variant['ready_stock'],
+                'locked_stock' => 0,
+                'is_active' => true,
+                'sort_order' => $index,
+            ]);
+        }
+    }
+
+    private function syncVariantsOnUpdate(Product $product,bool $variantsEnabled,array $variants): void 
+    {
+        $existingVariants = $product->variants()
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
+
+        // Produk tidak menggunakan varian
+        if (!$variantsEnabled) {
+            foreach ($existingVariants as $variant) {
+                if ($variant->locked_stock > 0) {
+                    throw ValidationException::withMessages([
+                        'variants' => "Varian {$variant->name} masih memiliki stok yang dikunci.",
+                    ]);
+                }
+            }
+
+            $product->variants()->delete();
+
+            return;
+        }
+
+        // Produk berubah dari stok biasa menjadi menggunakan varian.
+        // Stok produk lama tidak boleh hilang secara otomatis.
+        if (
+            $existingVariants->isEmpty() &&
+            (
+                $product->ready_stock > 0 ||
+                $product->locked_stock > 0
+            )
+        ) {
+            throw ValidationException::withMessages([
+                'variants' => 'Produk yang sudah memiliki stok tidak dapat langsung diubah menjadi produk bervarian. Habiskan atau atur stok produk terlebih dahulu.',
+            ]);
+        }
+
+        $submittedIds = collect($variants)
+            ->pluck('id')
+            ->filter()
+            ->values();
+
+        // Varian lama yang tidak lagi dikirim berarti dihapus.
+        foreach ($existingVariants as $variant) {
+            if ($submittedIds->contains($variant->id)) {
+                continue;
+            }
+
+            if ($variant->locked_stock > 0) {
+                throw ValidationException::withMessages([
+                    'variants' => "Varian {$variant->name} masih memiliki stok yang dikunci dan tidak dapat dihapus.",
+                ]);
+            }
+
+            $variant->delete();
+        }
+
+        // Update varian lama / buat varian baru
+        foreach ($variants as $index => $variantData) {
+            $variantId = $variantData['id'] ?? null;
+
+            if ($variantId) {
+                $variant = $existingVariants->get($variantId);
+
+                if (!$variant) {
+                    throw ValidationException::withMessages([
+                        'variants' => 'Varian tidak valid untuk produk ini.',
+                    ]);
+                }
+
+                $variant->update([
+                    'name' => trim($variantData['name']),
+                    'ready_stock' => $variantData['ready_stock'],
+                    'is_active' => true,
+                    'sort_order' => $index,
+                ]);
+
+                continue;
+            }
+
+            $product->variants()->create([
+                'name' => trim($variantData['name']),
+                'ready_stock' => $variantData['ready_stock'],
+                'locked_stock' => 0,
+                'is_active' => true,
+                'sort_order' => $index,
+            ]);
+        }
     }
 }

@@ -94,6 +94,10 @@ class HomeContentController extends Controller
             return null;
         }
 
-        return Storage::disk('public')->url($path);
+        $cleanPath = Str::start($path, '/');
+
+        return Str::startsWith($cleanPath, '/storage') 
+            ? $cleanPath 
+            : '/storage' . $cleanPath;
     }
 }

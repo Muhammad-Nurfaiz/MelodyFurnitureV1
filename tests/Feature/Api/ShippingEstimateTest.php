@@ -1177,7 +1177,7 @@ class ShippingEstimateTest extends TestCase
             'courier_name' => 'J&T Cargo',
             'service' => 'regular',
             'weight' => 35,
-            'fee' => 414400,
+            'fee' => 309400,
             'available' => true,
         ]);
 
@@ -1186,7 +1186,7 @@ class ShippingEstimateTest extends TestCase
             'courier_name' => 'Sentral Cargo',
             'service' => 'regular',
             'weight' => 35,
-            'fee' => 350000,
+            'fee' => 245000,
             'available' => true,
         ]);
     }
@@ -1314,7 +1314,7 @@ class ShippingEstimateTest extends TestCase
             'courier_code' => 'jnt_cargo',
             'available' => true,
             'weight' => 35,
-            'fee' => 414400,
+            'fee' => 309400,
         ]);
 
         $response->assertJsonFragment([
@@ -1800,7 +1800,7 @@ class ShippingEstimateTest extends TestCase
         $response->assertJsonFragment([
             'courier_code' => 'jnt_cargo',
             'weight' => 21,
-            'fee' => 248640,
+            'fee' => 185640,
             'available' => true,
         ]);
     }
@@ -1966,7 +1966,7 @@ class ShippingEstimateTest extends TestCase
             'courier_code' => 'jnt_cargo',
             'available' => true,
             'weight' => 10,
-            'fee' => 118400,
+            'fee' => 88400,
         ]);
 
         $response->assertJsonMissing([
@@ -2276,7 +2276,7 @@ class ShippingEstimateTest extends TestCase
         $response->assertJsonFragment([
             'courier_code' => 'jnt_cargo',
             'weight' => 29,
-            'fee' => 343360,
+            'fee' => 256360,
             'available' => true,
         ]);
     }
@@ -2404,7 +2404,7 @@ class ShippingEstimateTest extends TestCase
         $response->assertJsonFragment([
             'courier_code' => 'tiered_cargo',
             'weight' => 12,
-            'fee' => 130000,
+            'fee' => 94000,
             'available' => true,
         ]);
     }
@@ -2532,7 +2532,7 @@ class ShippingEstimateTest extends TestCase
         $response->assertJsonFragment([
             'courier_code' => 'tiered_10kg',
             'weight' => 10,
-            'fee' => 100000,
+            'fee' => 70000,
             'available' => true,
         ]);
     }
@@ -2660,7 +2660,7 @@ class ShippingEstimateTest extends TestCase
         $response->assertJsonFragment([
             'courier_code' => 'tiered_rounding',
             'weight' => 11,
-            'fee' => 115000,
+            'fee' => 82000,
             'available' => true,
         ]);
     }
@@ -4083,5 +4083,124 @@ class ShippingEstimateTest extends TestCase
         ]);
     }
 
+    public function test_shipping_estimate_all_never_returns_negative_fee_after_subsidy(): void
+    {
+        DB::table('provinces')->insert([
+            'id' => '11',
+            'name' => 'Aceh',
+            'capital' => 'Banda Aceh',
+            'latitude' => null,
+            'longitude' => null,
+            'elevation' => 0,
+            'timezone' => 7,
+            'area' => null,
+            'population' => null,
+        ]);
 
+        DB::table('regencies')->insert([
+            'id' => '1102',
+            'province_id' => '11',
+            'name' => 'Kabupaten Aceh Tenggara',
+            'capital' => 'Kutacane',
+            'latitude' => null,
+            'longitude' => null,
+            'elevation' => 0,
+            'timezone' => 7,
+            'area' => null,
+            'population' => null,
+        ]);
+
+        $courier = ShippingCourier::create([
+            'code' => 'jnt_cargo',
+            'name' => 'J&T Cargo',
+            'is_active' => true,
+        ]);
+
+        ShippingRate::create([
+            'courier_id' => $courier->id,
+            'regency_id' => '1102',
+            'rate_type' => 'per_kg',
+            'price_per_kg' => 2000,
+            'first_price' => null,
+            'additional_price_per_kg' => null,
+            'is_active' => true,
+        ]);
+
+        $category = Category::create([
+            'name' => 'Shipping Subsidy Test Category',
+            'slug' => 'shipping-subsidy-test-category',
+        ]);
+
+        $product = Product::create([
+            'category_id' => $category->id,
+            'series_id' => null,
+            'name' => 'Shipping Subsidy Test Product',
+            'slug' => 'shipping-subsidy-test-product',
+            'description' => 'Produk untuk pengujian subsidi ongkir.',
+            'product_detail' => null,
+            'original_price' => 1000000,
+            'discount_price' => null,
+            'discount_percentage' => null,
+            'is_sale' => false,
+            'ready_stock' => 100,
+            'locked_stock' => 0,
+            'video_tutorial_url' => null,
+            'average_rating' => 0,
+            'total_sold' => 0,
+        ]);
+
+        ProductSpecification::create([
+            'product_id' => $product->id,
+            'dimensions' => '159 x 39.6 x 48 cm',
+            'weight' => 32.50,
+            'packing_weight' => 34.50,
+            'load_capacity' => '100 kg',
+            'assembly_required' => false,
+        ]);
+
+        $customer = Customer::create([
+            'name' => 'Shipping Subsidy Test Customer',
+            'email' => null,
+            'phone' => '081234567893',
+            'address_detail' => 'Alamat Test',
+            'guest_token' => 'guest-token-shipping-subsidy-test',
+        ]);
+
+        $cart = Cart::create([
+            'customer_id' => $customer->id,
+        ]);
+
+        CartItem::create([
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        $response = $this->call(
+            'POST',
+            '/api/shipping/estimate-all',
+            [],
+            [
+                config('customer.guest_cookie_name') =>
+                    'guest-token-shipping-subsidy-test',
+            ],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+            ],
+            json_encode([
+                'regency_id' => '1102',
+            ], JSON_THROW_ON_ERROR),
+        );
+
+        $response->assertOk();
+
+        $response->assertJsonFragment([
+            'courier_code' => 'jnt_cargo',
+            'available' => true,
+            'weight' => 35,
+            'fee' => 0,
+        ]);
+    }
 }

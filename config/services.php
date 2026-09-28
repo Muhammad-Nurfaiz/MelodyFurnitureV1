@@ -41,4 +41,8 @@ return [
         'session' => env('WAHA_SESSION', 'Melody'),
     ],
 
+    'frontend' => [
+        'url' => env('FRONTEND_URL'),
+    ],
+
 ];

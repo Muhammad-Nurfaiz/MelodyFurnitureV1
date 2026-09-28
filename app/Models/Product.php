@@ -87,6 +87,12 @@ class Product extends Model
             ->orderBy('sort_order');
     }
 
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class)
+            ->orderBy('sort_order');
+    }
+
     public function cartItems()
     {
         return $this->hasMany(CartItem::class);

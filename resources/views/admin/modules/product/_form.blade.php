@@ -17,6 +17,23 @@
         'discountPrice' => old('discount_price', $product?->discount_price),
         'discountPercentage' => old('discount_percentage', $product?->discount_percentage),
         'isSale' => old('is_sale', $product?->is_sale),
+
+        'variantsEnabled' => old(
+            'variants_enabled',
+            $product?->variants?->isNotEmpty() ?? false
+        ),
+
+        'variants' => old(
+            'variants',
+            $product?->variants
+                ?->map(fn ($variant) => [
+                    'id' => $variant->id,
+                    'name' => $variant->name,
+                    'ready_stock' => $variant->ready_stock,
+                ])
+                ->values()
+                ->all() ?? []
+        ),
     ]))"
     class="space-y-8">
 
@@ -428,9 +445,42 @@
 
             <div class="space-y-6 p-5">
 
-                <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                {{-- Gunakan Varian --}}
+                <div>
+                    <label class="flex cursor-pointer items-center gap-3">
+                        <input
+                            type="hidden"
+                            name="variants_enabled"
+                            value="0"
+                        >
 
-                    {{-- Ready Stock --}}
+                        <input
+                            type="checkbox"
+                            name="variants_enabled"
+                            value="1"
+                            x-model="variantsEnabled"
+                            @change="variantsEnabled ? enableVariants() : disableVariants()"
+                            class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                        >
+
+                        <span class="text-sm font-medium text-gray-700">
+                            Gunakan Varian Warna
+                        </span>
+                    </label>
+
+                    <p class="mt-1 text-xs text-gray-500">
+                        Aktifkan jika produk memiliki pilihan warna dengan stok masing-masing.
+                    </p>
+                </div>
+
+                {{-- =========================================== --}}
+                {{-- Stok Produk Tanpa Varian --}}
+                {{-- =========================================== --}}
+
+                <div
+                    x-show="!variantsEnabled"
+                    x-cloak
+                >
                     <x-admin.form.group
                         label="Ready Stock"
                         required
@@ -452,6 +502,118 @@
                             Jumlah produk yang tersedia dan siap dijual.
                         </p>
                     </x-admin.form.group>
+                </div>
+
+                {{-- =========================================== --}}
+                {{-- Varian Warna --}}
+                {{-- =========================================== --}}
+
+                <div
+                    x-show="variantsEnabled"
+                    x-cloak
+                    class="space-y-3"
+                >
+
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-800">
+                            Varian Warna
+                        </h3>
+
+                        <p class="mt-1 text-xs text-gray-500">
+                            Tambahkan warna dan stok yang tersedia untuk setiap varian.
+                        </p>
+                    </div>
+
+                    <div class="overflow-hidden rounded-lg border border-gray-200">
+
+                        {{-- Header --}}
+                        <div class="hidden grid-cols-[1fr_180px_40px] gap-3 bg-gray-50 px-4 py-3 md:grid">
+
+                            <div class="text-xs font-semibold text-gray-600">
+                                Nama Warna
+                            </div>
+
+                            <div class="text-xs font-semibold text-gray-600">
+                                Ready Stock
+                            </div>
+
+                            <div></div>
+
+                        </div>
+
+                        {{-- Rows --}}
+                        <div class="divide-y divide-gray-200">
+
+                            <template
+                                x-for="(variant, index) in variants"
+                                :key="variant.id || `new-${index}`"
+                            >
+
+                                <div class="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-[1fr_180px_40px] md:items-center">
+
+                                    {{-- ID varian lama --}}
+                                    <input
+                                        type="hidden"
+                                        x-bind:name="
+                                            variant.id
+                                                ? `variants[${index}][id]`
+                                                : null
+                                        "
+                                        x-model="variant.id"
+                                    >
+
+                                    {{-- Nama Warna --}}
+                                    <input
+                                        type="text"
+                                        x-bind:name="
+                                            isVariantFilled(variant)
+                                                ? `variants[${index}][name]`
+                                                : null
+                                        "
+                                        x-model="variant.name"
+                                        @input="handleVariantNameInput(index)"
+                                        placeholder="Contoh: Natural"
+                                        maxlength="100"
+                                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                    >
+
+                                    {{-- Ready Stock --}}
+                                    <input
+                                        type="number"
+                                        x-bind:name="
+                                            isVariantFilled(variant)
+                                                ? `variants[${index}][ready_stock]`
+                                                : null
+                                        "
+                                        x-model="variant.ready_stock"
+                                        min="0"
+                                        step="1"
+                                        placeholder="Contoh: 10"
+                                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                    >
+
+                                    {{-- Hapus --}}
+                                    <div class="flex items-center justify-end">
+
+                                        <button
+                                            type="button"
+                                            x-show="isVariantFilled(variant)"
+                                            @click="removeVariant(index)"
+                                            class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:bg-red-50"
+                                            title="Hapus varian"
+                                        >
+                                            ×
+                                        </button>
+
+                                    </div>
+
+                                </div>
+
+                            </template>
+
+                        </div>
+
+                    </div>
 
                 </div>
 

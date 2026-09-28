@@ -129,6 +129,28 @@ class ProductDetailResource extends JsonResource
 
             /*
             |--------------------------------------------------------------------------
+            | Variants
+            |--------------------------------------------------------------------------
+            */
+
+            'variants' => $this->whenLoaded(
+                'variants',
+                fn () => $this->variants
+                    ->where('is_active', true)
+                    ->map(fn ($variant) => [
+                        'id' => $variant->id,
+                        'name' => $variant->name,
+                        'ready_stock' => (int) $variant->ready_stock,
+                        'locked_stock' => (int) $variant->locked_stock,
+                        'is_active' => (bool) $variant->is_active,
+                        'sort_order' => (int) $variant->sort_order,
+                    ])
+                    ->values()
+                    ->all()
+            ),
+
+            /*
+            |--------------------------------------------------------------------------
             | Recommended Products
             |--------------------------------------------------------------------------
             |

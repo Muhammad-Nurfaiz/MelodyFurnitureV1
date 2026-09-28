@@ -57,7 +57,14 @@
                                     <p class="font-semibold">
                                         {{ $item->product_name }}
                                     </p>
-
+                                    @if ($item->product_variant_name)
+                                        <p class="mt-1 text-sm text-gray-600">
+                                            Varian:
+                                            <span class="font-medium text-gray-800">
+                                                {{ $item->product_variant_name }}
+                                            </span>
+                                        </p>
+                                    @endif
                                     <p class="text-sm text-slate-500">
                                         {{ $item->product_slug }}
                                     </p>

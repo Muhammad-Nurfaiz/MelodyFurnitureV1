@@ -6,6 +6,7 @@ use App\Models\Cart;
 use App\Models\Product;
 use App\Models\CartItem;
 use App\Models\Customer;
+use App\Models\ProductVariant;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -29,18 +30,68 @@ class CartService
     |--------------------------------------------------------------------------
     */
 
-    public function addItem(Customer $customer, Product $product, int $quantity): Cart {
-        if ($product->ready_stock < 1) {
+    public function addItem(
+        Customer $customer,
+        Product $product,
+        int $quantity,
+        ?ProductVariant $variant = null
+    ): Cart {
+        $this->validateQuantity($quantity);
+
+        if (!$variant && $product->variants()->where('is_active', true)->exists()) {
+            throw new RuntimeException(
+                'Varian produk wajib dipilih.'
+            );
+        }
+
+        if ($variant) {
+            if ($variant->product_id !== $product->id) {
+                throw new RuntimeException(
+                    'Varian produk tidak sesuai dengan produk.'
+                );
+            }
+
+            if (!$variant->is_active) {
+                throw new RuntimeException(
+                    'Varian produk tidak tersedia.'
+                );
+            }
+
+            $availableStock = $variant->ready_stock;
+        } else {
+            $availableStock = $product->ready_stock;
+        }
+
+        if ($availableStock < 1) {
             throw new RuntimeException('Produk sedang habis.');
         }
-        $this->validateQuantity($quantity);
-        return DB::transaction(function () use ($customer,$product,$quantity) {
-            $cart = $this->get($customer);
-            $item = $this->findItem($cart,$product);
-            $newQuantity = $item ? $item->quantity + $quantity : $quantity;
 
-            if ($newQuantity > $product->ready_stock) {
-                throw new RuntimeException('Stok produk tidak mencukupi.');
+        return DB::transaction(function () use (
+            $customer,
+            $product,
+            $quantity,
+            $variant
+        ) {
+            $cart = $this->get($customer);
+
+            $item = $this->findItem(
+                $cart,
+                $product,
+                $variant
+            );
+
+            $newQuantity = $item
+                ? $item->quantity + $quantity
+                : $quantity;
+
+            $availableStock = $variant
+                ? $variant->ready_stock
+                : $product->ready_stock;
+
+            if ($newQuantity > $availableStock) {
+                throw new RuntimeException(
+                    'Stok produk tidak mencukupi.'
+                );
             }
 
             if ($item) {
@@ -49,9 +100,11 @@ class CartService
                 CartItem::create([
                     'cart_id' => $cart->id,
                     'product_id' => $product->id,
+                    'product_variant_id' => $variant?->id,
                     'quantity' => $quantity,
                 ]);
             }
+
             return $this->refreshCart($cart);
         });
     }
@@ -62,15 +115,28 @@ class CartService
     |--------------------------------------------------------------------------
     */
 
-    public function updateItem(CartItem $item, int $quantity): Cart {
+    public function updateItem(CartItem $item, int $quantity): Cart
+    {
         if ($quantity <= 0) {
             return $this->removeItem($item);
         }
+
         $this->validateQuantity($quantity);
-        if ($quantity > $item->product->ready_stock) {
-            throw new RuntimeException('Stok produk tidak mencukupi.');
+
+        $availableStock = $item->product_variant_id
+            ? $item->productVariant->ready_stock
+            : $item->product->ready_stock;
+
+        if ($quantity > $availableStock) {
+            throw new RuntimeException(
+                'Stok produk tidak mencukupi.'
+            );
         }
-        $item->update(['quantity' => $quantity,]);
+
+        $item->update([
+            'quantity' => $quantity,
+        ]);
+
         return $this->refreshCart($item->cart);
     }
 
@@ -119,47 +185,38 @@ class CartService
             ->delete();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Checkout Items
-    |--------------------------------------------------------------------------
-    */
-
-    public function checkoutItems(Customer $customer): Collection {
+    public function checkoutItems(Customer $customer): Collection
+    {
         $cart = $this->get($customer);
+
         if ($cart->items->isEmpty()) {
             throw new RuntimeException('Cart kosong.');
         }
+
         return $cart->items->load([
             'product.thumbnail',
             'product.specification',
+            'productVariant',
         ]);
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Checkout Selected Items
-    |--------------------------------------------------------------------------
-    |
-    | Memproses hanya item yang dipilih user dari keranjang.
-    | Item yang tidak dipilih tetap tersimpan di cart.
-    |
-    */
 
     public function checkoutSelectedItems(
         Customer $customer,
         array $selectedItemIds
     ): Collection {
-
         $cart = $this->get($customer);
 
         if ($cart->items->isEmpty()) {
             throw new RuntimeException('Cart kosong.');
         }
 
-        $selectedItems = $cart->items->filter(
-            fn ($item) => in_array($item->id, $selectedItemIds)
-        );
+        $selectedItems = $cart->items
+            ->filter(
+                fn ($item) => in_array(
+                    $item->id,
+                    $selectedItemIds
+                )
+            );
 
         if ($selectedItems->isEmpty()) {
             throw new RuntimeException(
@@ -170,6 +227,7 @@ class CartService
         return $selectedItems->load([
             'product.thumbnail',
             'product.specification',
+            'productVariant',
         ]);
     }
 
@@ -179,11 +237,22 @@ class CartService
     |--------------------------------------------------------------------------
     */
 
-    private function findItem(Cart $cart, Product $product): ?CartItem {
-        return $cart
+    private function findItem(
+        Cart $cart,
+        Product $product,
+        ?ProductVariant $variant = null
+    ): ?CartItem {
+        $query = $cart
             ->items()
-            ->where('product_id', $product->id)
-            ->first();
+            ->where('product_id', $product->id);
+
+        if ($variant) {
+            $query->where('product_variant_id', $variant->id);
+        } else {
+            $query->whereNull('product_variant_id');
+        }
+
+        return $query->first();
     }
 
     /*
@@ -213,11 +282,13 @@ class CartService
 
     }
 
-    private function refreshCart(Cart $cart): Cart {
+    private function refreshCart(Cart $cart): Cart
+    {
         return $cart->fresh([
             'customer',
             'items.product.thumbnail',
             'items.product.specification',
+            'items.productVariant',
         ]);
     }
 

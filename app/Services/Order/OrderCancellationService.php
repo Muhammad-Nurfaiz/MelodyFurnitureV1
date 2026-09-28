@@ -899,9 +899,18 @@ class OrderCancellationService
     private function restoreInventory(
         Order $order
     ): void {
+        $inventoryItems = $this->buildInventoryCollection($order);
+
+        if ($order->payment_status === 'pending') {
+            $this->inventoryService->releaseLockedStock(
+                $inventoryItems
+            );
+
+            return;
+        }
 
         $this->inventoryService->increaseStock(
-            $this->buildInventoryCollection($order)
+            $inventoryItems
         );
     }
 

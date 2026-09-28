@@ -5,32 +5,32 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
-class CartItem extends Model
+class ProductVariant extends Model
 {
     use HasUuids;
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
-        'cart_id',
         'product_id',
-        'product_variant_id',
-        'quantity',
+        'name',
+        'ready_stock',
+        'locked_stock',
+        'is_active',
+        'sort_order',
     ];
 
-    public function cart()
-    {
-        return $this->belongsTo(Cart::class);
-    }
+    protected $casts = [
+        'ready_stock' => 'integer',
+        'locked_stock' => 'integer',
+        'is_active' => 'boolean',
+        'sort_order' => 'integer',
+    ];
 
     public function product()
     {
         return $this->belongsTo(Product::class);
     }
-
-    public function productVariant()
-    {
-        return $this->belongsTo(ProductVariant::class);
-    }
-}
+}   
