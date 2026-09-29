@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin\Product;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreProductRequest extends FormRequest
 {
@@ -137,9 +138,14 @@ class StoreProductRequest extends FormRequest
             ],
 
             'variants' => [
-                'required_if:variants_enabled,true',
                 'array',
-                'min:1',
+                Rule::requiredIf(
+                    fn () => $this->boolean('variants_enabled')
+                ),
+                Rule::when(
+                    $this->boolean('variants_enabled'),
+                    ['min:1']
+                ),
             ],
 
             'variants.*.name' => [
