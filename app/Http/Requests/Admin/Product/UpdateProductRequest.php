@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Admin\Product;
 
-use Illuminate\Contracts\Validation\ValidationRule;
+use App\Models\ProductMedia;
+use App\Models\TemporaryMedia;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateProductRequest extends FormRequest
 {
@@ -17,7 +19,7 @@ class UpdateProductRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $rules = [
 
             /*
             |--------------------------------------------------------------------------
@@ -146,7 +148,10 @@ class UpdateProductRequest extends FormRequest
             'variants.*.id' => [
                 'nullable',
                 'uuid',
-                'exists:product_variants,id',
+                Rule::exists('product_variants', 'id')
+                    ->where(fn ($query) =>
+                        $query->where('product_id', $this->product->id)
+                    ),
             ],
 
             'variants.*.name' => [
@@ -154,6 +159,37 @@ class UpdateProductRequest extends FormRequest
                 'string',
                 'max:100',
                 'distinct',
+            ],
+
+            'variants.*.media_id' => [
+                'required',
+                'uuid',
+                Rule::exists('product_media', 'id')
+                    ->where(fn ($query) =>
+                        $query->where('product_id', $this->product->id)
+                    ),
+            ],
+
+            'variants.*.original_price' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
+            'variants.*.discount_price' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'lt:variants.*.original_price',
+            ],
+
+            'variants.*.media_id' => [
+                'required',
+                'uuid',
+                Rule::exists('product_media', 'id')
+                    ->where(fn ($query) =>
+                        $query->where('product_id', $this->product->id)
+                    ),
             ],
 
             'variants.*.ready_stock' => [
@@ -236,13 +272,63 @@ class UpdateProductRequest extends FormRequest
                 'uuid',
             ],
         ];
+        foreach ($this->input('variants', []) as $index => $variant) {
+
+                $variantId = $variant['id'] ?? null;
+
+                $rules["variants.{$index}.sku"] = [
+                    'required',
+                    'string',
+                    'max:100',
+                    'regex:/^[A-Z0-9-]+$/',
+                    'distinct',
+                    Rule::unique('product_variants', 'sku')
+                        ->ignore($variantId),
+                ];
+
+                $rules["variants.{$index}.media_id"] = [
+                    'required',
+                    'uuid',
+                    function ($attribute, $value, $fail) {
+
+                        $productMediaExists = ProductMedia::query()
+                            ->where('id', $value)
+                            ->where('product_id', $this->product->id)
+                            ->exists();
+
+                        if ($productMediaExists) {
+                            return;
+                        }
+
+                        $temporaryMediaExists = TemporaryMedia::query()
+                            ->where('id', $value)
+                            ->where('user_id', $this->user()->id)
+                            ->where('mime_type', 'like', 'image/%')
+                            ->whereIn(
+                                'id',
+                                $this->input('temporary_media', [])
+                            )
+                            ->exists();
+
+                        if (!$temporaryMediaExists) {
+                            $fail('Foto varian yang dipilih tidak valid.');
+                        }
+                    },
+                ];
+        }
+        return $rules;
     }
 
     protected function prepareForValidation(): void
     {
         $variants = collect($this->input('variants', []))
             ->filter(function ($variant) {
-                return filled($variant['name'] ?? '')
+                return filled($variant['id'] ?? '')
+                    || filled($variant['name'] ?? '')
+                    || filled($variant['sku'] ?? '')
+                    || filled($variant['original_price'] ?? '')
+                    || filled($variant['discount_price'] ?? '')
+                    || filled($variant['media_id'] ?? '')
                     || filled($variant['ready_stock'] ?? '');
             })
             ->values()
@@ -278,6 +364,13 @@ class UpdateProductRequest extends FormRequest
             'discount_price' => 'Harga Diskon',
 
             'ready_stock' => 'Ready Stock',
+
+            'variants.*.name' => 'Nama Varian',
+            'variants.*.sku' => 'SKU Varian',
+            'variants.*.original_price' => 'Harga Asli Varian',
+            'variants.*.discount_price' => 'Harga Diskon Varian',
+            'variants.*.media_id' => 'Foto Varian',
+            'variants.*.ready_stock' => 'Ready Stock Varian',
 
             'average_rating' => 'Average Rating',
             'total_sold' => 'Total Terjual',
@@ -316,6 +409,30 @@ class UpdateProductRequest extends FormRequest
 
             'sku.unique' =>
                 'SKU produk sudah digunakan.',
+
+            'variants.*.sku.required' =>
+                'SKU varian wajib diisi.',
+
+            'variants.*.sku.regex' =>
+                'SKU varian hanya boleh berisi huruf besar A-Z, angka, dan tanda strip (-), tanpa spasi atau simbol lainnya.',
+
+            'variants.*.sku.distinct' =>
+                'SKU varian tidak boleh sama.',
+
+            'variants.*.sku.unique' =>
+                'SKU varian sudah digunakan.',
+
+            'variants.*.original_price.required' =>
+                'Harga asli varian wajib diisi.',
+
+            'variants.*.discount_price.lt' =>
+                'Harga diskon varian harus lebih kecil dari harga asli varian.',
+
+            'variants.*.media_id.required' =>
+                'Foto varian wajib dipilih.',
+
+            'variants.*.ready_stock.required' =>
+                'Stok varian wajib diisi.',
         ];
     }
 }

@@ -333,10 +333,15 @@ class OrderService
 
             $product = $item->product;
 
-            $price =
-                $product->discount_price
-                    ? $product->discount_price
-                    : $product->original_price;
+            $price = !empty($item->product_variant_id)
+                ? (
+                    $item->productVariant->discount_price
+                        ?? $item->productVariant->original_price
+                )
+                : (
+                    $product->discount_price
+                        ?? $product->original_price
+                );
 
             OrderItem::create([
                 'order_id' => $order->id,
@@ -351,10 +356,20 @@ class OrderService
                 'product_slug' => $product->slug,
 
                 'product_image' =>
-                    $product->thumbnail?->url
-                    ?? $product->thumbnail?->media_url,
+                    !empty($item->product_variant_id)
+                        ? (
+                            $item->productVariant?->media?->url
+                            ?? $item->productVariant?->media?->media_url
+                        )
+                        : (
+                            $product->thumbnail?->url
+                            ?? $product->thumbnail?->media_url
+                        ),
 
-                'product_sku' => $product->sku,
+                'product_sku' =>
+                    !empty($item->product_variant_id)
+                        ? $item->productVariant?->sku
+                        : $product->sku,
 
                 'quantity' => $item->quantity,
 

@@ -14,11 +14,17 @@ class CartResource extends JsonResource
     {
         $subtotal = $this->items->sum(function ($item) {
 
-            $price = $item->product->discount_price
-                ?? $item->product->original_price;
+            $price = $item->product_variant_id
+                ? (
+                    $item->productVariant->discount_price
+                    ?? $item->productVariant->original_price
+                )
+                : (
+                    $item->product->discount_price
+                    ?? $item->product->original_price
+                );
 
             return $price * $item->quantity;
-
         });
 
         return [

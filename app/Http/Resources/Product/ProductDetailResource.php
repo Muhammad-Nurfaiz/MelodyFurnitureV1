@@ -144,6 +144,14 @@ class ProductDetailResource extends JsonResource
                         'locked_stock' => (int) $variant->locked_stock,
                         'is_active' => (bool) $variant->is_active,
                         'sort_order' => (int) $variant->sort_order,
+                        'original_price' => (float) $variant->original_price,
+                        'discount_price' => $variant->discount_price !== null
+                            ? (float) $variant->discount_price
+                            : null,
+                        'discount_percentage' => $variant->discount_percentage !== null
+                            ? (int) $variant->discount_percentage
+                            : null,
+                        'media_id' => $variant->media_id,
                     ])
                     ->values()
                     ->all()

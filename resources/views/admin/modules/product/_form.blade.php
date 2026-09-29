@@ -29,6 +29,10 @@
                 ?->map(fn ($variant) => [
                     'id' => $variant->id,
                     'name' => $variant->name,
+                    'sku' => $variant->sku,
+                    'original_price' => $variant->original_price,
+                    'discount_price' => $variant->discount_price,
+                    'media_id' => $variant->media_id,
                     'ready_stock' => $variant->ready_stock,
                 ])
                 ->values()
@@ -318,13 +322,71 @@
 
     <x-admin.wizard.step
         number="3"
-        title="Harga & Stok"
-        description="Atur harga, diskon, status ketersediaan, dan informasi stok produk."
+        title="Media Produk"
+        description="Tambahkan gambar produk dan video tutorial."
     >
 
         {{-- =============================================== --}}
-        {{-- Harga --}}
+        {{-- Media --}}
         {{-- =============================================== --}}
+
+        <x-admin.card style="margin-bottom: 20px;">
+
+            <div class="space-y-6 p-5">
+
+                {{-- Thumbnail --}}
+
+                <x-admin.form.group label="Media Produk">
+
+                    <x-admin.product.media-manager
+                        :media="$product?->media ?? collect()" />
+
+                </x-admin.form.group>
+
+                {{-- Video --}}
+
+                <x-admin.form.group
+                    label="Video Tutorial">
+
+                    <x-admin.form.input
+                        name="video_tutorial_url"
+                        :value="old(
+                            'video_tutorial_url',
+                            $product?->video_tutorial_url
+                        )"
+                        placeholder="https://youtube.com/..."/>
+
+                </x-admin.form.group>
+
+            </div>
+
+        </x-admin.card>
+
+    </x-admin.wizard.step>
+
+    {{-- ===================================================== --}}
+    {{-- STEP 4 --}}
+    {{-- ===================================================== --}}
+
+    <x-admin.wizard.step
+        number="4"
+        title="Harga, Stok & Varian"
+        description="Atur harga, diskon, stok, varian, dan informasi statistik produk."
+    >
+
+        {{-- =============================================== --}}
+        {{-- Harga Produk --}}
+        {{-- =============================================== --}}
+
+        <div class="mb-4">
+            <h3 class="text-sm font-semibold text-gray-800">
+                Harga Produk
+            </h3>
+
+            <p class="mt-1 text-xs text-gray-500">
+                Atur harga normal dan harga diskon produk.
+            </p>
+        </div>
 
         <x-admin.card style="margin-bottom: 20px;">
 
@@ -438,8 +500,18 @@
 
 
         {{-- =============================================== --}}
-        {{-- Stok --}}
+        {{-- Stok & Varian --}}
         {{-- =============================================== --}}
+
+        <div class="mb-4">
+            <h3 class="text-sm font-semibold text-gray-800">
+                Stok & Varian
+            </h3>
+
+            <p class="mt-1 text-xs text-gray-500">
+                Tentukan apakah produk menggunakan stok tunggal atau memiliki beberapa varian.
+            </p>
+        </div>
 
         <x-admin.card style="margin-bottom: 20px;">
 
@@ -505,79 +577,304 @@
                 </div>
 
                 {{-- =========================================== --}}
-                {{-- Varian Warna --}}
+                {{-- Varian --}}
                 {{-- =========================================== --}}
 
                 <div
                     x-show="variantsEnabled"
                     x-cloak
-                    class="space-y-3"
+                    class="space-y-4"
                 >
 
                     <div>
                         <h3 class="text-sm font-semibold text-gray-800">
-                            Varian Warna
+                            Varian Produk
                         </h3>
 
                         <p class="mt-1 text-xs text-gray-500">
-                            Tambahkan warna dan stok yang tersedia untuk setiap varian.
+                            Tambahkan setiap varian secara terpisah. Nama, SKU, harga, foto,
+                            dan stok dapat berbeda untuk setiap varian.
                         </p>
                     </div>
 
-                    <div class="overflow-hidden rounded-lg border border-gray-200">
 
-                        {{-- Header --}}
-                        <div class="hidden grid-cols-[1fr_180px_40px] gap-3 bg-gray-50 px-4 py-3 md:grid">
+                    {{-- ================= Variant List ================= --}}
 
-                            <div class="text-xs font-semibold text-gray-600">
-                                Nama Warna
-                            </div>
+                    <div class="space-y-4">
 
-                            <div class="text-xs font-semibold text-gray-600">
-                                Ready Stock
-                            </div>
+                        <template
+                            x-for="(variant, index) in variants"
+                            :key="variant.id || `new-${index}`"
+                        >
 
-                            <div></div>
+                            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
 
-                        </div>
+                                {{-- ================= Header ================= --}}
 
-                        {{-- Rows --}}
-                        <div class="divide-y divide-gray-200">
+                                <div class="mb-4 flex items-center justify-between">
 
-                            <template
-                                x-for="(variant, index) in variants"
-                                :key="variant.id || `new-${index}`"
-                            >
+                                    <div>
+                                        <p class="text-sm font-semibold text-gray-800">
+                                            Varian <span x-text="index + 1"></span>
+                                        </p>
 
-                                <div class="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-[1fr_180px_40px] md:items-center">
+                                        <p
+                                            x-show="variant.id"
+                                            class="mt-0.5 text-xs text-gray-500"
+                                        >
+                                            Varian tersimpan
+                                        </p>
+                                    </div>
 
-                                    {{-- ID varian lama --}}
-                                    <input
-                                        type="hidden"
-                                        x-bind:name="
-                                            variant.id
-                                                ? `variants[${index}][id]`
-                                                : null
-                                        "
-                                        x-model="variant.id"
+                                    <button
+                                        type="button"
+                                        x-show="isVariantFilled(variant)"
+                                        @click="removeVariant(index)"
+                                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:bg-red-50"
+                                        title="Hapus varian"
                                     >
+                                        <x-heroicon-o-trash class="h-4 w-4" />
+                                    </button>
 
-                                    {{-- Nama Warna --}}
-                                    <input
-                                        type="text"
-                                        x-bind:name="
-                                            isVariantFilled(variant)
-                                                ? `variants[${index}][name]`
-                                                : null
-                                        "
-                                        x-model="variant.name"
-                                        @input="handleVariantNameInput(index)"
-                                        placeholder="Contoh: Natural"
-                                        maxlength="100"
-                                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                    >
+                                </div>
 
-                                    {{-- Ready Stock --}}
+
+                                {{-- ================= Existing Variant ID ================= --}}
+
+                                <input
+                                    type="hidden"
+                                    x-bind:name="
+                                        variant.id
+                                            ? `variants[${index}][id]`
+                                            : null
+                                    "
+                                    x-model="variant.id"
+                                >
+
+
+                                {{-- ================= Name + SKU ================= --}}
+
+                                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+
+                                    {{-- Nama Variant --}}
+
+                                    <div>
+
+                                        <label class="mb-1.5 block text-sm font-medium text-gray-700">
+                                            Nama Varian
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            x-bind:name="
+                                                isVariantFilled(variant)
+                                                    ? `variants[${index}][name]`
+                                                    : null
+                                            "
+                                            x-model="variant.name"
+                                            @input="handleVariantNameInput(index)"
+                                            placeholder="Contoh: Natural"
+                                            maxlength="100"
+                                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                        >
+
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            Bebas sesuai jenis varian produk, misalnya warna atau ukuran.
+                                        </p>
+
+                                    </div>
+
+
+                                    {{-- SKU --}}
+
+                                    <div>
+
+                                        <label class="mb-1.5 block text-sm font-medium text-gray-700">
+                                            SKU
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            x-bind:name="
+                                                isVariantFilled(variant)
+                                                    ? `variants[${index}][sku]`
+                                                    : null
+                                            "
+                                            x-model="variant.sku"
+                                            @input="variant.sku = variant.sku.toUpperCase()"
+                                            maxlength="100"
+                                            placeholder="Contoh: MF-NAT-001"
+                                            class="block w-full rounded-lg border-gray-300 uppercase shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                        >
+
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            SKU varian diinput secara manual.
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+
+                                {{-- ================= Pricing ================= --}}
+
+                                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+
+                                    {{-- Harga Asli --}}
+
+                                    <div>
+
+                                        <label class="mb-1.5 block text-sm font-medium text-gray-700">
+                                            Harga Asli
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            x-bind:name="
+                                                isVariantFilled(variant)
+                                                    ? `variants[${index}][original_price]`
+                                                    : null
+                                            "
+                                            x-model="variant.original_price"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="Contoh: 800000"
+                                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                        >
+
+                                    </div>
+
+
+                                    {{-- Harga Diskon --}}
+
+                                    <div>
+
+                                        <label class="mb-1.5 block text-sm font-medium text-gray-700">
+                                            Harga Diskon
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            x-bind:name="
+                                                isVariantFilled(variant)
+                                                    ? `variants[${index}][discount_price]`
+                                                    : null
+                                            "
+                                            x-model="variant.discount_price"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="Kosongkan jika tidak ada diskon"
+                                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                        >
+
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            Persentase diskon akan dihitung otomatis oleh sistem.
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+
+                                {{-- ================= Media ================= --}}
+
+                                <div class="mt-4">
+
+                                    <label class="mb-1.5 block text-sm font-medium text-gray-700">
+                                        Foto Varian
+                                    </label>
+
+                                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start">
+
+                                        {{-- Preview --}}
+
+                                        <div
+                                            class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50"
+                                        >
+
+                                            <template x-if="getVariantMedia(variant)">
+
+                                                <img
+                                                    x-show="getVariantMedia(variant)?.media_type !== 'video'"
+                                                    :src="getVariantMedia(variant)?.url"
+                                                    alt=""
+                                                    class="h-full w-full object-cover"
+                                                >
+
+                                            </template>
+
+                                            <template x-if="!getVariantMedia(variant)">
+
+                                                <div class="px-2 text-center text-xs text-gray-400">
+                                                    Belum dipilih
+                                                </div>
+
+                                            </template>
+
+                                        </div>
+
+
+                                        {{-- Media Select --}}
+
+                                        <div class="min-w-0 flex-1">
+
+                                            <select
+                                                x-bind:name="
+                                                    isVariantFilled(variant)
+                                                        ? `variants[${index}][media_id]`
+                                                        : null
+                                                "
+                                                x-model="variant.media_id"
+                                                x-effect="
+                                                    availableMedia.length;
+                                                    $nextTick(() => {
+                                                        if (variant.media_id) {
+                                                            $el.value = variant.media_id;
+                                                        }
+                                                    });
+                                                "
+                                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                            >
+
+                                                <option value="">
+                                                    Pilih foto dari gallery produk
+                                                </option>
+
+                                                <template
+                                                    x-for="media in availableMedia.filter(item => item.media_type !== 'video')"
+                                                    :key="media.id"
+                                                >
+
+                                                    <option
+                                                        :value="media.id"
+                                                        x-text="media.temporary
+                                                            ? 'Foto baru'
+                                                            : `Foto ${availableMedia.filter(item => item.media_type !== 'video').indexOf(media) + 1}`"
+                                                    ></option>
+
+                                                </template>
+
+                                            </select>
+
+                                            <p class="mt-1 text-xs text-gray-500">
+                                                Foto harus dipilih dari media produk yang tersedia di gallery.
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                                {{-- ================= Stock ================= --}}
+
+                                <div class="mt-4 max-w-xs">
+
+                                    <label class="mb-1.5 block text-sm font-medium text-gray-700">
+                                        Ready Stock
+                                    </label>
+
                                     <input
                                         type="number"
                                         x-bind:name="
@@ -592,26 +889,15 @@
                                         class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                                     >
 
-                                    {{-- Hapus --}}
-                                    <div class="flex items-center justify-end">
-
-                                        <button
-                                            type="button"
-                                            x-show="isVariantFilled(variant)"
-                                            @click="removeVariant(index)"
-                                            class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:bg-red-50"
-                                            title="Hapus varian"
-                                        >
-                                            ×
-                                        </button>
-
-                                    </div>
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Jumlah stok yang tersedia dan siap dijual.
+                                    </p>
 
                                 </div>
 
-                            </template>
+                            </div>
 
-                        </div>
+                        </template>
 
                     </div>
 
@@ -625,6 +911,15 @@
         {{-- =============================================== --}}
         {{-- Statistik --}}
         {{-- =============================================== --}}
+        <div class="mb-4">
+            <h3 class="text-sm font-semibold text-gray-800">
+                Informasi Statistik
+            </h3>
+
+            <p class="mt-1 text-xs text-gray-500">
+                Data awal statistik produk yang dapat disesuaikan oleh admin.
+            </p>
+        </div>
 
         <x-admin.card>
 
@@ -670,53 +965,6 @@
                     </x-admin.form.group>
 
                 </div>
-
-            </div>
-
-        </x-admin.card>
-
-    </x-admin.wizard.step>
-
-    {{-- ===================================================== --}}
-    {{-- STEP 4 --}}
-    {{-- ===================================================== --}}
-
-    <x-admin.wizard.step
-        number="4"
-        title="Media"
-        description="Unggah gambar produk dan video tutorial">
-
-        {{-- =============================================== --}}
-        {{-- Media --}}
-        {{-- =============================================== --}}
-
-        <x-admin.card style="margin-bottom: 20px;">
-
-            <div class="space-y-6 p-5">
-
-                {{-- Thumbnail --}}
-
-                <x-admin.form.group label="Media Produk">
-
-                    <x-admin.product.media-manager
-                        :media="$product?->media ?? collect()" />
-
-                </x-admin.form.group>
-
-                {{-- Video --}}
-
-                <x-admin.form.group
-                    label="Video Tutorial">
-
-                    <x-admin.form.input
-                        name="video_tutorial_url"
-                        :value="old(
-                            'video_tutorial_url',
-                            $product?->video_tutorial_url
-                        )"
-                        placeholder="https://youtube.com/..."/>
-
-                </x-admin.form.group>
 
             </div>
 

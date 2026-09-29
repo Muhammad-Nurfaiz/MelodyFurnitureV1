@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
 class ProductMedia extends Model
 {
     use HasUuids;
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -34,6 +36,11 @@ class ProductMedia extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class, 'media_id');
     }
 
     public function getUrlAttribute(): string

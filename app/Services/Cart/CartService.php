@@ -288,7 +288,7 @@ class CartService
             'customer',
             'items.product.thumbnail',
             'items.product.specification',
-            'items.productVariant',
+            'items.productVariant.media',
         ]);
     }
 

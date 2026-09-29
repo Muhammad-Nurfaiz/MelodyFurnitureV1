@@ -29,9 +29,15 @@ window.productForm = (initial = {}) => ({
         ? initial.variants.map((variant) => ({
             id: variant.id ?? '',
             name: variant.name ?? '',
+            sku: variant.sku ?? '',
+            original_price: variant.original_price ?? '',
+            discount_price: variant.discount_price ?? '',
+            media_id: variant.media_id ?? '',
             ready_stock: variant.ready_stock ?? '',
         }))
         : [],
+
+    availableMedia: [],
 
     /*
     |--------------------------------------------------------------------------
@@ -81,6 +87,10 @@ window.productForm = (initial = {}) => ({
         this.variants.push({
             id: '',
             name: '',
+            sku: '',
+            original_price: '',
+            discount_price: '',
+            media_id: '',
             ready_stock: '',
         });
     },
@@ -198,6 +208,16 @@ window.productForm = (initial = {}) => ({
         if (this.variantsEnabled) {
             this.ensureBlankVariantRow();
         }
+
+        const initialMedia = window.productAvailableMedia;
+
+        if (Array.isArray(initialMedia)) {
+            this.availableMedia = initialMedia;
+        }
+
+        window.addEventListener('product-media-updated', (event) => {
+            this.availableMedia = event.detail ?? [];
+        });
     },
 
     /*
@@ -208,6 +228,12 @@ window.productForm = (initial = {}) => ({
 
     validateStep() {
         switch (this.step) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | STEP 1 — Informasi Produk
+            |--------------------------------------------------------------------------
+            */
 
             case 1:
 
@@ -247,6 +273,13 @@ window.productForm = (initial = {}) => ({
 
                 return true;
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | STEP 2 — Spesifikasi Produk
+            |--------------------------------------------------------------------------
+            */
+
             case 2:
 
                 if (!this.$refs.dimensions.value.trim()) {
@@ -256,25 +289,199 @@ window.productForm = (initial = {}) => ({
 
                 return true;
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | STEP 3 — Media Produk
+            |--------------------------------------------------------------------------
+            */
+
             case 3:
 
-                if (!this.$refs.original_price.value.trim()) {
-                    alert('Harga wajib diisi');
+                if (!this.availableMedia.length) {
+                    alert('Minimal satu media produk harus ditambahkan');
                     return false;
                 }
+
+                const hasImage = this.availableMedia.some(
+                    media => media.media_type === 'image'
+                );
+
+                if (!hasImage) {
+                    alert('Minimal satu gambar produk harus ditambahkan');
+                    return false;
+                }
+
+                return true;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | STEP 4 — Harga, Stok & Varian
+            |--------------------------------------------------------------------------
+            */
+
+            case 4:
+
+                /*
+                |--------------------------------------------------------------------------
+                | Harga Produk
+                |--------------------------------------------------------------------------
+                */
+
+                if (!this.$refs.original_price.value.trim()) {
+                    alert('Harga normal wajib diisi');
+                    return false;
+                }
+
+                const originalPrice = Number(
+                    this.$refs.original_price.value
+                );
+
+                if (Number.isNaN(originalPrice) || originalPrice < 0) {
+                    alert('Harga normal tidak valid');
+                    return false;
+                }
+
+                if (
+                    this.discountPrice !== '' &&
+                    this.discountPrice !== null &&
+                    this.discountPrice !== undefined
+                ) {
+                    const discountPrice = Number(this.discountPrice);
+
+                    if (
+                        Number.isNaN(discountPrice) ||
+                        discountPrice < 0
+                    ) {
+                        alert('Harga diskon tidak valid');
+                        return false;
+                    }
+
+                    if (discountPrice >= originalPrice) {
+                        alert('Harga diskon harus lebih kecil dari harga normal');
+                        return false;
+                    }
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Stok / Varian
+                |--------------------------------------------------------------------------
+                */
 
                 if (this.variantsEnabled) {
 
                     const filledVariants = this.variants.filter(
-                        (variant) => variant.name.trim() !== ''
+                        variant => variant.name.trim() !== ''
                     );
 
                     if (filledVariants.length === 0) {
-                        alert('Minimal satu varian warna harus diisi');
+                        alert('Minimal satu varian harus diisi');
                         return false;
                     }
 
                     for (const variant of filledVariants) {
+
+                        if (!variant.name.trim()) {
+                            alert('Nama varian wajib diisi');
+                            return false;
+                        }
+
+                        if (!variant.sku?.trim()) {
+                            alert(
+                                `SKU varian ${variant.name} wajib diisi`
+                            );
+                            return false;
+                        }
+
+                        if (
+                            !/^[A-Z0-9-]+$/.test(
+                                variant.sku.trim()
+                            )
+                        ) {
+                            alert(
+                                `SKU varian ${variant.name} hanya boleh menggunakan huruf kapital, angka, dan tanda strip (-).`
+                            );
+                            return false;
+                        }
+
+                        if (
+                            variant.original_price === '' ||
+                            variant.original_price === null ||
+                            variant.original_price === undefined
+                        ) {
+                            alert(
+                                `Harga asli varian ${variant.name} wajib diisi`
+                            );
+                            return false;
+                        }
+
+                        const variantOriginalPrice = Number(
+                            variant.original_price
+                        );
+
+                        if (
+                            Number.isNaN(variantOriginalPrice) ||
+                            variantOriginalPrice < 0
+                        ) {
+                            alert(
+                                `Harga asli varian ${variant.name} tidak valid`
+                            );
+                            return false;
+                        }
+
+                        if (
+                            variant.discount_price !== '' &&
+                            variant.discount_price !== null &&
+                            variant.discount_price !== undefined
+                        ) {
+                            const variantDiscountPrice = Number(
+                                variant.discount_price
+                            );
+
+                            if (
+                                Number.isNaN(variantDiscountPrice) ||
+                                variantDiscountPrice < 0
+                            ) {
+                                alert(
+                                    `Harga diskon varian ${variant.name} tidak valid`
+                                );
+                                return false;
+                            }
+
+                            if (
+                                variantDiscountPrice >=
+                                variantOriginalPrice
+                            ) {
+                                alert(
+                                    `Harga diskon varian ${variant.name} harus lebih kecil dari harga asli`
+                                );
+                                return false;
+                            }
+                        }
+
+                        if (!variant.media_id) {
+                            alert(
+                                `Foto varian ${variant.name} wajib dipilih`
+                            );
+                            return false;
+                        }
+
+                        const variantMedia = this.getVariantMedia(
+                            variant
+                        );
+
+                        if (
+                            !variantMedia ||
+                            variantMedia.media_type === 'video'
+                        ) {
+                            alert(
+                                `Foto varian ${variant.name} tidak valid`
+                            );
+                            return false;
+                        }
 
                         if (
                             variant.ready_stock === '' ||
@@ -302,19 +509,42 @@ window.productForm = (initial = {}) => ({
                         return false;
                     }
 
+                    if (Number(this.$refs.ready_stock.value) < 0) {
+                        alert('Stok tidak boleh kurang dari 0');
+                        return false;
+                    }
                 }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Statistik
+                |--------------------------------------------------------------------------
+                */
 
                 if (!this.$refs.average_rating.value.trim()) {
                     alert('Nilai Rating wajib diisi');
                     return false;
                 }
 
-                return true;
+                if (!this.$refs.total_sold.value.trim()) {
+                    alert('Total Terjual wajib diisi');
+                    return false;
+                }
 
-            case 4:
                 return true;
         }
 
         return true;
+    },
+
+    getVariantMedia(variant) {
+        if (!variant?.media_id) {
+            return null;
+        }
+
+        return this.availableMedia.find(
+            media => media.id === variant.media_id
+        ) ?? null;
     },
 });

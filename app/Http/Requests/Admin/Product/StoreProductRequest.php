@@ -149,6 +149,34 @@ class StoreProductRequest extends FormRequest
                 'distinct',
             ],
 
+            'variants.*.sku' => [
+                'required',
+                'string',
+                'max:100',
+                'regex:/^[A-Z0-9-]+$/',
+                'distinct',
+                'unique:product_variants,sku',
+            ],
+
+            'variants.*.original_price' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
+            'variants.*.discount_price' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'lt:variants.*.original_price',
+            ],
+
+            'variants.*.media_id' => [
+                'required',
+                'uuid',
+                'exists:temporary_media,id',
+            ],
+
             'variants.*.ready_stock' => [
                 'required',
                 'integer',
@@ -238,6 +266,10 @@ class StoreProductRequest extends FormRequest
         $variants = collect($this->input('variants', []))
             ->filter(function ($variant) {
                 return filled($variant['name'] ?? '')
+                    || filled($variant['sku'] ?? '')
+                    || filled($variant['original_price'] ?? '')
+                    || filled($variant['discount_price'] ?? '')
+                    || filled($variant['media_id'] ?? '')
                     || filled($variant['ready_stock'] ?? '');
             })
             ->values()
@@ -273,6 +305,13 @@ class StoreProductRequest extends FormRequest
             'discount_price' => 'Harga Diskon',
 
             'ready_stock' => 'Ready Stock',
+
+            'variants.*.name' => 'Nama Varian',
+            'variants.*.sku' => 'SKU Varian',
+            'variants.*.original_price' => 'Harga Asli Varian',
+            'variants.*.discount_price' => 'Harga Diskon Varian',
+            'variants.*.media_id' => 'Foto Varian',
+            'variants.*.ready_stock' => 'Ready Stock Varian',
 
             'average_rating' => 'Average Rating',
             'total_sold' => 'Total Terjual',
@@ -326,6 +365,33 @@ class StoreProductRequest extends FormRequest
 
             'sku.unique' =>
                 'SKU produk sudah digunakan.',
+
+            'variants.*.sku.required' =>
+                'SKU varian wajib diisi.',
+
+            'variants.*.sku.regex' =>
+                'SKU varian hanya boleh berisi huruf besar A-Z, angka, dan tanda strip (-), tanpa spasi atau simbol lainnya.',
+
+            'variants.*.sku.distinct' =>
+                'SKU varian tidak boleh sama.',
+
+            'variants.*.sku.unique' =>
+                'SKU varian sudah digunakan.',
+
+            'variants.*.original_price.required' =>
+                'Harga asli varian wajib diisi.',
+
+            'variants.*.discount_price.lt' =>
+                'Harga diskon varian harus lebih kecil dari harga asli varian.',
+
+            'variants.*.media_id.required' =>
+                'Foto varian wajib dipilih.',
+
+            'variants.*.media_id.exists' =>
+                'Foto varian yang dipilih tidak ditemukan.',
+
+            'variants.*.ready_stock.required' =>
+                'Stok varian wajib diisi.',
         ];
     }
 }

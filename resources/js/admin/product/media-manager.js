@@ -8,6 +8,23 @@ export default (existingMedia = []) => ({
     uploading: false,
     uploadError: null,
     isSubmitting: false,
+    
+    notifyMediaUpdated() {
+        const media = this.media.map(item => ({
+            id: item.id,
+            url: item.url,
+            media_type: item.media_type,
+            temporary: Boolean(item.temporary),
+        }));
+
+        window.productAvailableMedia = media;
+
+        window.dispatchEvent(
+            new CustomEvent("product-media-updated", {
+                detail: media,
+            })
+        );
+    },
 
     init() {
 
@@ -19,6 +36,12 @@ export default (existingMedia = []) => ({
         this.$nextTick(() => {
             this.initSortable();
 
+        });
+
+        this.notifyMediaUpdated();
+
+        this.$nextTick(() => {
+            this.notifyMediaUpdated();
         });
 
         window.addEventListener("beforeunload", () => {
@@ -196,6 +219,8 @@ export default (existingMedia = []) => ({
 
             }
 
+            this.notifyMediaUpdated();
+
             this.$nextTick(() => {
 
                 this.initSortable();
@@ -260,6 +285,8 @@ export default (existingMedia = []) => ({
         ) {
             this.media[0].is_main = true;
         }
+
+        this.notifyMediaUpdated();
     },
 
     findMain() {

@@ -20,23 +20,22 @@ class ProductService
 
             $product = $this->createProduct($data);
 
+            $mediaMap = $this->mediaService->attachTemporaryMedia(
+                $product,
+                $data['temporary_media'] ?? [],
+                $data['media_order'] ?? [],
+                $data['main_media'] ?? null,
+            );
+
             if ($data['variants_enabled']) {
-                $this->syncVariants($product, $data['variants']);
+                $this->syncVariants(
+                    $product,
+                    $data['variants'],
+                    $mediaMap
+                );
             }
 
             $this->createSpecification($product, $data);
-
-            $this->mediaService->attachTemporaryMedia(
-
-                $product,
-
-                $data['temporary_media'] ?? [],
-
-                $data['media_order'] ?? [],
-
-                $data['main_media'] ?? null,
-
-            );
 
             return $product->fresh([
                 'category',
@@ -56,13 +55,21 @@ class ProductService
     {
         return DB::transaction(function () use ($product, $data) {
 
+            $this->updateProduct($product, $data);
+
+            $mediaMap = $this->mediaService->attachTemporaryMedia(
+                $product,
+                $data['temporary_media'] ?? [],
+                $data['media_order'] ?? [],
+                $data['main_media'] ?? null,
+            );
+
             $this->syncVariantsOnUpdate(
                 $product,
                 $data['variants_enabled'],
-                $data['variants'] ?? []
+                $data['variants'] ?? [],
+                $mediaMap
             );
-
-            $this->updateProduct($product, $data);
 
             $this->updateSpecification($product, $data);
 
@@ -72,13 +79,6 @@ class ProductService
                     $data['deleted_media']
                 );
             }
-
-            $this->mediaService->attachTemporaryMedia(
-                $product,
-                $data['temporary_media'] ?? [],
-                $data['media_order'] ?? [],
-                $data['main_media'] ?? null,
-            );
 
             return $product->fresh([
                 'category',
@@ -185,11 +185,12 @@ class ProductService
             'original_price' => $originalPrice,
             'discount_price' => $discountPrice,
             'discount_percentage' => $discountPercentage,
-
-            // PERBAIKAN DI SINI JUGA:
             'is_sale' => (bool) ($data['is_sale'] ?? false),
 
-            'ready_stock' => $data['ready_stock'],
+            'ready_stock' => $data['variants_enabled']
+                ? 0
+                : $data['ready_stock'],
+
             'locked_stock' => 0,
             'origin_city' => 'Malang',
             'video_tutorial_url' => $data['video_tutorial_url'] ?? null,
@@ -273,11 +274,44 @@ class ProductService
         });
     }
 
-    private function syncVariants(Product $product, array $variants): void
-    {
+    private function syncVariants(
+        Product $product,
+        array $variants,
+        array $mediaMap = []
+    ): void {
         foreach ($variants as $index => $variant) {
+
+            $originalPrice = (float) $variant['original_price'];
+
+            $discountPrice = filled($variant['discount_price'] ?? null)
+                ? (float) $variant['discount_price']
+                : null;
+
+            $discountPercentage = null;
+
+            if (
+                $discountPrice !== null &&
+                $discountPrice > 0 &&
+                $discountPrice < $originalPrice
+            ) {
+                $discountPercentage = round(
+                    (($originalPrice - $discountPrice) / $originalPrice) * 100
+                );
+            }
+
+            $mediaId = $variant['media_id'] ?? null;
+
+            if ($mediaId && isset($mediaMap[$mediaId])) {
+                $mediaId = $mediaMap[$mediaId];
+            }
+
             $product->variants()->create([
                 'name' => trim($variant['name']),
+                'sku' => strtoupper(trim($variant['sku'])),
+                'original_price' => $originalPrice,
+                'discount_price' => $discountPrice,
+                'discount_percentage' => $discountPercentage,
+                'media_id' => $mediaId,
                 'ready_stock' => $variant['ready_stock'],
                 'locked_stock' => 0,
                 'is_active' => true,
@@ -286,19 +320,23 @@ class ProductService
         }
     }
 
-    private function syncVariantsOnUpdate(Product $product,bool $variantsEnabled,array $variants): void 
-    {
+    private function syncVariantsOnUpdate(
+        Product $product,
+        bool $variantsEnabled,
+        array $variants,
+        array $mediaMap = []
+    ): void {
         $existingVariants = $product->variants()
             ->lockForUpdate()
             ->get()
             ->keyBy('id');
 
-        // Produk tidak menggunakan varian
         if (!$variantsEnabled) {
             foreach ($existingVariants as $variant) {
                 if ($variant->locked_stock > 0) {
                     throw ValidationException::withMessages([
-                        'variants' => "Varian {$variant->name} masih memiliki stok yang dikunci.",
+                        'variants' =>
+                            "Varian {$variant->name} masih memiliki stok yang dikunci.",
                     ]);
                 }
             }
@@ -308,8 +346,6 @@ class ProductService
             return;
         }
 
-        // Produk berubah dari stok biasa menjadi menggunakan varian.
-        // Stok produk lama tidak boleh hilang secara otomatis.
         if (
             $existingVariants->isEmpty() &&
             (
@@ -318,7 +354,8 @@ class ProductService
             )
         ) {
             throw ValidationException::withMessages([
-                'variants' => 'Produk yang sudah memiliki stok tidak dapat langsung diubah menjadi produk bervarian. Habiskan atau atur stok produk terlebih dahulu.',
+                'variants' =>
+                    'Produk yang sudah memiliki stok tidak dapat langsung diubah menjadi produk bervarian. Habiskan atau atur stok produk terlebih dahulu.',
             ]);
         }
 
@@ -327,7 +364,6 @@ class ProductService
             ->filter()
             ->values();
 
-        // Varian lama yang tidak lagi dikirim berarti dihapus.
         foreach ($existingVariants as $variant) {
             if ($submittedIds->contains($variant->id)) {
                 continue;
@@ -335,15 +371,40 @@ class ProductService
 
             if ($variant->locked_stock > 0) {
                 throw ValidationException::withMessages([
-                    'variants' => "Varian {$variant->name} masih memiliki stok yang dikunci dan tidak dapat dihapus.",
+                    'variants' =>
+                        "Varian {$variant->name} masih memiliki stok yang dikunci dan tidak dapat dihapus.",
                 ]);
             }
 
             $variant->delete();
         }
 
-        // Update varian lama / buat varian baru
         foreach ($variants as $index => $variantData) {
+
+            $originalPrice = (float) $variantData['original_price'];
+
+            $discountPrice = filled($variantData['discount_price'] ?? null)
+                ? (float) $variantData['discount_price']
+                : null;
+
+            $discountPercentage = null;
+
+            if (
+                $discountPrice !== null &&
+                $discountPrice > 0 &&
+                $discountPrice < $originalPrice
+            ) {
+                $discountPercentage = round(
+                    (($originalPrice - $discountPrice) / $originalPrice) * 100
+                );
+            }
+
+            $mediaId = $variantData['media_id'] ?? null;
+
+            if ($mediaId && isset($mediaMap[$mediaId])) {
+                $mediaId = $mediaMap[$mediaId];
+            }
+
             $variantId = $variantData['id'] ?? null;
 
             if ($variantId) {
@@ -351,12 +412,18 @@ class ProductService
 
                 if (!$variant) {
                     throw ValidationException::withMessages([
-                        'variants' => 'Varian tidak valid untuk produk ini.',
+                        'variants' =>
+                            'Varian tidak valid untuk produk ini.',
                     ]);
                 }
 
                 $variant->update([
                     'name' => trim($variantData['name']),
+                    'sku' => strtoupper(trim($variantData['sku'])),
+                    'original_price' => $originalPrice,
+                    'discount_price' => $discountPrice,
+                    'discount_percentage' => $discountPercentage,
+                    'media_id' => $mediaId,
                     'ready_stock' => $variantData['ready_stock'],
                     'is_active' => true,
                     'sort_order' => $index,
@@ -367,6 +434,11 @@ class ProductService
 
             $product->variants()->create([
                 'name' => trim($variantData['name']),
+                'sku' => strtoupper(trim($variantData['sku'])),
+                'original_price' => $originalPrice,
+                'discount_price' => $discountPrice,
+                'discount_percentage' => $discountPercentage,
+                'media_id' => $mediaId,
                 'ready_stock' => $variantData['ready_stock'],
                 'locked_stock' => 0,
                 'is_active' => true,

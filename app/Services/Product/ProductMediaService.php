@@ -8,6 +8,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Models\TemporaryMedia;
+use Illuminate\Validation\ValidationException;
 
 class ProductMediaService
 {
@@ -22,12 +23,14 @@ class ProductMediaService
         array $temporaryMediaIds,
         array $mediaOrder = [],
         ?string $mainMedia = null
-    ): void {
+    ): array {
         $sort = $product->media()->max('sort_order') ?? 0;
 
         $temporaryMedia = TemporaryMedia::query()
             ->whereIn('id', $temporaryMediaIds)
+            ->where('user_id', auth()->id())
             ->get();
+
         $idMap = [];
         
         foreach ($temporaryMedia as $temp) {
@@ -91,10 +94,9 @@ class ProductMediaService
 
         }
         else {
-
             $this->ensureMainMedia($product);
-
         }
+        return $idMap;
     }
 
     /*
@@ -188,13 +190,27 @@ class ProductMediaService
 
         foreach ($media as $item) {
 
+            if ($item->variants()->exists()) {
+                throw ValidationException::withMessages([
+                    'deleted_media' =>
+                        'Media "' . ($item->alt_text ?: 'ini') .
+                        '" masih digunakan sebagai foto varian dan tidak dapat dihapus.',
+                ]);
+            }
+
             Storage::disk('public')->delete($item->media_url);
+
+            if (
+                $item->thumbnail_url &&
+                $item->thumbnail_url !== $item->media_url
+            ) {
+                Storage::disk('public')->delete($item->thumbnail_url);
+            }
 
             $item->delete();
         }
 
         $this->ensureMainMedia($product);
-
     }
 
     /*

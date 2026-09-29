@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
+use App\Http\Resources\Product\ProductMediaResource;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class CartItemResource extends JsonResource
@@ -12,8 +13,15 @@ class CartItemResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $price = $this->product->discount_price
-            ?? $this->product->original_price;
+        $price = $this->product_variant_id
+            ? (
+                $this->productVariant->discount_price
+                ?? $this->productVariant->original_price
+            )
+            : (
+                $this->product->discount_price
+                ?? $this->product->original_price
+            );
 
         $stock = $this->product_variant_id
             ? $this->productVariant->ready_stock
@@ -45,6 +53,12 @@ class CartItemResource extends JsonResource
                 ? [
                     'id' => $this->productVariant->id,
                     'name' => $this->productVariant->name,
+
+                    'media' => $this->productVariant->media
+                        ? ProductMediaResource::make(
+                            $this->productVariant->media
+                        )
+                        : null,
                 ]
                 : null,
 

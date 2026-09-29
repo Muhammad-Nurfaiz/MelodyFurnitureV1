@@ -59,10 +59,15 @@ class OrderCalculatorService
             |--------------------------------------------------------------------------
             */
 
-            $price =
-                $product->discount_price
-                    ? $product->discount_price
-                    : $product->original_price;
+            $price = $this->hasVariant($item)
+                ? (
+                    $item->productVariant->discount_price
+                        ?? $item->productVariant->original_price
+                )
+                : (
+                    $product->discount_price
+                        ?? $product->original_price
+                );
 
             $subtotal +=
                 $price * $item->quantity;
@@ -337,6 +342,11 @@ class OrderCalculatorService
             'total_weight'=> $totalWeight,
             'couriers'    => $results,
         ];
+    }
+
+    private function hasVariant($item): bool
+    {
+        return !empty($item->product_variant_id);
     }
 }
 
