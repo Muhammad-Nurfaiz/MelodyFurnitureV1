@@ -12,7 +12,8 @@
     <style>
 
         @page {
-            margin: 8px;
+            size: 100mm 150mm;
+            margin: 3mm;
         }
 
         * {
@@ -23,284 +24,251 @@
             margin: 0;
             padding: 0;
             font-family: DejaVu Sans, sans-serif;
-            color: #111827;
-            font-size: 11px;
+            color: #000000;
+            font-size: 8.5pt;
+            line-height: 1.15;
         }
 
-        .label {
+        .label-container {
             width: 100%;
+            border: 1.5px solid #000000;
         }
 
-
-        /* =========================================================
-           HEADER
-        ========================================================= */
-
-        .header {
-            border-bottom: 2px solid #111827;
-            padding-bottom: 8px;
-            margin-bottom: 8px;
-        }
-
-        .header-table {
+        table.grid {
             width: 100%;
             border-collapse: collapse;
         }
 
-        .header-table td {
-            vertical-align: middle;
-        }
-
-        .logo-cell {
-            width: 62%;
-        }
-
-        .logo {
-            width: 180px;
-            height: auto;
-        }
-
-        .title-cell {
-            width: 38%;
-            text-align: right;
-        }
-
-        .title {
-            font-size: 11px;
-            font-weight: bold;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .order-number {
-            margin-top: 6px;
-            font-size: 15px;
-            font-weight: bold;
-            color: #111827;
-        }
-
-
-        /* =========================================================
-           SECTION
-        ========================================================= */
-
-        .section {
-            margin-bottom: 8px;
-        }
-
-        .section-title {
-            margin-bottom: 5px;
-            font-size: 9px;
-            font-weight: bold;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: .8px;
-        }
-
-
-        /* =========================================================
-           RECIPIENT
-        ========================================================= */
-
-        .recipient {
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .address {
-            margin-top: 4px;
-            line-height: 1.5;
-        }
-
-
-        /* =========================================================
-           SHIPPING
-        ========================================================= */
-
-        .shipping-box {
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 8px;
-        }
-
-        .shipping-row {
-            margin-bottom: 5px;
-        }
-
-        .shipping-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .label-text {
-            color: #6b7280;
-        }
-
-        .value {
-            font-weight: bold;
-        }
-
-
-        /* =========================================================
-           ITEMS
-        ========================================================= */
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            padding: 6px 5px;
-            background: #f3f4f6;
-            border-bottom: 1px solid #d1d5db;
-            text-align: left;
-            font-size: 9px;
-            text-transform: uppercase;
-        }
-
-        td {
-            padding: 7px 5px;
-            border-bottom: 1px solid #e5e7eb;
+        table.grid td,
+        table.grid th {
+            border: 1px solid #000000;
+            padding: 3px 4px;
             vertical-align: top;
         }
 
-        .qty {
-            width: 45px;
+
+        /* =========================================================
+            HEADER (LOGOS & SERVICE)
+        ========================================================= */
+
+        .header-left {
+            width: 50%;
+            vertical-align: middle !important;
+        }
+
+        .header-right {
+            width: 50%;
+            text-align: right;
+            vertical-align: middle !important;
+        }
+
+        .logo {
+            max-width: 110px;
+            max-height: 28px;
+            width: auto;
+            height: auto;
+        }
+
+        .service-badge {
+            font-size: 11pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .order-no {
+            font-size: 8pt;
+            font-weight: bold;
+        }
+
+
+        /* =========================================================
+            COURIER & TRACKING NO
+        ========================================================= */
+
+        .tracking-box {
+            text-align: center;
+            background: #f3f4f6;
+            padding: 4px 2px !important;
+        }
+
+        .courier-name {
+            font-size: 10pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .tracking-number {
+            font-size: 12pt;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            margin-top: 1px;
+        }
+
+
+        /* =========================================================
+            ADDRESSES (2 COLUMNS: RECIPIENT & SENDER)
+        ========================================================= */
+
+        .col-half {
+            width: 50%;
+        }
+
+        .addr-title {
+            font-size: 7.5pt;
+            color: #4b5563;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .person-name {
+            font-size: 9.5pt;
+            font-weight: bold;
+            color: #000000;
+        }
+
+        .person-phone {
+            font-size: 8.5pt;
+            font-weight: bold;
+            margin-top: 1px;
+        }
+
+        .person-address {
+            font-size: 8pt;
+            margin-top: 2px;
+            line-height: 1.2;
+        }
+
+
+        /* =========================================================
+            SHIPPING INFO BAR
+        ========================================================= */
+
+        .info-cell {
+            font-size: 8pt;
+            background: #fafafa;
+        }
+
+        .info-label {
+            color: #4b5563;
+            font-weight: bold;
+        }
+
+        .info-val {
+            font-weight: bold;
+            color: #000000;
+        }
+
+
+        /* =========================================================
+            ITEMS TABLE
+        ========================================================= */
+
+        .th-product {
+            text-align: left;
+            background: #e5e7eb;
+            font-size: 8pt;
+            text-transform: uppercase;
+        }
+
+        .th-qty {
+            text-align: center;
+            width: 35px;
+            background: #e5e7eb;
+            font-size: 8pt;
+            text-transform: uppercase;
+        }
+
+        .product-name {
+            font-size: 8.5pt;
+            font-weight: bold;
+        }
+
+        .product-sub {
+            font-size: 7.5pt;
+            color: #374151;
+            margin-top: 1px;
+        }
+
+        .td-qty {
             text-align: center;
             font-weight: bold;
-        }
-
-        .variant {
-            margin-top: 2px;
-            font-size: 10px;
-            font-weight: bold;
-            color: #374151;
-        }
-
-        .sku {
-            margin-top: 2px;
-            font-size: 9px;
-            color: #6b7280;
+            font-size: 9pt;
+            vertical-align: middle !important;
         }
 
 
         /* =========================================================
-           TOTAL ITEM
+            WARNING & FRAGILE BOX
         ========================================================= */
 
-        .total-box {
-            margin-top: 10px;
-            border: 2px solid #111827;
-            border-radius: 6px;
-            padding: 9px;
-        }
-
-        .total-row {
-            margin-bottom: 4px;
-        }
-
-        .total-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .total-value {
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-
-        /* =========================================================
-           WARNING / FRAGILE
-        ========================================================= */
-
-        .warning-box {
-            margin-top: 8px;
-            border: 2px solid #dc2626;
+        .warning-container {
             background: #fef2f2;
-            border-radius: 6px;
-            padding: 9px;
+            padding: 4px !important;
         }
 
-        .warning-table {
+        .warning-tbl {
             width: 100%;
             border-collapse: collapse;
         }
 
-        .warning-table td {
-            padding: 0;
-            border: none;
-            vertical-align: middle;
+        .warning-tbl td {
+            border: none !important;
+            padding: 0 !important;
+            vertical-align: middle !important;
         }
 
-        .fragile-cell {
-            width: 105px;
+        .fragile-td {
+            width: 70px;
             text-align: center;
-            padding-right: 8px !important;
         }
 
-        .fragile-image {
-            width: 85px;
+        .fragile-img {
+            width: 58px;
             height: auto;
         }
 
-        .warning-content {
-            vertical-align: top !important;
-        }
-
         .warning-title {
-            font-size: 11px;
+            font-size: 9.5pt;
             font-weight: bold;
-            color: #b91c1c;
-            text-transform: uppercase;
-            margin-bottom: 4px;
+            color: #dc2626;
+            margin-bottom: 2px;
         }
 
         .warning-text {
-            font-size: 9px;
-            line-height: 1.45;
-            color: #7f1d1d;
-            text-align: justify;
-        }
-
-
-        /* =========================================================
-           WAREHOUSE
-        ========================================================= */
-
-        .warehouse-note {
-            margin-top: 8px;
-            border: 1px dashed #9ca3af;
-            padding: 9px;
-            min-height: 65px;
-        }
-
-        .warehouse-title {
-            font-size: 10px;
+            font-size: 7.5pt;
+            line-height: 1.25;
+            color: #991b1b;
             font-weight: bold;
         }
 
-        .checklist {
-            margin-top: 8px;
-        }
-
-        .check {
-            display: inline-block;
-            margin-right: 15px;
-        }
-
 
         /* =========================================================
-           FOOTER
+            WAREHOUSE & FOOTER
         ========================================================= */
 
-        .footer {
-            margin-top: 6px;
-            padding-top: 5px;
-            border-top: 1px solid #d1d5db;
+        .wh-title {
+            font-size: 8pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .wh-checklist {
+            font-size: 8pt;
+            font-weight: bold;
+        }
+
+        .wh-item {
+            margin-right: 10px;
+        }
+
+        .footer-note {
             text-align: center;
-            font-size: 8px;
-            color: #6b7280;
+            font-size: 7pt;
+            color: #4b5563;
+            background: #f9fafb;
+            padding: 2px !important;
         }
 
     </style>
@@ -309,347 +277,290 @@
 
 <body>
 
-<div class="label">
+@php
+    $address = $order->shipping_address ?? [];
+@endphp
 
+<div class="label-container">
 
-    {{-- ===================================================== --}}
-    {{-- HEADER --}}
-    {{-- ===================================================== --}}
+    <table class="grid">
 
-    <div class="header">
+        {{-- 1. HEADER --}}
+        <tr>
 
-        <table class="header-table">
+            <td class="header-left">
 
-            <tr>
+                <img
+                    src="{{ $logoBase64 }}"
+                    alt="Melody Furniture"
+                    class="logo"
+                >
 
-                {{-- Logo --}}
-                <td class="logo-cell">
+            </td>
 
-                    <img
-                        src="{{ $logoBase64 }}"
-                        alt="Melody Furniture"
-                        class="logo"
-                    >
+            <td class="header-right">
 
-                </td>
+                <div class="service-badge">
+                    {{ $order->shipping_method ?? 'REGULAR' }}
+                </div>
 
+                <div class="order-no">
+                    {{ $order->order_number }}
+                </div>
 
-                {{-- Document Information --}}
-                <td class="title-cell">
+            </td>
 
-                    <div class="title">
-                        Packing Label
-                    </div>
+        </tr>
 
-                    <div class="order-number">
-                        {{ $order->order_number }}
-                    </div>
 
-                </td>
+        {{-- 2. COURIER & TRACKING --}}
+        <tr>
 
-            </tr>
+            <td
+                colspan="2"
+                class="tracking-box"
+            >
 
-        </table>
+                <div class="courier-name">
+                    {{ strtoupper($order->courier ?? 'KURIR') }}
+                </div>
 
-    </div>
+                <div class="tracking-number">
+                    No. Resi: {{ $order->tracking_number ?? '-' }}
+                </div>
 
+            </td>
 
-    {{-- ===================================================== --}}
-    {{-- RECIPIENT --}}
-    {{-- ===================================================== --}}
+        </tr>
 
-    @php
-        $address = $order->shipping_address ?? [];
-    @endphp
 
-    <div class="section">
+        {{-- 3. ADDRESSES (PENERIMA & PENGIRIM) --}}
+        <tr>
 
-        <div class="section-title">
-            Penerima
-        </div>
+            {{-- Penerima --}}
+            <td class="col-half">
 
-        <div class="recipient">
-            {{ $address['recipient_name'] ?? $order->customer_name ?? '-' }}
-        </div>
+                <div class="addr-title">
+                    Penerima:
+                </div>
 
-        <div>
-            {{ $address['phone'] ?? $order->customer_phone ?? '-' }}
-        </div>
+                <div class="person-name">
+                    {{ $address['recipient_name'] ?? $order->customer_name ?? '-' }}
+                </div>
 
-        <div class="address">
+                <div class="person-phone">
+                    {{ $address['phone'] ?? $order->customer_phone ?? '-' }}
+                </div>
 
-            {{ $address['address'] ?? '-' }},
-            {{ $address['area'] ?? '-' }}
+                <div class="person-address">
+                    {{ $address['address'] ?? '-' }},
+                    {{ $address['area'] ?? '-' }},
+                    {{ $address['city'] ?? '-' }},
+                    {{ $address['province'] ?? '-' }}
+                    {{ $address['postal_code'] ?? '' }}
+                </div>
 
-            <br>
+            </td>
 
-            {{ $address['city'] ?? '-' }},
-            {{ $address['province'] ?? '-' }}
+            {{-- Pengirim --}}
+            <td class="col-half">
 
-            <br>
+                <div class="addr-title">
+                    Pengirim:
+                </div>
 
-            {{ $address['postal_code'] ?? '-' }}
+                <div class="person-name">
+                    Melody Furniture
+                </div>
 
-        </div>
+                <div class="person-phone">
+                    0812-3456-7890
+                </div>
 
-    </div>
+                <div class="person-address">
+                    Kota Malang, Jawa Timur
+                </div>
 
+            </td>
 
-    {{-- ===================================================== --}}
-    {{-- SHIPPING --}}
-    {{-- ===================================================== --}}
+        </tr>
 
-    <div class="section">
 
-        <div class="section-title">
-            Pengiriman
-        </div>
+        {{-- 4. SHIPPING SUMMARY --}}
+        <tr>
 
-        <div class="shipping-box">
+            <td
+                colspan="2"
+                class="info-cell"
+            >
 
-            <div class="shipping-row">
+                <span class="info-label">Berat:</span>
+                <span class="info-val">{{ number_format($order->total_weight ?? 0, 2, ',', '.') }} Kg</span>
 
-                <span class="label-text">
-                    Courier:
-                </span>
+                &nbsp;|&nbsp;
 
-                <span class="value">
-                    {{ strtoupper($order->courier ?? '-') }}
-                </span>
+                <span class="info-label">Total Jenis:</span>
+                <span class="info-val">{{ $order->items->count() }} Item</span>
 
-            </div>
+                &nbsp;|&nbsp;
 
-            <div class="shipping-row">
+                <span class="info-label">Total Qty:</span>
+                <span class="info-val">{{ $order->items->sum('quantity') }} Pcs</span>
 
-                <span class="label-text">
-                    Service:
-                </span>
+            </td>
 
-                <span class="value">
-                    {{ $order->shipping_method ?? '-' }}
-                </span>
+        </tr>
 
-            </div>
 
-            <div class="shipping-row">
+        {{-- 5. ITEMS LIST --}}
+        <tr>
 
-                <span class="label-text">
-                    Berat:
-                </span>
+            <td
+                colspan="2"
+                style="padding: 0;"
+            >
 
-                <span class="value">
-                    {{ number_format($order->total_weight ?? 0, 2, ',', '.') }} Kg
-                </span>
+                <table class="grid">
 
-            </div>
+                    <thead>
 
-            <div class="shipping-row">
+                        <tr>
 
-                <span class="label-text">
-                    Tracking:
-                </span>
+                            <th class="th-product">
+                                Produk
+                            </th>
 
-                <span class="value">
-                    {{ $order->tracking_number ?? '-' }}
-                </span>
+                            <th class="th-qty">
+                                Qty
+                            </th>
 
-            </div>
+                        </tr>
 
-        </div>
+                    </thead>
 
-    </div>
+                    <tbody>
 
+                        @foreach($order->items as $item)
 
-    {{-- ===================================================== --}}
-    {{-- ITEMS --}}
-    {{-- ===================================================== --}}
+                            <tr>
 
-    <div class="section">
+                                <td>
 
-        <div class="section-title">
-            Barang yang Dipacking
-        </div>
+                                    <div class="product-name">
+                                        {{ $item->product_name }}
+                                    </div>
 
-        <table>
+                                    @if($item->product_variant_name || $item->product_sku)
+                                        <div class="product-sub">
+                                            @if($item->product_variant_name)
+                                                Varian: {{ $item->product_variant_name }}
+                                            @endif
 
-            <thead>
+                                            @if($item->product_variant_name && $item->product_sku) | @endif
 
-                <tr>
+                                            @if($item->product_sku)
+                                                SKU: {{ $item->product_sku }}
+                                            @endif
+                                        </div>
+                                    @endif
 
-                    <th>
-                        Produk
-                    </th>
+                                </td>
 
-                    <th class="qty">
-                        Qty
-                    </th>
+                                <td class="td-qty">
+                                    {{ $item->quantity }}
+                                </td>
 
-                </tr>
+                            </tr>
 
-            </thead>
+                        @endforeach
 
-            <tbody>
+                    </tbody>
 
-                @foreach($order->items as $item)
+                </table>
+
+            </td>
+
+        </tr>
+
+
+        {{-- 6. WARNING / FRAGILE BOX --}}
+        <tr>
+
+            <td
+                colspan="2"
+                class="warning-container"
+            >
+
+                <table class="warning-tbl">
 
                     <tr>
 
-                        <td>
+                        <td class="fragile-td">
 
-                            <strong>
-                                {{ $item->product_name }}
-                            </strong>
-
-                            @if($item->product_variant_name)
-
-                                <div class="variant">
-                                    Varian: {{ $item->product_variant_name }}
-                                </div>
-
-                            @endif
-
-                            @if($item->product_sku)
-
-                                <div class="sku">
-                                    SKU: {{ $item->product_sku }}
-                                </div>
-
-                            @endif
+                            <img
+                                src="{{ $fragileBase64 }}"
+                                alt="Fragile"
+                                class="fragile-img"
+                            >
 
                         </td>
 
-                        <td class="qty">
-                            {{ $item->quantity }}
+                        <td>
+
+                            <div class="warning-title">
+                                ⚠ WAJIB VIDEO UNBOXING
+                            </div>
+
+                            <div class="warning-text">
+                                Harap melakukan video unboxing saat membuka paket untuk syarat klaim garansi jika ada part produk yang rusak/kurang.
+                            </div>
+
                         </td>
 
                     </tr>
 
-                @endforeach
+                </table>
 
-            </tbody>
+            </td>
 
-        </table>
-
-    </div>
+        </tr>
 
 
-    {{-- ===================================================== --}}
-    {{-- TOTAL ITEM --}}
-    {{-- ===================================================== --}}
+        {{-- 7. CATATAN GUDANG --}}
+        <tr>
 
-    <div class="total-box">
+            <td colspan="2">
 
-        <div class="total-row">
+                <div class="wh-title">
+                    Catatan Gudang
+                </div>
 
-            Total Produk:
+                <div class="wh-checklist">
+                    <span class="wh-item">□ Barang Sesuai</span>
+                    <span class="wh-item">□ Packing Aman</span>
+                    <span class="wh-item">□ QC Passed</span>
+                </div>
 
-            <strong>
-                {{ $order->items->count() }} jenis
-            </strong>
+            </td>
 
-        </div>
-
-        <div class="total-row">
-
-            Total Quantity:
-
-            <span class="total-value">
-                {{ $order->items->sum('quantity') }}
-            </span>
-
-            pcs
-
-        </div>
-
-    </div>
+        </tr>
 
 
-    {{-- ===================================================== --}}
-    {{-- WARNING + FRAGILE --}}
-    {{-- ===================================================== --}}
+        {{-- 8. FOOTER --}}
+        <tr>
 
-    <div class="warning-box">
+            <td
+                colspan="2"
+                class="footer-note"
+            >
 
-        <table class="warning-table">
+                Dokumen Internal Gudang — {{ $order->order_number }}
 
-            <tr>
+            </td>
 
-                {{-- Fragile Image --}}
-                <td class="fragile-cell">
+        </tr>
 
-                    <img
-                        src="{{ $fragileBase64 }}"
-                        alt="Fragile"
-                        class="fragile-image"
-                    >
-
-                </td>
-
-
-                {{-- Warning Text --}}
-                <td class="warning-content">
-
-                    <div class="warning-title">
-                        ⚠ WARNING
-                    </div>
-
-                    <div class="warning-text">
-
-                        Harap melakukan video unboxing untuk syarat klaim
-                        garansi jika ada kerusakan atau kekurangan pada part
-                        produk. Tanpa video unboxing, klaim garansi tidak
-                        berlaku.
-
-                    </div>
-
-                </td>
-
-            </tr>
-
-        </table>
-
-    </div>
-
-
-    {{-- ===================================================== --}}
-    {{-- WAREHOUSE --}}
-    {{-- ===================================================== --}}
-
-    <div class="warehouse-note">
-
-        <div class="warehouse-title">
-            CATATAN GUDANG
-        </div>
-
-        <div class="checklist">
-
-            <span class="check">
-                □ Barang sesuai
-            </span>
-
-            <span class="check">
-                □ Packing
-            </span>
-
-            <span class="check">
-                □ QC
-            </span>
-
-        </div>
-
-    </div>
-
-
-    {{-- ===================================================== --}}
-    {{-- FOOTER --}}
-    {{-- ===================================================== --}}
-
-    <div class="footer">
-
-        Dokumen internal gudang —
-        {{ $order->order_number }}
-
-    </div>
+    </table>
 
 </div>
 
