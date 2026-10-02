@@ -56,7 +56,7 @@ class OrderExportService
             'Courier',
             'Service',
             'Tracking Number',
-            'Berat (gram)',
+            'Berat (Kg)',
             'Alamat',
             'Kota',
             'Provinsi',

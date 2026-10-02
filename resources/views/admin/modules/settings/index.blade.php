@@ -556,48 +556,14 @@
                     class="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-6 text-center transition hover:border-blue-400 hover:bg-blue-50/30"
                 >
 
-                    <input
-                        type="file"
-                        id="hero-image"
-                        name="image"
+                    <x-admin.form.file-upload
+                        name="hero_image"
+                        :temporary-upload="true"
                         accept="image/png,image/jpeg,image/webp"
-                        class="hidden"
-                        x-on:change="handleImageChange($event)"
-                    >
-
-                    <label
-                        for="hero-image"
-                        class="flex cursor-pointer flex-col items-center"
-                    >
-
-                        <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="h-6 w-6"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M3 16.5V18a2 2 0 002 2h14a2 2 0 002-2v-1.5M7 10l5-5m0 0l5 5m-5-5v12"
-                                />
-                            </svg>
-
-                        </div>
-
-                        <span class="text-sm font-semibold text-gray-700">
-                            Pilih gambar hero
-                        </span>
-
-                        <span class="mt-1 text-xs text-gray-500">
-                            PNG, JPG, atau WEBP · Maksimal 5MB
-                        </span>
-
-                    </label>
+                        x-on:temporary-uploaded="
+                            modal.data.temporary_media_id = $event.detail.id
+                        "
+                    />
 
                 </div>
 
