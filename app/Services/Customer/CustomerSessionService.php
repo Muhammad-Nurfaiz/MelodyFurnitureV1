@@ -30,51 +30,15 @@ class CustomerSessionService
         return $customer->fresh('cart');
     }
 
-    public function resolve(
-        ?string $guestToken,
-        array $data = []
-    ): Customer
+    public function resolve(?string $guestToken,array $data = []): Customer 
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Guest Token
-        |--------------------------------------------------------------------------
-        */
-
         if ($guestToken) {
-
             $customer = $this->findByToken($guestToken);
 
             if ($customer) {
-
                 return $this->update($customer, $data);
-
             }
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Existing Customer
-        |--------------------------------------------------------------------------
-        */
-
-        $customer = $this->findExistingCustomer($data);
-
-        if ($customer) {
-
-            $customer->update([
-                'guest_token' => (string) Str::uuid(),
-            ]);
-
-            return $this->update($customer, $data);
-
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Create New Customer
-        |--------------------------------------------------------------------------
-        */
 
         return $this->create($data);
     }
