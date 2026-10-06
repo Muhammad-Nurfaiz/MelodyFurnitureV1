@@ -16,7 +16,7 @@ class PaymentResultService
     public function result(string $trackingToken): array
     {
         $order = Order::query()
-            ->with('payment')
+            ->with(['payment', 'items'])
             ->where('tracking_token', $trackingToken)
             ->first();
 
@@ -36,6 +36,18 @@ class PaymentResultService
             'order_number' => $order->order_number,
 
             'tracking_token' => $order->tracking_token,
+
+            'total_payment' => $order->total_payment,
+
+            'items' => $order->items->map(
+                fn ($item) => [
+                    'product_id' => $item->product_id,
+                    'product_variant_id' => $item->product_variant_id,
+                    'quantity' => $item->quantity,
+                    'unit_price' => $item->unit_price,
+                    'subtotal' => $item->subtotal,
+                ]
+            )->values()->all(),
 
             /*
             |--------------------------------------------------------------------------
