@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Schedule;
 Schedule::command('payments:expire')
     ->everyMinute();
 
+Schedule::command('cleanup:inactive-guest-data --delete')
+    ->daily();
+
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');

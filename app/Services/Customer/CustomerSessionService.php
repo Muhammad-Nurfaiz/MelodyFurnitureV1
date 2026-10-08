@@ -21,6 +21,7 @@ class CustomerSessionService
             'phone' => $data['phone'] ?? null,
             'email' => $data['email'] ?? null,
             'guest_token' => (string) Str::uuid(),
+            'last_guest_activity_at' => now(),
         ]);
 
         Cart::firstOrCreate([
@@ -30,7 +31,7 @@ class CustomerSessionService
         return $customer->fresh('cart');
     }
 
-    public function resolve(?string $guestToken,array $data = []): Customer 
+    public function resolve(?string $guestToken, array $data = []): Customer
     {
         if ($guestToken) {
             $customer = $this->findByToken($guestToken);
@@ -68,10 +69,13 @@ class CustomerSessionService
             'name' => $data['name'] ?? $customer->name,
             'phone' => $data['phone'] ?? $customer->phone,
             'email' => $data['email'] ?? $customer->email,
+            'last_guest_activity_at' => now(),
         ]);
+
         if ($customer->isDirty()) {
             $customer->save();
         }
+
         return $customer->fresh('cart');
     }
 

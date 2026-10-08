@@ -23,6 +23,11 @@ class Customer extends Model
         'destination_code',
         'guest_token',
         'otp_code',
+        'last_guest_activity_at',
+    ];
+
+    protected $casts = [
+        'last_guest_activity_at' => 'datetime',
     ];
 
     public function cart(): HasOne

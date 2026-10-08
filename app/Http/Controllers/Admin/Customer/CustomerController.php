@@ -19,6 +19,7 @@ class CustomerController extends AdminController
         $search = trim($request->input('search', ''));
 
         $customers = Customer::query()
+            ->whereHas('orders')
             ->withCount('orders')
 
             ->withSum([
