@@ -66,7 +66,7 @@
                                         </p>
                                     @endif
                                     <p class="text-sm text-slate-500">
-                                        {{ $item->product_slug }}
+                                        {{ $item->product_sku }}
                                     </p>
 
                                 </div>
