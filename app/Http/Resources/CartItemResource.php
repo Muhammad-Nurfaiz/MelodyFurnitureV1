@@ -53,7 +53,7 @@ class CartItemResource extends JsonResource
                 ? [
                     'id' => $this->productVariant->id,
                     'name' => $this->productVariant->name,
-
+                    'sku' => $this->productVariant->sku,
                     'media' => $this->productVariant->media
                         ? ProductMediaResource::make(
                             $this->productVariant->media
@@ -73,6 +73,8 @@ class CartItemResource extends JsonResource
                 'id' => $this->product->id,
 
                 'name' => $this->product->name,
+
+                'sku' => $this->product->sku,
 
                 'slug' => $this->product->slug,
 

@@ -43,6 +43,7 @@ class PaymentResultService
                 fn ($item) => [
                     'product_id' => $item->product_id,
                     'product_variant_id' => $item->product_variant_id,
+                    'product_sku' => $item->product_sku,
                     'quantity' => $item->quantity,
                     'unit_price' => $item->unit_price,
                     'subtotal' => $item->subtotal,

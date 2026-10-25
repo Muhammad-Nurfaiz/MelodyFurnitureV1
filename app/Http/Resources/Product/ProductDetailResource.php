@@ -23,6 +23,8 @@ class ProductDetailResource extends JsonResource
 
             'name' => $this->name,
 
+            'sku' => $this->sku,
+
             'slug' => $this->slug,
 
             'description' => $this->description,
@@ -140,6 +142,7 @@ class ProductDetailResource extends JsonResource
                     ->map(fn ($variant) => [
                         'id' => $variant->id,
                         'name' => $variant->name,
+                        'sku' => $variant->sku,
                         'ready_stock' => (int) $variant->ready_stock,
                         'locked_stock' => (int) $variant->locked_stock,
                         'is_active' => (bool) $variant->is_active,
