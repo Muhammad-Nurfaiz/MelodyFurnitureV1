@@ -263,6 +263,37 @@
 
         </div>
 
+        @if($order->tracking_number)
+
+            <div style="
+                margin-top: 12px;
+                padding: 10px;
+                background: #f3f4f6;
+                border-left: 3px solid #111827;
+            ">
+
+                <div style="
+                    font-size: 10px;
+                    color: #6b7280;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                    margin-bottom: 5px;
+                ">
+                    Nomor Resi Pengiriman
+                </div>
+
+                <div style="
+                    font-size: 13px;
+                    font-weight: bold;
+                    color: #111827;
+                ">
+                    {{ $order->tracking_number }}
+                </div>
+
+            </div>
+
+        @endif
+
     </div>
 
 
