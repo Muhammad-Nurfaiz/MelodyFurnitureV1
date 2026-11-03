@@ -51,6 +51,7 @@ class DashboardAnalyticsService
         */
 
         $orders = $this->salesOrderQuery()
+            ->whereNotNull('paid_at')
             ->when(
                 $startDate,
                 fn ($query) =>
@@ -367,6 +368,7 @@ class DashboardAnalyticsService
                     $query
                         ->where('payment_status', 'paid')
                         ->where('status', '!=', 'cancelled')
+                        ->whereNotNull('paid_at')
                         ->when(
                             $startDate,
                             fn ($query) =>
