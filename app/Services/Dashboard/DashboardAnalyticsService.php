@@ -325,6 +325,7 @@ class DashboardAnalyticsService
     ) {
 
         $orders = $this->salesOrderQuery()
+            ->whereNotNull('paid_at')
             ->when(
                 $startDate,
                 fn ($query) =>
