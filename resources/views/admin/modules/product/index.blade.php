@@ -48,25 +48,73 @@
     {{-- ===================================================== --}}
     {{-- TABLE --}}
     {{-- ===================================================== --}}
-    <x-admin.card>
+    <x-admin.card>  
         <x-admin.table.toolbar>
             <x-slot:left>
                 <form
                     method="GET"
-                    class="w-full">
-                    <x-admin.form.search-input
-                        name="search"
-                        :value="request('search')"
-                        placeholder="Cari produk..."
-                        oninput="
-                            clearTimeout(this.delay);
-                            this.delay = setTimeout(() => {
-                                this.form.submit()
-                            },400);
-                        "/>
+                    class="flex flex-wrap items-center gap-3 w-full">
+
+                    {{-- Search --}}
+                    <div class="w-full sm:w-64">
+                        <x-admin.form.search-input
+                            name="search"
+                            :value="request('search')"
+                            placeholder="Cari produk..."
+                            oninput="
+                                clearTimeout(this.delay);
+                                this.delay = setTimeout(() => {
+                                    this.form.submit()
+                                }, 400);
+                            "/>
+                    </div>
+
+                    {{-- Filter Sale --}}
+                    <select
+                        name="sale"
+                        onchange="this.form.submit()"
+                        class="rounded-lg border-gray-300 text-sm focus:border-primary-500 focus:ring-primary-500">
+
+                        <option value="">Semua Sale</option>
+
+                        <option
+                            value="promo"
+                            @selected(request('sale') === 'promo')>
+                            Promo
+                        </option>
+
+                        <option
+                            value="normal"
+                            @selected(request('sale') === 'normal')>
+                            Bukan Promo
+                        </option>
+                    </select>
+
+                    {{-- Filter Stock --}}
+                    <select
+                        name="stock"
+                        onchange="this.form.submit()"
+                        class="rounded-lg border-gray-300 text-sm focus:border-primary-500 focus:ring-primary-500">
+
+                        <option value="">Semua Stok</option>
+
+                        <option
+                            value="kosong"
+                            @selected(request('stock') === 'kosong')>
+                            Stok Kosong
+                        </option>
+
+                        <option
+                            value="ready"
+                            @selected(request('stock') === 'ready')>
+                            Ready Stock
+                        </option>
+                    </select>
+
                 </form>
             </x-slot:left>
         </x-admin.table.toolbar>
+
         <x-admin.table.table>
             <x-admin.table.thead>
                 <tr>

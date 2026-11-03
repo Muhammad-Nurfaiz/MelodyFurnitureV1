@@ -36,23 +36,63 @@ class ProductController extends Controller
             ->search($request->search)
             ->category($request->category)
             ->series($request->series)
+
+            // Filter Sale
             ->when(
-                $request->boolean('sale'),
-                fn ($query) => $query->sale()
+                $request->input('sale') === 'promo',
+                fn ($query) => $query->where('is_sale', true)
             )
             ->when(
-                $request->boolean('ready_stock'),
+                $request->input('sale') === 'normal',
+                fn ($query) => $query->where('is_sale', false)
+            )
+
+            // Filter Stock
+            ->when(
+                $request->input('stock') === 'ready',
                 function ($query) {
                     $query->where(function ($q) {
-                        $q->where('ready_stock', '>', 0)
-                            ->orWhereHas('variants', function ($variantQuery) {
-                                $variantQuery
-                                    ->where('is_active', true)
-                                    ->where('ready_stock', '>', 0);
-                            });
+                        // Produk tanpa varian
+                        $q->where(function ($subQuery) {
+                            $subQuery
+                                ->whereDoesntHave('variants')
+                                ->where('ready_stock', '>', 0);
+                        })
+
+                        // Produk dengan varian aktif yang memiliki stok
+                        ->orWhereHas('variants', function ($variantQuery) {
+                            $variantQuery
+                                ->where('is_active', true)
+                                ->where('ready_stock', '>', 0);
+                        });
                     });
                 }
             )
+            ->when(
+                $request->input('stock') === 'kosong',
+                function ($query) {
+                    $query->where(function ($q) {
+                        // Produk tanpa varian dan stok habis
+                        $q->where(function ($subQuery) {
+                            $subQuery
+                                ->whereDoesntHave('variants')
+                                ->where('ready_stock', '<=', 0);
+                        })
+
+                        // Produk dengan varian, tetapi tidak ada varian aktif yang ready
+                        ->orWhere(function ($subQuery) {
+                            $subQuery
+                                ->whereHas('variants')
+                                ->whereDoesntHave('variants', function ($variantQuery) {
+                                    $variantQuery
+                                        ->where('is_active', true)
+                                        ->where('ready_stock', '>', 0);
+                                });
+                        });
+                    });
+                }
+            )
+
             ->latest()
             ->paginate(10)
             ->withQueryString();
